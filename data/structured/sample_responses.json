@@ -1,0 +1,144 @@
+{
+  "customer_support_responses": {
+    "common_issues": {
+      "login_problems": {
+        "category": "account",
+        "priority": "medium",
+        "typical_resolution_time": "2 hours",
+        "escalation_threshold": "4 hours",
+        "suggested_responses": [
+          "I understand you're having trouble logging in. Let me help you resolve this quickly.",
+          "I can see this is frustrating. Let's get your account access restored right away.",
+          "I'm here to help with your login issue. Can you tell me what happens when you try to log in?"
+        ],
+        "troubleshooting_steps": [
+          "Verify email address and password",
+          "Check for caps lock or special characters",
+          "Clear browser cache and cookies",
+          "Try password reset if needed",
+          "Check for account suspension or expiration"
+        ]
+      },
+      "billing_disputes": {
+        "category": "billing",
+        "priority": "high",
+        "typical_resolution_time": "4 hours",
+        "escalation_threshold": "8 hours",
+        "suggested_responses": [
+          "I understand your concern about the billing charge. Let me review your account immediately.",
+          "I can see why this charge would be confusing. Let me investigate this for you.",
+          "Thank you for bringing this to our attention. I'll resolve this billing issue right away."
+        ],
+        "required_actions": [
+          "Review billing history",
+          "Check for promotional discounts",
+          "Verify subscription tier and features",
+          "Calculate prorated charges if applicable",
+          "Process refund if error confirmed"
+        ]
+      },
+      "technical_issues": {
+        "category": "technical",
+        "priority": "high",
+        "typical_resolution_time": "1 hour",
+        "escalation_threshold": "2 hours",
+        "suggested_responses": [
+          "I'm sorry you're experiencing technical difficulties. Let me help troubleshoot this issue.",
+          "Technical issues can be frustrating. I'll work with you to get this resolved quickly.",
+          "Let me gather some information to help diagnose the technical problem you're experiencing."
+        ],
+        "diagnostic_questions": [
+          "What browser and version are you using?",
+          "When did you first notice this issue?",
+          "Are you seeing any specific error messages?",
+          "Have you tried refreshing the page or logging out and back in?",
+          "Is this happening on all devices or just one?"
+        ]
+      }
+    },
+    "escalation_triggers": [
+      "Customer mentions legal action",
+      "Customer requests to cancel service",
+      "Issue remains unresolved after 4 hours",
+      "Customer satisfaction score below 2.0",
+      "Multiple failed resolution attempts",
+      "Customer requests supervisor or manager"
+    ],
+    "satisfaction_follow_up": {
+      "high_satisfaction": "Thank you for the positive feedback! Is there anything else I can help you with today?",
+      "medium_satisfaction": "I'm glad we could resolve your issue. Please don't hesitate to reach out if you need further assistance.",
+      "low_satisfaction": "I apologize that we didn't fully meet your expectations. I'd like to escalate this to ensure we provide you with the best possible solution."
+    }
+  },
+  "marketing_responses": {
+    "campaign_templates": {
+      "product_launch": {
+        "social_media": {
+          "twitter": "🚀 Exciting news! Our latest {product_name} is now live! Experience {key_benefit} like never before. Get started today: {link} #Innovation #ProductLaunch",
+          "linkedin": "We're thrilled to announce the launch of {product_name}! This game-changing solution offers {key_benefit} for {target_audience}. Learn more about how it can transform your {use_case}: {link}",
+          "facebook": "Big announcement! 📢 {product_name} is here! Join thousands of satisfied customers who are already experiencing {key_benefit}. Try it free for {trial_period}: {link}"
+        },
+        "email": {
+          "subject_lines": [
+            "Introducing {product_name} - Your {benefit} Solution",
+            "🎉 {product_name} is Live! Get {benefit} Today",
+            "The Wait is Over: {product_name} Has Arrived"
+          ],
+          "body_template": "Hi {first_name},\n\nWe're excited to share that {product_name} is now available! This innovative solution provides {key_benefit} and is designed specifically for {target_audience}.\n\nKey features:\n• {feature_1}\n• {feature_2}\n• {feature_3}\n\nSpecial launch offer: {offer_details}\n\nGet started today: {cta_link}\n\nBest regards,\nThe {company_name} Team"
+        }
+      },
+      "customer_retention": {
+        "email_series": [
+          {
+            "day": 1,
+            "subject": "We miss you, {first_name}!",
+            "content": "We noticed you haven't been active lately. Here's what you've been missing..."
+          },
+          {
+            "day": 7,
+            "subject": "Exclusive offer just for you",
+            "content": "As a valued customer, we'd like to offer you {discount_percentage}% off your next purchase..."
+          },
+          {
+            "day": 14,
+            "subject": "Last chance to save",
+            "content": "This is your final opportunity to take advantage of our exclusive offer..."
+          }
+        ]
+      }
+    },
+    "audience_segments": {
+      "new_users": {
+        "characteristics": ["signed_up_last_30_days", "low_engagement", "no_purchase"],
+        "messaging_focus": "onboarding, education, value_demonstration",
+        "recommended_channels": ["email", "in_app_notifications"],
+        "content_types": ["tutorials", "feature_highlights", "success_stories"]
+      },
+      "power_users": {
+        "characteristics": ["high_engagement", "multiple_purchases", "long_tenure"],
+        "messaging_focus": "advanced_features, beta_access, community",
+        "recommended_channels": ["email", "social_media", "webinars"],
+        "content_types": ["advanced_tutorials", "beta_invitations", "case_studies"]
+      },
+      "at_risk": {
+        "characteristics": ["declining_engagement", "support_tickets", "no_recent_activity"],
+        "messaging_focus": "retention, support, value_reinforcement",
+        "recommended_channels": ["email", "phone", "personalized_outreach"],
+        "content_types": ["help_resources", "success_stories", "special_offers"]
+      }
+    },
+    "performance_benchmarks": {
+      "email_marketing": {
+        "open_rate": {"excellent": ">25%", "good": "20-25%", "average": "15-20%", "poor": "<15%"},
+        "click_rate": {"excellent": ">5%", "good": "3-5%", "average": "2-3%", "poor": "<2%"},
+        "conversion_rate": {"excellent": ">3%", "good": "2-3%", "average": "1-2%", "poor": "<1%"}
+      },
+      "social_media": {
+        "engagement_rate": {"excellent": ">6%", "good": "4-6%", "average": "2-4%", "poor": "<2%"},
+        "reach_growth": {"excellent": ">10%", "good": "5-10%", "average": "2-5%", "poor": "<2%"},
+        "conversion_rate": {"excellent": ">2%", "good": "1-2%", "average": "0.5-1%", "poor": "<0.5%"}
+      }
+    }
+  }
+}
+

@@ -1,0 +1,115 @@
+# Core Framework Dependencies
+fastapi
+uvicorn
+pydantic
+python-multipart
+
+# LangChain and AI Dependencies
+langchain
+langchain-openai
+langchain-community
+openai
+sentence-transformers
+
+# Database Dependencies
+sqlalchemy
+psycopg2-binary
+alembic
+
+# Vector Database and Search
+chromadb
+numpy
+
+# Web and HTTP Dependencies
+requests
+httpx
+
+# Data Processing
+pandas
+python-dateutil
+
+# Testing Dependencies
+pytest
+pytest-asyncio
+
+# Utility Dependencies
+python-dotenv
+typing-extensions
+
+pyyaml
+
+# Code Formatters
+black
+isort
+autoflake
+
+# Documentation and Type Checking
+mypy
+flake8
+docstring-parser
+
+# Additional Dependencies
+tqdm
+rich
+colorama
+loguru
+pyperclip
+pydantic-settings
+
+# Development Dependencies
+pre-commit
+pytest-cov
+
+# Optional Dependencies for Extended Functionality
+# Uncomment if you need these features
+# langchain-embeddings
+# langchain-llms==0.1.0
+# langchain-text-splitters==0.1.0
+# langchain-document-loaders==0.1.0
+# langchain-retrievers==0.1.0
+# langchain-chains==0.1.0
+# langchain-utilities==0.1.0
+# langchain-graph==0.1.0
+# langchain-visualization==0.1.0
+# langchain-llm-operators==0.1.0
+# langchain-embeddings-operators==0.1.0
+# langchain-document-operators==0.1.0
+# langchain-retriever-operators==0.1.0
+# langchain-chain-operators==0.1.0
+# langchain-utility-operators==0.1.0
+# langchain-graph-operators==0.1.0
+# langchain-visualization-operators==0.1.0
+# langchain-llm-utilities==0.1.0
+# langchain-embedding-utilities==0.1.0
+# langchain-document-utilities==0.1.0
+# langchain-retriever-utilities==0.1.0
+# langchain-chain-utilities==0.1.0
+# langchain-graph-utilities==0.1.0
+# langchain-visualization-utilities==0.1.0
+
+# Optional Dependencies for Specific Features
+# Uncomment if you need these features
+# fastapi-security==0.1.0
+# fastapi-auth==0.1.0
+# fastapi-cors==0.1.0
+# fastapi-graphql==0.1.0
+# fastapi-websockets==0.1.0
+# fastapi-sse==0.1.0
+# fastapi-cache==0.1.0
+# fastapi-redis==0.1.0
+# fastapi-mongodb==0.1.0
+# fastapi-sqlalchemy==0.1.0
+# fastapi-alembic==0.1.0
+# fastapi-chromadb==0.1.0
+
+# Optional Dependencies for Enhanced Functionality
+# Uncomment if you need these features
+# langchain-advanced==0.1.0
+# langchain-extended==0.1.0
+# langchain-pro==0.1.0
+# langchain-enterprise==0.1.0
+# langchain-community-advanced==0.1.0
+# langchain-community-extended==0.1.0
+# langchain-community-pro==0.1.0
+# langchain-community-enterprise==0.1.0
+# langchain-community-advanced-operators==0.1.0

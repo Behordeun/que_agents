@@ -1,0 +1,348 @@
+{
+  "test_timestamp": "2025-08-01T15:03:41.044440",
+  "system_status": "PASSED",
+  "test_results": {
+    "system_health": {
+      "status": "PASSED",
+      "data": {
+        "status": "healthy",
+        "timestamp": "2025-08-01T15:03:06.113865",
+        "agents": {
+          "customer_support": "active",
+          "marketing": "active"
+        }
+      }
+    },
+    "knowledge_base": {
+      "status": "PASSED",
+      "data": {
+        "query": "password reset",
+        "category": null,
+        "results": [
+          {
+            "id": 1,
+            "title": "How to Reset Your Password",
+            "content": "To reset your password: 1. Go to login page 2. Click 'Forgot Password' 3. Enter your email 4. Check your email for reset link 5. Follow the instructions in the email",
+            "source_type": "postgresql",
+            "source_path": "knowledge_base.id=1",
+            "category": "account",
+            "metadata": {
+              "tags": [
+                "password",
+                "reset",
+                "login",
+                "account"
+              ],
+              "created_at": "2025-08-01T14:39:00.032875",
+              "updated_at": "2025-08-01T14:39:00.032878"
+            },
+            "created_at": "2025-08-01 14:48:32"
+          },
+          {
+            "id": 7,
+            "title": "Frequently Asked Questions Database",
+            "content": "# Frequently Asked Questions Database\n\n## Account Management\n\n### Q: How do I reset my password?\n**A:** To reset your password:\n1. Go to the login page\n2. Click \"Forgot Password\" below the login form\n3. Enter your registered email address\n4. Check your email for a reset link (may take up to 5 minutes)\n5. Click the link and follow the instructions to create a new password\n6. Your new password must be at least 8 characters with one uppercase letter, one number, and one special character\n\n**Related Issues:** If you don't receive the reset email, check your spam folder or contact support.\n\n### Q: How do I change my email address?\n**A:** To change your email address:\n1. Log into your account\n2. Go to Settings > Account Information\n3. Click \"Edit\" next to your email address\n4. Enter your new email address\n5. Click \"Save Changes\"\n6. Verify the new email address by clicking the link sent to your new email\n\n**Note:** You'll need to verify the new email before the change takes effect.\n\n### Q: How do I upgrade or downgrade my subscription?\n**A:** To change your subscription:\n1. Navigate to Settings > Billing & Subscription\n2. Click \"Change Plan\"\n3. Select your desired plan\n4. Review the changes and prorated charges\n5. Confirm the change\n\n**Billing Note:** Upgrades take effect immediately. Downgrades take effect at the next billing cycle.\n\n### Q: How do I cancel my subscription?\n**A:** To cancel your subscription:\n1. Go to Settings > Billing & Subscription\n2. Click \"Cancel Subscription\"\n3. Select your reason for canceling (optional)\n4. Confirm cancellation\n\n**Important:** You'll retain access until the end of your current billing period. Data will be retained for 30 days after cancellation.\n\n## Technical Issues\n\n### Q: Why is the dashboard loading slowly?\n**A:** Slow dashboard loading can be caused by:\n1. **Large data sets:** Try filtering your data to a smaller date range\n2. **Browser cache:** Clear your browser cache and cookies\n3. **Internet connection:** Check your internet speed\n4. **Browser compatibility:** Use Chrome, Firefox, Safari, or Edge (latest versions)\n5. **Too many widgets:** Remove unused dashboard widgets\n\n**Performance Tips:** Use filters to limit data, close unused browser tabs, and ensure you have a stable internet connection.\n\n### Q: Why am I getting API timeout errors?\n**A:** API timeouts typically occur when:\n1. **Rate limits exceeded:** Check your API usage in Settings > API\n2. **Large requests:** Break large requests into smaller chunks\n3. **Server maintenance:** Check our status page for ongoing maintenance\n4. **Network issues:** Verify your internet connection\n\n**Solutions:** Implement retry logic with exponential backoff, reduce request size, or upgrade to a higher tier for increased rate limits.\n\n### Q: How do I integrate with third-party tools?\n**A:** We support integrations with:\n1. **CRM Systems:** Salesforce, HubSpot, Pipedrive\n2. **Analytics:** Google Analytics, Mixpanel, Amplitude\n3. **Communication:** Slack, Microsoft Teams, Discord\n4. **Development:** GitHub, GitLab, Jira\n\n**Setup:** Go to Settings > Integrations, select your tool, and follow the setup wizard.\n\n### Q: What should I do if I see a 500 error?\n**A:** A 500 error indicates a server issue:\n1. **Immediate action:** Refresh the page and try again\n2. **If persistent:** Clear browser cache and try in incognito mode\n3. **Still occurring:** Check our status page for known issues\n4. **Report:** Contact support with the exact error message and timestamp\n\n**Information to provide:** Browser type/version, what you were doing when the error occurred, and any error codes displayed.\n\n## Billing and Payments\n\n### Q: Why was my payment declined?\n**A:** Payment declines can happen for several reasons:\n1. **Insufficient funds:** Check your account balance\n2. **Expired card:** Update your payment method with current card details\n3. **Bank security:** Contact your bank to authorize the transaction\n4. **Billing address mismatch:** Ensure billing address matches your card\n5. **International restrictions:** Some banks block international transactions\n\n**Next steps:** Update your payment method or contact your bank. We'll automatically retry the payment in 3 days.\n\n### Q: How do I download my invoices?\n**A:** To download invoices:\n1. Go to Settings > Billing & Subscription\n2. Click \"Billing History\"\n3. Find the invoice you need\n4. Click the \"Download PDF\" button\n\n**Note:** Invoices are available for the past 12 months. For older invoices, contact support.\n\n### Q: What's included in each pricing tier?\n**A:** Our pricing tiers include:\n\n**Standard ($99/month):**\n- Up to 10,000 data points\n- Basic analytics dashboard\n- Email support\n- 1 user account\n- API rate limit: 1,000 requests/hour\n\n**Premium ($299/month):**\n- Up to 100,000 data points\n- Advanced analytics and predictive modeling\n- Priority email and chat support\n- Up to 5 user accounts\n- API rate limit: 10,000 requests/hour\n- Custom report templates\n\n**Enterprise (Custom pricing):**\n- Unlimited data points\n- Full platform access with custom features\n- Dedicated account manager\n- Unlimited user accounts\n- Custom API rate limits\n- On-premise deployment options\n- 24/7 phone support\n\n### Q: Do you offer refunds?\n**A:** Our refund policy:\n1. **30-day money-back guarantee** for new customers\n2. **Prorated refunds** for downgrades (credit applied to next bill)\n3. **No refunds** for partial months or add-on services\n4. **Exception:** Technical issues preventing service use may qualify for refunds\n\n**To request:** Contact support with your account details and reason for the refund request.\n\n## Data and Security\n\n### Q: How is my data protected?\n**A:** We implement multiple security measures:\n1. **Encryption:** All data encrypted in transit (TLS 1.3) and at rest (AES-256)\n2. **Access controls:** Role-based permissions and multi-factor authentication\n3. **Compliance:** SOC 2 Type II, GDPR, and CCPA compliant\n4. **Monitoring:** 24/7 security monitoring and threat detection\n5. **Backups:** Daily automated backups with 30-day retention\n\n**Certifications:** ISO 27001, SOC 2 Type II, and regular third-party security audits.\n\n### Q: Can I export my data?\n**A:** Yes, you can export your data:\n1. Go to Settings > Data Export\n2. Select the data types you want to export\n3. Choose format: CSV, JSON, or XML\n4. Click \"Generate Export\"\n5. Download when the export is ready (usually within 15 minutes)\n\n**Limitations:** Exports are limited to 1GB per request. For larger exports, contact support.\n\n### Q: How long do you retain my data after cancellation?\n**A:** Data retention policy:\n1. **Active accounts:** Data retained indefinitely while account is active\n2. **Canceled accounts:** Data retained for 30 days after cancellation\n3. **Deleted accounts:** Data permanently deleted within 7 days of deletion request\n4. **Compliance:** Some data may be retained longer for legal/compliance requirements\n\n**Recovery:** Data can be recovered within the 30-day retention period by reactivating your account.\n\n## Features and Usage\n\n### Q: How do I create custom dashboards?\n**A:** To create custom dashboards:\n1. Navigate to Dashboards > Create New\n2. Choose a template or start from scratch\n3. Add widgets by clicking \"Add Widget\"\n4. Configure each widget with your data sources\n5. Arrange widgets by dragging and dropping\n6. Save your dashboard with a descriptive name\n\n**Tips:** Use filters to focus on specific data, group related widgets together, and keep dashboards focused on specific use cases.\n\n### Q: What data sources can I connect?\n**A:** Supported data sources include:\n1. **Databases:** PostgreSQL, MySQL, MongoDB, Snowflake\n2. **Cloud storage:** AWS S3, Google Cloud Storage, Azure Blob\n3. **APIs:** REST APIs, GraphQL endpoints\n4. **Files:** CSV, JSON, Excel, Parquet\n5. **Streaming:** Kafka, Kinesis, Pub/Sub\n6. **SaaS tools:** Salesforce, HubSpot, Google Analytics, Facebook Ads\n\n**Setup:** Use our connection wizard in Settings > Data Sources.\n\n### Q: How do I set up automated reports?\n**A:** To create automated reports:\n1. Create or open an existing dashboard\n2. Click \"Schedule Report\" in the top menu\n3. Choose frequency (daily, weekly, monthly)\n4. Select recipients and format (PDF, Excel, email)\n5. Set delivery time and timezone\n6. Save the schedule\n\n**Options:** Reports can be filtered by date range, specific metrics, or custom parameters.\n\n## Mobile and Accessibility\n\n### Q: Is there a mobile app?\n**A:** Currently, we offer:\n1. **Mobile-responsive web app:** Access full functionality through your mobile browser\n2. **iOS app:** Available in the App Store (limited functionality)\n3. **Android app:** Available in Google Play Store (limited functionality)\n\n**Recommendation:** For full functionality, use the web app through your mobile browser.\n\n### Q: What accessibility features are available?\n**A:** Our platform includes:\n1. **Screen reader compatibility:** WCAG 2.1 AA compliant\n2. **Keyboard navigation:** Full keyboard accessibility\n3. **High contrast mode:** Available in Settings > Accessibility\n4. **Font size adjustment:** Customizable text size\n5. **Color blind support:** Alternative color schemes available\n\n**Additional help:** Contact support for specific accessibility needs or accommodations.\n\n",
+            "source_type": "markdown",
+            "source_path": "unstructured/faq_database.md",
+            "category": "documentation",
+            "metadata": {
+              "file_size": 9253
+            },
+            "created_at": "2025-08-01 14:48:32"
+          },
+          {
+            "id": 6,
+            "title": "Product Documentation",
+            "content": "# Product Documentation\n\n## AI Analytics Platform\n\n### Overview\nOur AI Analytics Platform provides businesses with intelligent insights and automated decision-making capabilities. The platform combines machine learning algorithms with real-time data processing to deliver actionable business intelligence.\n\n### Key Features\n\n#### 1. Real-time Analytics Dashboard\n- Live data visualization with customizable charts and graphs\n- Automated anomaly detection and alerting\n- Drill-down capabilities for detailed analysis\n- Export functionality for reports and presentations\n\n#### 2. Predictive Analytics Engine\n- Machine learning models for forecasting trends\n- Customer behavior prediction and segmentation\n- Revenue forecasting and budget planning\n- Risk assessment and mitigation recommendations\n\n#### 3. API Integration Hub\n- RESTful API for seamless integration\n- Pre-built connectors for popular business tools\n- Webhook support for real-time data synchronization\n- Rate limiting and authentication controls\n\n#### 4. Automated Reporting\n- Scheduled report generation and distribution\n- Customizable report templates\n- Multi-format export (PDF, Excel, CSV)\n- Email and Slack integration for notifications\n\n### Pricing Tiers\n\n#### Standard Tier ($99/month)\n- Up to 10,000 data points per month\n- Basic analytics dashboard\n- Email support\n- 1 user account\n- API rate limit: 1,000 requests/hour\n\n#### Premium Tier ($299/month)\n- Up to 100,000 data points per month\n- Advanced analytics and predictive modeling\n- Priority email and chat support\n- Up to 5 user accounts\n- API rate limit: 10,000 requests/hour\n- Custom report templates\n\n#### Enterprise Tier (Custom pricing)\n- Unlimited data points\n- Full platform access with custom features\n- Dedicated account manager\n- Unlimited user accounts\n- Custom API rate limits\n- On-premise deployment options\n- 24/7 phone support\n\n### Common Issues and Solutions\n\n#### Login Problems\n**Issue**: Users cannot access their account\n**Solutions**:\n1. Check if account is active and subscription is current\n2. Verify email address and password\n3. Clear browser cache and cookies\n4. Try password reset if needed\n5. Check for any service outages\n\n#### API Integration Issues\n**Issue**: API calls returning errors\n**Solutions**:\n1. Verify API key is valid and active\n2. Check rate limits and usage quotas\n3. Ensure proper authentication headers\n4. Validate request format and parameters\n5. Check API endpoint URLs\n\n#### Data Sync Problems\n**Issue**: Data not updating in real-time\n**Solutions**:\n1. Verify webhook configurations\n2. Check data source connectivity\n3. Review sync schedules and settings\n4. Validate data format compatibility\n5. Check for any processing delays\n\n#### Performance Issues\n**Issue**: Dashboard loading slowly\n**Solutions**:\n1. Optimize query parameters and filters\n2. Reduce data range for large datasets\n3. Check browser compatibility\n4. Clear application cache\n5. Contact support for server-side optimization\n\n### Technical Specifications\n\n#### System Requirements\n- Modern web browser (Chrome, Firefox, Safari, Edge)\n- Stable internet connection (minimum 1 Mbps)\n- JavaScript enabled\n- Cookies enabled for authentication\n\n#### API Specifications\n- REST API with JSON responses\n- OAuth 2.0 authentication\n- HTTPS encryption for all communications\n- Rate limiting based on subscription tier\n- Comprehensive error codes and messages\n\n#### Data Security\n- SOC 2 Type II compliance\n- End-to-end encryption for data transmission\n- Regular security audits and penetration testing\n- GDPR and CCPA compliance\n- Role-based access controls\n\n### Getting Started Guide\n\n#### Step 1: Account Setup\n1. Sign up for an account at our website\n2. Verify your email address\n3. Choose your subscription tier\n4. Complete payment setup\n\n#### Step 2: Initial Configuration\n1. Access the dashboard using your credentials\n2. Connect your first data source\n3. Configure basic settings and preferences\n4. Set up user accounts for your team\n\n#### Step 3: Data Integration\n1. Use our setup wizard to connect data sources\n2. Configure data sync schedules\n3. Set up webhooks for real-time updates\n4. Test data flow and validate accuracy\n\n#### Step 4: Dashboard Customization\n1. Create custom dashboards for different use cases\n2. Add widgets and configure visualizations\n3. Set up automated alerts and notifications\n4. Share dashboards with team members\n\n#### Step 5: Advanced Features\n1. Explore predictive analytics capabilities\n2. Set up automated reporting schedules\n3. Configure API integrations for external tools\n4. Optimize performance based on usage patterns\n\n",
+            "source_type": "markdown",
+            "source_path": "unstructured/product_documentation.md",
+            "category": "documentation",
+            "metadata": {
+              "file_size": 4597
+            },
+            "created_at": "2025-08-01 14:48:32"
+          },
+          {
+            "id": 9,
+            "title": "sample_responses",
+            "content": "{\n  \"customer_support_responses\": {\n    \"common_issues\": {\n      \"login_problems\": {\n        \"category\": \"account\",\n        \"priority\": \"medium\",\n        \"typical_resolution_time\": \"2 hours\",\n        \"escalation_threshold\": \"4 hours\",\n        \"suggested_responses\": [\n          \"I understand you're having trouble logging in. Let me help you resolve this quickly.\",\n          \"I can see this is frustrating. Let's get your account access restored right away.\",\n          \"I'm here to help with your login issue. Can you tell me what happens when you try to log in?\"\n        ],\n        \"troubleshooting_steps\": [\n          \"Verify email address and password\",\n          \"Check for caps lock or special characters\",\n          \"Clear browser cache and cookies\",\n          \"Try password reset if needed\",\n          \"Check for account suspension or expiration\"\n        ]\n      },\n      \"billing_disputes\": {\n        \"category\": \"billing\",\n        \"priority\": \"high\",\n        \"typical_resolution_time\": \"4 hours\",\n        \"escalation_threshold\": \"8 hours\",\n        \"suggested_responses\": [\n          \"I understand your concern about the billing charge. Let me review your account immediately.\",\n          \"I can see why this charge would be confusing. Let me investigate this for you.\",\n          \"Thank you for bringing this to our attention. I'll resolve this billing issue right away.\"\n        ],\n        \"required_actions\": [\n          \"Review billing history\",\n          \"Check for promotional discounts\",\n          \"Verify subscription tier and features\",\n          \"Calculate prorated charges if applicable\",\n          \"Process refund if error confirmed\"\n        ]\n      },\n      \"technical_issues\": {\n        \"category\": \"technical\",\n        \"priority\": \"high\",\n        \"typical_resolution_time\": \"1 hour\",\n        \"escalation_threshold\": \"2 hours\",\n        \"suggested_responses\": [\n          \"I'm sorry you're experiencing technical difficulties. Let me help troubleshoot this issue.\",\n          \"Technical issues can be frustrating. I'll work with you to get this resolved quickly.\",\n          \"Let me gather some information to help diagnose the technical problem you're experiencing.\"\n        ],\n        \"diagnostic_questions\": [\n          \"What browser and version are you using?\",\n          \"When did you first notice this issue?\",\n          \"Are you seeing any specific error messages?\",\n          \"Have you tried refreshing the page or logging out and back in?\",\n          \"Is this happening on all devices or just one?\"\n        ]\n      }\n    },\n    \"escalation_triggers\": [\n      \"Customer mentions legal action\",\n      \"Customer requests to cancel service\",\n      \"Issue remains unresolved after 4 hours\",\n      \"Customer satisfaction score below 2.0\",\n      \"Multiple failed resolution attempts\",\n      \"Customer requests supervisor or manager\"\n    ],\n    \"satisfaction_follow_up\": {\n      \"high_satisfaction\": \"Thank you for the positive feedback! Is there anything else I can help you with today?\",\n      \"medium_satisfaction\": \"I'm glad we could resolve your issue. Please don't hesitate to reach out if you need further assistance.\",\n      \"low_satisfaction\": \"I apologize that we didn't fully meet your expectations. I'd like to escalate this to ensure we provide you with the best possible solution.\"\n    }\n  },\n  \"marketing_responses\": {\n    \"campaign_templates\": {\n      \"product_launch\": {\n        \"social_media\": {\n          \"twitter\": \"\\ud83d\\ude80 Exciting news! Our latest {product_name} is now live! Experience {key_benefit} like never before. Get started today: {link} #Innovation #ProductLaunch\",\n          \"linkedin\": \"We're thrilled to announce the launch of {product_name}! This game-changing solution offers {key_benefit} for {target_audience}. Learn more about how it can transform your {use_case}: {link}\",\n          \"facebook\": \"Big announcement! \\ud83d\\udce2 {product_name} is here! Join thousands of satisfied customers who are already experiencing {key_benefit}. Try it free for {trial_period}: {link}\"\n        },\n        \"email\": {\n          \"subject_lines\": [\n            \"Introducing {product_name} - Your {benefit} Solution\",\n            \"\\ud83c\\udf89 {product_name} is Live! Get {benefit} Today\",\n            \"The Wait is Over: {product_name} Has Arrived\"\n          ],\n          \"body_template\": \"Hi {first_name},\\n\\nWe're excited to share that {product_name} is now available! This innovative solution provides {key_benefit} and is designed specifically for {target_audience}.\\n\\nKey features:\\n\\u2022 {feature_1}\\n\\u2022 {feature_2}\\n\\u2022 {feature_3}\\n\\nSpecial launch offer: {offer_details}\\n\\nGet started today: {cta_link}\\n\\nBest regards,\\nThe {company_name} Team\"\n        }\n      },\n      \"customer_retention\": {\n        \"email_series\": [\n          {\n            \"day\": 1,\n            \"subject\": \"We miss you, {first_name}!\",\n            \"content\": \"We noticed you haven't been active lately. Here's what you've been missing...\"\n          },\n          {\n            \"day\": 7,\n            \"subject\": \"Exclusive offer just for you\",\n            \"content\": \"As a valued customer, we'd like to offer you {discount_percentage}% off your next purchase...\"\n          },\n          {\n            \"day\": 14,\n            \"subject\": \"Last chance to save\",\n            \"content\": \"This is your final opportunity to take advantage of our exclusive offer...\"\n          }\n        ]\n      }\n    },\n    \"audience_segments\": {\n      \"new_users\": {\n        \"characteristics\": [\n          \"signed_up_last_30_days\",\n          \"low_engagement\",\n          \"no_purchase\"\n        ],\n        \"messaging_focus\": \"onboarding, education, value_demonstration\",\n        \"recommended_channels\": [\n          \"email\",\n          \"in_app_notifications\"\n        ],\n        \"content_types\": [\n          \"tutorials\",\n          \"feature_highlights\",\n          \"success_stories\"\n        ]\n      },\n      \"power_users\": {\n        \"characteristics\": [\n          \"high_engagement\",\n          \"multiple_purchases\",\n          \"long_tenure\"\n        ],\n        \"messaging_focus\": \"advanced_features, beta_access, community\",\n        \"recommended_channels\": [\n          \"email\",\n          \"social_media\",\n          \"webinars\"\n        ],\n        \"content_types\": [\n          \"advanced_tutorials\",\n          \"beta_invitations\",\n          \"case_studies\"\n        ]\n      },\n      \"at_risk\": {\n        \"characteristics\": [\n          \"declining_engagement\",\n          \"support_tickets\",\n          \"no_recent_activity\"\n        ],\n        \"messaging_focus\": \"retention, support, value_reinforcement\",\n        \"recommended_channels\": [\n          \"email\",\n          \"phone\",\n          \"personalized_outreach\"\n        ],\n        \"content_types\": [\n          \"help_resources\",\n          \"success_stories\",\n          \"special_offers\"\n        ]\n      }\n    },\n    \"performance_benchmarks\": {\n      \"email_marketing\": {\n        \"open_rate\": {\n          \"excellent\": \">25%\",\n          \"good\": \"20-25%\",\n          \"average\": \"15-20%\",\n          \"poor\": \"<15%\"\n        },\n        \"click_rate\": {\n          \"excellent\": \">5%\",\n          \"good\": \"3-5%\",\n          \"average\": \"2-3%\",\n          \"poor\": \"<2%\"\n        },\n        \"conversion_rate\": {\n          \"excellent\": \">3%\",\n          \"good\": \"2-3%\",\n          \"average\": \"1-2%\",\n          \"poor\": \"<1%\"\n        }\n      },\n      \"social_media\": {\n        \"engagement_rate\": {\n          \"excellent\": \">6%\",\n          \"good\": \"4-6%\",\n          \"average\": \"2-4%\",\n          \"poor\": \"<2%\"\n        },\n        \"reach_growth\": {\n          \"excellent\": \">10%\",\n          \"good\": \"5-10%\",\n          \"average\": \"2-5%\",\n          \"poor\": \"<2%\"\n        },\n        \"conversion_rate\": {\n          \"excellent\": \">2%\",\n          \"good\": \"1-2%\",\n          \"average\": \"0.5-1%\",\n          \"poor\": \"<0.5%\"\n        }\n      }\n    }\n  }\n}",
+            "source_type": "json",
+            "source_path": "structured/sample_responses.json",
+            "category": "configuration",
+            "metadata": {
+              "file_size": 7168,
+              "json_keys": [
+                "customer_support_responses",
+                "marketing_responses"
+              ]
+            },
+            "created_at": "2025-08-01 14:48:32"
+          }
+        ]
+      }
+    },
+    "customer_support": {
+      "status": "PASSED",
+      "data": {
+        "response": "Hi John,\n\nThank you for reaching out about your billing concern. I understand how important it is to have accurate invoices.\n\nCould you please provide more details about what seems incorrect on your last invoice? For example, are there unexpected charges, missing credits, or discrepancies in usage?\n\nOnce I have more information, I can review your invoice and help resolve the issue promptly.\n\nLooking forward to your reply!",
+        "confidence": 0.5,
+        "escalate": false,
+        "suggested_actions": [],
+        "knowledge_sources": [],
+        "sentiment": "neutral",
+        "timestamp": "2025-08-01T15:03:08.253210"
+      }
+    },
+    "marketing": {
+      "status": "PASSED",
+      "data": [
+        {
+          "campaign_id": "campaign_20250801_110334",
+          "strategy": "Certainly! Below is a comprehensive marketing campaign strategy tailored for your lead generation campaign targeting small business owners with a $5,000 budget over 21 days, leveraging LinkedIn and email channels.\n\n---\n\n### 1. Strategic Overview and Positioning\n\n**Objective:**  \nGenerate qualified leads and increase brand awareness among small business owners by positioning your brand as a trusted partner that understands their unique challenges and offers actionable solutions.\n\n**Positioning:**  \nHighlight how your product/service simplifies business operations, saves time, or reduces costs. Messaging should be solution-oriented and demonstrate tangible benefits.\n\n**Approach:**  \n- Use LinkedIn for precise targeting and professional engagement.  \n- Use email marketing to nurture leads and drive conversions through personalized content.  \n- Employ A/B testing on messaging and creative to optimize campaign performance over the 21-day period.\n\n---\n\n### 2. Target Audience Analysis\n\n**Primary Audience:** Small business owners, likely aged 30-55, tech-savvy but time-constrained, looking for efficient solutions to improve business operations.\n\n**Characteristics:**  \n- Decision-makers or key influencers within their businesses  \n- Active on LinkedIn for professional networking and industry insights  \n- Responsive to value-driven, concise communications  \n- Prefer content that is practical, actionable, and demonstrates ROI\n\n---\n\n### 3. Channel Recommendations and Rationale\n\n**LinkedIn**  \n- Ideal for B2B targeting and reaching small business owners with precision (industry, company size, job titles).  \n- Supports sponsored content and direct message ads for engagement.\n\n**Email Marketing**  \n- Effective for nurturing leads captured via LinkedIn or other sources.  \n- Enables personalized messaging and follow-ups to increase conversion rates.\n\n**Rationale:**  \nLinkedIn brings qualified traffic and brand exposure; email marketing nurtures interest and drives conversions. This combination maximizes lead quality and ROI within the set budget.\n\n---\n\n### 4. Budget Allocation\n\n| Channel       | Allocation (%) | Amount ($) | Notes                                   |\n|---------------|----------------|------------|-----------------------------------------|\n| LinkedIn Ads  | 70%            | $3,500     | Sponsored posts and InMail campaigns    |\n| Email Marketing Tools & Content Creation | 20%            | $1,000     | Email platform, list segmentation, copywriting, design |\n| A/B Testing & Analytics | 10%            | $500       | Tools and monitoring for optimization    |\n\n---\n\n### 5. Content Strategy and Themes\n\n**LinkedIn Content:**  \n- **Themes:** Business growth tips, success stories, product benefits, industry trends relevant to small businesses.  \n- **Formats:** Sponsored posts (with strong CTAs), carousel ads showcasing features, and InMail messages for personalized outreach.\n\n**Email Content:**  \n- **Themes:** Educational content, case studies, exclusive offers, and invitations to webinars or demos.  \n- **Structure:**  \n  - Welcome email introducing the brand and value proposition  \n  - Follow-up emails with testimonials and benefits  \n  - Final call-to-action email encouraging sign-ups or consultations\n\n**A/B Testing Recommendations:**  \n- Test subject lines and send times in emails  \n- Test LinkedIn ad creatives (images vs. carousels) and messaging tone (formal vs. conversational)  \n- Monitor performance and optimize weekly\n\n---\n\n### 6. Timeline and Key Milestones\n\n| Week | Activity                                                   |\n|-------|------------------------------------------------------------|\n| Day 1-3  | Campaign setup, audience segmentation, content creation, A/B test design |\n| Day 4-7  | Launch LinkedIn ads and first email blast; Monitor performance daily |\n| Day 8-14 | Analyze initial results; Implement optimizations on ads and emails based on A/B test insights |\n| Day 15-18| Send follow-up email sequences; Refresh LinkedIn creatives if needed |\n| Day 19-21| Final push for leads; Evaluate overall campaign performance and prepare report |\n\n---\n\n### 7. Success Metrics and KPIs\n\n| Metric                  | Target / Benchmark                   |\n|-------------------------|------------------------------------|\n| LinkedIn Engagement Rate | \u2265 4.5% (benchmark: 4.5%)           |\n| LinkedIn Conversion Rate | \u2265 1.5% (benchmark: 1.5%)           |\n| Email Open Rate          | \u2265 22% (benchmark: 22%)              |\n| Email Click Rate         | \u2265 3.5% (benchmark: 3.5%)            |\n| Email Conversion Rate    | \u2265 2% (benchmark: 2%)                 |\n| Cost Per Lead (CPL)      | \u2264 $20 (based on budget and expected leads) |\n| Number of Qualified Leads| \u2265 250 (estimated based on CPL and budget) |\n\n---\n\n### 8. Risk Mitigation Strategies\n\n- **Low Engagement:** Quickly pivot creative assets and messaging based on A/B test results and platform analytics.  \n- **Budget Overruns:** Monitor daily spend closely; pause underperforming ads promptly.  \n- **Deliverability Issues (Email):** Use verified email lists, maintain clean lists, and monitor bounce rates.  \n- **Audience Fatigue:** Rotate creatives and limit frequency to avoid ad fatigue.  \n- **Market Conditions:** Stay agile to adjust messaging around any emerging trends or external factors affecting small businesses.\n\n---\n\nIf you would like, I can also provide sample content ideas or detailed ad copy to complement this strategy. Would you like me to proceed with that?",
+          "content_pieces": [
+            {
+              "content_type": "social_media",
+              "platform": "linkedin",
+              "title": "Struggling to generate qualified leads that truly grow your business? You're not alone. Many small business owners face this challenge daily \u2014 but it doesn\u2019t have to be that way.",
+              "content": "\nImagine turning every connection into a potential client, boosting your brand awareness while filling your sales pipeline with high-quality prospects. Our proven lead generation strategies are designed specifically for small businesses like yours to attract, engage, and convert the right audience.\n\nDon't let opportunities slip through the cracks. Take control of your growth and watch your brand become the go-to choice in your industry.\n\nReady to transform your lead generation game? Connect with us today and start turning leads into loyal customers!\n\n#LeadGeneration #SmallBusinessGrowth #BrandAwareness #QualifiedLeads #BusinessSuccess",
+              "hashtags": [
+                "#LeadGeneration",
+                "#SmallBusinessGrowth",
+                "#BrandAwareness",
+                "#QualifiedLeads",
+                "#BusinessSuccess"
+              ],
+              "call_to_action": "Learn more",
+              "estimated_reach": 500
+            },
+            {
+              "content_type": "email",
+              "platform": "linkedin",
+              "title": "Subject: Unlock Your Business Growth: Generate Qualified Leads & Boost Brand Awareness Today!",
+              "content": "\nHi [First Name],\n\nAre you ready to take your small business to the next level? Imagine consistently attracting qualified leads who are genuinely interested in what you offer \u2014 all while increasing your brand\u2019s visibility in a crowded marketplace.\n\nAt [Your Company Name], we specialize in helping small business owners like you generate high-quality leads and build powerful brand awareness that drives real results. Our proven strategies are tailored to your unique needs, ensuring you connect with the right audience at the right time.\n\nWhy settle for ordinary when you can:\n\n- Get qualified leads that convert faster\n- Amplify your brand presence across key channels\n- Save time and resources with targeted marketing\n- Gain insights that help you make smarter business decisions\n\nDon\u2019t let potential customers slip away. Take control of your growth today!\n\nReady to see how we can boost your lead generation and brand awareness? Click below to schedule your FREE consultation and start turning prospects into loyal customers.\n\n\ud83d\udc49 [Schedule Your Free Consultation Now]\n\nTogether, let's transform your business's future.\n\nBest regards,  \n[Your Name]  \n[Your Title]  \n[Your Company Name]  \n[Contact Information]\n\n#LeadGeneration #SmallBusinessGrowth #BrandAwareness #MarketingStrategy #BusinessSuccess\n\n---\n\nThis email is designed to capture attention quickly, communicate clear value, and motivate small business owners to take immediate action \u2014 all while fitting LinkedIn\u2019s professional tone and character limits.",
+              "hashtags": [
+                "#LeadGeneration",
+                "#SmallBusinessGrowth",
+                "#BrandAwareness",
+                "#MarketingStrategy",
+                "#BusinessSuccess"
+              ],
+              "call_to_action": "Learn more",
+              "estimated_reach": 500
+            },
+            {
+              "content_type": "social_media",
+              "platform": "email",
+              "title": "Subject: Boost Your Small Business: Generate Qualified Leads Today!",
+              "content": "\nHi [First Name],\n\nStruggling to find qualified leads for your small business? You're not alone \u2014 and we have the solution!\n\nDiscover proven strategies to attract high-quality leads that convert, while increasing your brand's visibility. Imagine a steady stream of customers eager to engage with your offerings.\n\nReady to grow your business and stand out from the competition? Click below to get started with our exclusive lead generation toolkit \u2014 designed just for small business owners like you.\n\n\ud83d\udc49 [Get Your Free Lead Generation Toolkit Now!]\n\nDon't miss out on this opportunity to elevate your brand and increase sales. Your future customers are waiting!\n\n#LeadGeneration #SmallBusinessGrowth #BrandAwareness #QualifiedLeads #BusinessSuccess #GrowYourBusiness\n\nTo your success,  \n[Your Company Name]\n\n---\n\nKeywords: lead generation, qualified leads, small business growth, brand awareness, customer engagement, business success",
+              "hashtags": [
+                "#LeadGeneration",
+                "#SmallBusinessGrowth",
+                "#BrandAwareness",
+                "#QualifiedLeads",
+                "#BusinessSuccess"
+              ],
+              "call_to_action": "Learn more",
+              "estimated_reach": 2000
+            },
+            {
+              "content_type": "email",
+              "platform": "email",
+              "title": "Subject: Unlock More Qualified Leads & Boost Your Brand Today!",
+              "content": "\nHi [First Name],\n\nStruggling to find qualified leads that actually convert? You\u2019re not alone. As a small business owner, generating quality leads and increasing brand awareness can feel like an uphill battle \u2014 but it doesn\u2019t have to be.\n\nImagine a steady stream of potential customers who are already interested in what you offer. Our proven strategies help you attract and engage the right audience, turning clicks into loyal clients.\n\nReady to grow your business with leads that matter? Click below to discover how to transform your marketing and watch your brand soar.\n\n\ud83d\udc49 Get Started Now!\n\nLet\u2019s make your business the go-to choice in your market.\n\nBest regards,  \n[Your Name]  \n[Your Company]\n\n#LeadGeneration #SmallBusinessGrowth #BrandAwareness #QualifiedLeads #GrowYourBusiness",
+              "hashtags": [
+                "#LeadGeneration",
+                "#SmallBusinessGrowth",
+                "#BrandAwareness",
+                "#QualifiedLeads",
+                "#GrowYourBusiness"
+              ],
+              "call_to_action": "Learn more",
+              "estimated_reach": 2000
+            }
+          ],
+          "schedule": [
+            {
+              "day": 1,
+              "content_id": 0,
+              "platform": "linkedin",
+              "content_type": "social_media",
+              "estimated_reach": 500
+            },
+            {
+              "day": 6,
+              "content_id": 1,
+              "platform": "linkedin",
+              "content_type": "email",
+              "estimated_reach": 500
+            },
+            {
+              "day": 11,
+              "content_id": 2,
+              "platform": "email",
+              "content_type": "social_media",
+              "estimated_reach": 2000
+            },
+            {
+              "day": 16,
+              "content_id": 3,
+              "platform": "email",
+              "content_type": "email",
+              "estimated_reach": 2000
+            }
+          ],
+          "budget_allocation": {
+            "linkedin": 2500.0,
+            "email": 2500.0
+          },
+          "success_metrics": [
+            "Reach and impressions",
+            "Engagement rate",
+            "Click-through rate",
+            "Conversion rate",
+            "Cost per acquisition",
+            "Return on ad spend"
+          ],
+          "estimated_performance": {
+            "total_reach": 5000,
+            "estimated_engagement": 225.0,
+            "estimated_conversions": 100.0,
+            "estimated_roi": 2.5
+          }
+        },
+        {
+          "content_type": "social_media",
+          "platform": "linkedin",
+          "title": "\ud83d\ude80 Ready to transform your small business? Imagine cutting hours off your daily tasks while boosting productivity and slashing costs. Our Business Automation Solutions make it possible! \ud83d\udca1",
+          "content": "\nSay goodbye to repetitive manual work and hello to streamlined processes that free up your time to focus on what truly matters\u2014growing your business. Join hundreds of small business owners who have already unlocked new levels of efficiency and profitability.\n\nDon\u2019t let tedious tasks hold you back. Embrace automation today and watch your business thrive!\n\n\ud83d\udc49 Ready to save time, increase efficiency, and reduce costs? Connect with us now to discover how we can tailor solutions just for you.\n\n#BusinessAutomation #SmallBusinessGrowth #EfficiencyBoost #SaveTime #ReduceCosts\n\n---\nThis LinkedIn post opens with a powerful hook, clearly states the benefits, and ends with a compelling call-to-action, all within 3000 characters and 5 relevant hashtags to maximize reach and engagement.",
+          "hashtags": [
+            "#BusinessAutomation",
+            "#SmallBusinessGrowth",
+            "#EfficiencyBoost",
+            "#SaveTime",
+            "#ReduceCosts"
+          ],
+          "call_to_action": "Learn more",
+          "estimated_reach": 500
+        }
+      ]
+    },
+    "database": {
+      "status": "PASSED",
+      "data": [
+        {
+          "customers": [
+            {
+              "id": 1,
+              "name": "John Smith",
+              "email": "john.smith@example.com",
+              "tier": "premium",
+              "company": "TechCorp",
+              "created_at": "2025-08-01T14:39:00.028433"
+            },
+            {
+              "id": 2,
+              "name": "Sarah Johnson",
+              "email": "sarah.johnson@example.com",
+              "tier": "standard",
+              "company": "StartupInc",
+              "created_at": "2025-08-01T14:39:00.028437"
+            },
+            {
+              "id": 3,
+              "name": "Mike Chen",
+              "email": "mike.chen@example.com",
+              "tier": "enterprise",
+              "company": "Enterprise Ltd",
+              "created_at": "2025-08-01T14:39:00.028438"
+            },
+            {
+              "id": 4,
+              "name": "Emily Davis",
+              "email": "emily.davis@example.com",
+              "tier": "standard",
+              "company": "SmallBiz",
+              "created_at": "2025-08-01T14:39:00.028442"
+            },
+            {
+              "id": 5,
+              "name": "Robert Wilson",
+              "email": "robert.wilson@example.com",
+              "tier": "enterprise",
+              "company": "MegaCorp",
+              "created_at": "2025-08-01T14:39:00.028443"
+            }
+          ],
+          "total": 5
+        },
+        {
+          "campaigns": [
+            {
+              "id": 1,
+              "name": "Q1 Product Launch",
+              "campaign_type": "social",
+              "target_audience": {
+                "age_range": "25-45",
+                "interests": [
+                  "technology",
+                  "AI",
+                  "business"
+                ]
+              },
+              "budget": 10000.0,
+              "status": "active",
+              "start_date": "2025-07-02T14:39:00.044475",
+              "end_date": "2025-08-31T14:39:00.044484"
+            },
+            {
+              "id": 2,
+              "name": "Customer Retention Email Series",
+              "campaign_type": "email",
+              "target_audience": {
+                "tier": [
+                  "standard",
+                  "premium"
+                ],
+                "last_login": "30_days_ago"
+              },
+              "budget": 5000.0,
+              "status": "active",
+              "start_date": "2025-07-17T14:39:00.044550",
+              "end_date": "2025-09-15T14:39:00.044553"
+            }
+          ],
+          "total": 2
+        }
+      ]
+    },
+    "data_types": {
+      "status": "PASSED",
+      "data": [
+        "json",
+        "csv",
+        "markdown"
+      ]
+    },
+    "collaboration": {
+      "status": "PASSED",
+      "data": {
+        "response": "Hi John,\n\nThanks for your interest in our new product launch campaign! We're excited to share that we've recently introduced enhanced AI analytics features designed to provide deeper insights and more customizable reporting for your data.\n\nThe campaign includes special offers and resources to help you get started quickly, such as webinars, tutorials, and dedicated support.\n\nIf you'd like, I can send you detailed information or connect you with a product specialist to answer any specific questions.\n\nPlease let me know how you'd like to proceed!",
+        "confidence": 0.5,
+        "escalate": false,
+        "suggested_actions": [],
+        "knowledge_sources": [],
+        "sentiment": "neutral",
+        "timestamp": "2025-08-01T15:03:41.028652"
+      }
+    },
+    "performance": {
+      "status": "PASSED",
+      "data": "Performance within acceptable limits"
+    }
+  },
+  "summary": {
+    "total_tests": 8,
+    "passed_tests": 8,
+    "failed_tests": 0
+  }
+}

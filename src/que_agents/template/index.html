@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic AI Demo - Customer Support & Marketing Agents</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab.active {
+            background: white;
+            border-bottom-color: #3498db;
+            color: #3498db;
+        }
+
+        .content {
+            padding: 30px;
+            min-height: 600px;
+        }
+
+        .agent-section {
+            display: none;
+        }
+
+        .agent-section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .response-area {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .response-area h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .response-content {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Agentic AI Demo</h1>
+            <p>Customer Support & Marketing Agents with LangChain, PostgreSQL & FastAPI</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" type="button" onclick="switchTab('customer-support')">
+                💬 Customer Support Agent
+            </button>
+            <button class="tab" type="button" onclick="switchTab('marketing')">
+                📈 Marketing Agent
+            </button>
+            <button class="tab" type="button" onclick="switchTab('analytics')">
+                📊 Analytics Dashboard
+            </button>
+        </div>
+
+        <div class="content">
+            <!-- Customer Support Agent Section -->
+            <div id="customer-support" class="agent-section active">
+                <h2>Customer Support Agent</h2>
+                <p>Test the AI-powered customer support agent with natural language queries.</p>
+
+                <div class="two-column">
+                    <div>
+                        <div class="form-group">
+                            <label for="customer-id">Customer ID:</label>
+                            <select id="customer-id">
+                                <option value="1">1 - John Smith (Premium)</option>
+                                <option value="2">2 - Sarah Johnson (Standard)</option>
+                                <option value="3">3 - Mike Wilson (Enterprise)</option>
+                                <option value="4">4 - Emily Davis (Standard)</option>
+                                <option value="5">5 - David Brown (Premium)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="customer-message">Customer Message:</label>
+                            <textarea id="customer-message" placeholder="Enter your support request here...">I can't log into my account. I keep getting an error message saying 'invalid credentials' even though I'm sure my password is correct.</textarea>
+                        </div>
+
+                        <button class="btn" onclick="sendCustomerSupportMessage()">Send Message</button>
+                        <button class="btn" onclick="loadCustomerContext()">Load Customer Context</button>
+                    </div>
+
+                    <div>
+                        <div class="response-area">
+                            <h3>Agent Response</h3>
+                            <div id="support-loading" class="loading">
+                                <div class="spinner"></div>
+                                <p>Processing your request...</p>
+                            </div>
+                            <div id="support-response"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Marketing Agent Section -->
+            <div id="marketing" class="agent-section">
+                <h2>Marketing Agent</h2>
+                <p>Create marketing campaigns and generate content with AI assistance.</p>
+
+                <div class="two-column">
+                    <div>
+                        <div class="form-group">
+                            <label for="campaign-type">Campaign Type:</label>
+                            <select id="campaign-type">
+                                <option value="product_launch">Product Launch</option>
+                                <option value="customer_retention">Customer Retention</option>
+                                <option value="lead_generation">Lead Generation</option>
+                                <option value="brand_awareness">Brand Awareness</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="target-audience">Target Audience:</label>
+                            <input type="text" id="target-audience" value="tech professionals and data scientists" placeholder="Describe your target audience">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="budget">Budget ($):</label>
+                            <input type="number" id="budget" value="10000" min="100" step="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="duration">Duration (days):</label>
+                            <input type="number" id="duration" value="30" min="1" max="365">
+                        </div>
+
+                        <button class="btn" onclick="createCampaign()">Create Campaign</button>
+                        <button class="btn" onclick="generateContent()">Generate Content</button>
+                    </div>
+
+                    <div>
+                        <div class="response-area">
+                            <h3>Campaign Results</h3>
+                            <div id="marketing-loading" class="loading">
+                                <div class="spinner"></div>
+                                <p>Creating your campaign...</p>
+                            </div>
+                            <div id="marketing-response"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Dashboard Section -->
+            <div id="analytics" class="agent-section">
+                <h2>Analytics Dashboard</h2>
+                <p>View system performance and usage statistics.</p>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="total-customers">-</div>
+                        <div class="metric-label">Total Customers</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="total-campaigns">-</div>
+                        <div class="metric-label">Active Campaigns</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="knowledge-base-docs">-</div>
+                        <div class="metric-label">Knowledge Base Documents</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="api-status">-</div>
+                        <div class="metric-label">API Status</div>
+                    </div>
+                </div>
+
+                <div class="response-area">
+                    <h3>Recent Activity</h3>
+                    <div id="recent-activity">
+                        <p>Loading recent activity...</p>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="refreshAnalytics()">Refresh Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        const API_TOKEN = 'demo-token-123';
+
+        function switchTab(tabName) {
+            // Hide all sections
+            document.querySelectorAll('.agent-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected section
+            document.getElementById(tabName).classList.add('active');
+
+            // Add active class to clicked tab
+            // Find the button that triggered the event
+            // Use document.activeElement if event is not passed
+            if (window.event && window.event.target) {
+                window.event.target.classList.add('active');
+            } else {
+                // Fallback: set active on the tab matching tabName
+                document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
+            }
+
+            // Load analytics data when switching to analytics tab
+            if (tabName === 'analytics') {
+                refreshAnalytics();
+            }
+        }
+
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'API request failed');
+                }
+
+                return result;
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+
+        async function sendCustomerSupportMessage() {
+            const customerId = document.getElementById('customer-id').value;
+            const message = document.getElementById('customer-message').value;
+
+            if (!message.trim()) {
+                alert('Please enter a message');
+                return;
+            }
+
+            const loadingEl = document.getElementById('support-loading');
+            const responseEl = document.getElementById('support-response');
+
+            loadingEl.style.display = 'block';
+            responseEl.innerHTML = '';
+
+            try {
+                const result = await apiCall('/api/v1/customer-support/chat', 'POST', {
+                    customer_id: parseInt(customerId),
+                    message: message
+                });
+
+                responseEl.innerHTML = `
+                    <div class="response-content">
+                        <h4>Agent Response:</h4>
+                        <p>${result.response}</p>
+                    </div>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value">${(result.confidence * 100).toFixed(1)}%</div>
+                            <div class="metric-label">Confidence</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${result.escalate ? 'Yes' : 'No'}</div>
+                            <div class="metric-label">Escalate</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${result.sentiment}</div>
+                            <div class="metric-label">Sentiment</div>
+                        </div>
+                    </div>
+                    ${result.suggested_actions.length > 0 ? `
+                        <div class="response-content">
+                            <h4>Suggested Actions:</h4>
+                            <ul>${result.suggested_actions.map(action => `<li>${action}</li>`).join('')}</ul>
+                        </div>
+                    ` : ''}
+                    ${result.knowledge_sources.length > 0 ? `
+                        <div class="response-content">
+                            <h4>Knowledge Sources:</h4>
+                            <ul>${result.knowledge_sources.map(source => `<li>${source}</li>`).join('')}</ul>
+                        </div>
+                    ` : ''}
+                `;
+
+            } catch (error) {
+                responseEl.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        async function loadCustomerContext() {
+            const customerId = document.getElementById('customer-id').value;
+            const responseEl = document.getElementById('support-response');
+
+            try {
+                const result = await apiCall(`/api/v1/customer-support/customer/${customerId}`);
+
+                responseEl.innerHTML = `
+                    <div class="response-content">
+                        <h4>Customer Information:</h4>
+                        <p><strong>Name:</strong> ${result.name}</p>
+                        <p><strong>Email:</strong> ${result.email}</p>
+                        <p><strong>Tier:</strong> ${result.tier}</p>
+                        <p><strong>Company:</strong> ${result.company}</p>
+                        <p><strong>Open Tickets:</strong> ${result.open_tickets.length}</p>
+                        <p><strong>Recent Interactions:</strong> ${result.recent_interactions.length}</p>
+                    </div>
+                `;
+
+            } catch (error) {
+                responseEl.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function createCampaign() {
+            const campaignType = document.getElementById('campaign-type').value;
+            const targetAudience = document.getElementById('target-audience').value;
+            const budget = parseFloat(document.getElementById('budget').value);
+            const duration = parseInt(document.getElementById('duration').value);
+
+            const loadingEl = document.getElementById('marketing-loading');
+            const responseEl = document.getElementById('marketing-response');
+
+            loadingEl.style.display = 'block';
+            responseEl.innerHTML = '';
+
+            try {
+                const result = await apiCall('/api/v1/marketing/campaign/create', 'POST', {
+                    campaign_type: campaignType,
+                    target_audience: targetAudience,
+                    budget: budget,
+                    duration_days: duration,
+                    goals: ['increase awareness', 'generate leads', 'drive engagement'],
+                    channels: ['linkedin', 'twitter', 'email'],
+                    content_requirements: ['social_media', 'email']
+                });
+
+                responseEl.innerHTML = `
+                    <div class="response-content">
+                        <h4>Campaign Created: ${result.campaign_id}</h4>
+                        <p><strong>Strategy:</strong> ${result.strategy.substring(0, 200)}...</p>
+                    </div>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value">${result.content_pieces.length}</div>
+                            <div class="metric-label">Content Pieces</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${result.estimated_performance.total_reach.toLocaleString()}</div>
+                            <div class="metric-label">Estimated Reach</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${result.estimated_performance.estimated_roi}x</div>
+                            <div class="metric-label">Estimated ROI</div>
+                        </div>
+                    </div>
+                    <div class="response-content">
+                        <h4>Sample Content:</h4>
+                        ${result.content_pieces.slice(0, 2).map(content => `
+                            <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                                <strong>${content.platform} (${content.content_type}):</strong><br>
+                                ${content.content.substring(0, 150)}...
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+            } catch (error) {
+                responseEl.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        async function generateContent() {
+            const responseEl = document.getElementById('marketing-response');
+
+            try {
+                const result = await apiCall('/api/v1/marketing/content/generate', 'POST', {
+                    platform: 'linkedin',
+                    content_type: 'social_media',
+                    campaign_theme: 'AI Analytics Platform',
+                    target_audience: 'data scientists and analysts',
+                    key_messages: ['powerful analytics', 'easy integration', 'real-time insights']
+                });
+
+                responseEl.innerHTML = `
+                    <div class="response-content">
+                        <h4>Generated Content for ${result.platform}:</h4>
+                        <p><strong>Title:</strong> ${result.title}</p>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                            ${result.content}
+                        </div>
+                        <p><strong>Hashtags:</strong> ${result.hashtags.join(', ')}</p>
+                        <p><strong>Estimated Reach:</strong> ${result.estimated_reach.toLocaleString()}</p>
+                    </div>
+                `;
+
+            } catch (error) {
+                responseEl.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function refreshAnalytics() {
+            try {
+                // Get health status
+                const health = await apiCall('/health');
+                document.getElementById('api-status').textContent = health.status;
+
+                // Get customers count
+                const customers = await apiCall('/api/v1/customers?limit=1');
+                document.getElementById('total-customers').textContent = customers.total;
+
+                // Get campaigns count
+                const campaigns = await apiCall('/api/v1/campaigns?limit=1');
+                document.getElementById('total-campaigns').textContent = campaigns.total;
+
+                // Search knowledge base to get document count
+                const kb = await apiCall('/api/v1/knowledge-base/search?query=help&limit=50');
+                document.getElementById('knowledge-base-docs').textContent = kb.results.length;
+
+                // Update recent activity
+                document.getElementById('recent-activity').innerHTML = `
+                    <div class="response-content">
+                        <h4>System Status:</h4>
+                        <p>✅ API Server: ${health.status}</p>
+                        <p>✅ Customer Support Agent: ${health.agents.customer_support}</p>
+                        <p>✅ Marketing Agent: ${health.agents.marketing}</p>
+                        <p>✅ Database: Connected</p>
+                        <p>✅ Knowledge Base: ${kb.results.length} documents indexed</p>
+                    </div>
+                `;
+
+            } catch (error) {
+                document.getElementById('recent-activity').innerHTML = `
+                    <div class="error">Error loading analytics: ${error.message}</div>
+                `;
+            }
+        }
+
+        // Load analytics on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default values
+            document.getElementById('customer-message').value = "I can't log into my account. I keep getting an error message saying 'invalid credentials' even though I'm sure my password is correct.";
+        });
+    </script>
+</body>
+</html>

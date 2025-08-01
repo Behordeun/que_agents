@@ -1,0 +1,149 @@
+{
+  "customer_support_apis": {
+    "ticket_management": {
+      "base_url": "https://api.example.com/v1/tickets",
+      "endpoints": {
+        "create_ticket": {
+          "method": "POST",
+          "path": "/",
+          "description": "Create a new support ticket",
+          "required_fields": ["customer_id", "title", "description", "category"],
+          "optional_fields": ["priority", "assigned_to"]
+        },
+        "get_ticket": {
+          "method": "GET",
+          "path": "/{ticket_id}",
+          "description": "Retrieve ticket details by ID"
+        },
+        "update_ticket": {
+          "method": "PUT",
+          "path": "/{ticket_id}",
+          "description": "Update ticket status or details"
+        },
+        "list_tickets": {
+          "method": "GET",
+          "path": "/",
+          "description": "List tickets with optional filters",
+          "query_params": ["status", "priority", "customer_id", "assigned_to"]
+        }
+      }
+    },
+    "customer_management": {
+      "base_url": "https://api.example.com/v1/customers",
+      "endpoints": {
+        "get_customer": {
+          "method": "GET",
+          "path": "/{customer_id}",
+          "description": "Get customer profile and details"
+        },
+        "update_customer": {
+          "method": "PUT",
+          "path": "/{customer_id}",
+          "description": "Update customer information"
+        },
+        "get_customer_history": {
+          "method": "GET",
+          "path": "/{customer_id}/interactions",
+          "description": "Get customer interaction history"
+        }
+      }
+    }
+  },
+  "marketing_apis": {
+    "campaign_management": {
+      "base_url": "https://api.example.com/v1/campaigns",
+      "endpoints": {
+        "create_campaign": {
+          "method": "POST",
+          "path": "/",
+          "description": "Create a new marketing campaign",
+          "required_fields": ["name", "type", "target_audience", "budget"]
+        },
+        "get_campaign_metrics": {
+          "method": "GET",
+          "path": "/{campaign_id}/metrics",
+          "description": "Get campaign performance metrics"
+        },
+        "schedule_post": {
+          "method": "POST",
+          "path": "/{campaign_id}/posts",
+          "description": "Schedule a social media post"
+        }
+      }
+    },
+    "audience_management": {
+      "base_url": "https://api.example.com/v1/audiences",
+      "endpoints": {
+        "create_segment": {
+          "method": "POST",
+          "path": "/segments",
+          "description": "Create audience segment based on criteria"
+        },
+        "get_segment_size": {
+          "method": "GET",
+          "path": "/segments/{segment_id}/size",
+          "description": "Get estimated audience size for segment"
+        }
+      }
+    },
+    "social_media_apis": {
+      "twitter": {
+        "base_url": "https://api.twitter.com/2",
+        "endpoints": {
+          "post_tweet": {
+            "method": "POST",
+            "path": "/tweets",
+            "description": "Post a new tweet"
+          },
+          "get_metrics": {
+            "method": "GET",
+            "path": "/tweets/{tweet_id}/metrics",
+            "description": "Get tweet engagement metrics"
+          }
+        }
+      },
+      "linkedin": {
+        "base_url": "https://api.linkedin.com/v2",
+        "endpoints": {
+          "create_post": {
+            "method": "POST",
+            "path": "/ugcPosts",
+            "description": "Create a LinkedIn post"
+          },
+          "get_analytics": {
+            "method": "GET",
+            "path": "/organizationalEntityShareStatistics",
+            "description": "Get post analytics"
+          }
+        }
+      }
+    }
+  },
+  "external_integrations": {
+    "crm_systems": {
+      "salesforce": {
+        "base_url": "https://your-instance.salesforce.com/services/data/v58.0",
+        "authentication": "OAuth 2.0",
+        "common_objects": ["Account", "Contact", "Lead", "Opportunity", "Case"]
+      },
+      "hubspot": {
+        "base_url": "https://api.hubapi.com",
+        "authentication": "API Key",
+        "common_endpoints": ["/contacts/v1/contact", "/deals/v1/deal", "/tickets/v2/tickets"]
+      }
+    },
+    "analytics_platforms": {
+      "google_analytics": {
+        "base_url": "https://analyticsreporting.googleapis.com/v4",
+        "authentication": "OAuth 2.0",
+        "reports": ["audience", "acquisition", "behavior", "conversions"]
+      },
+      "mixpanel": {
+        "base_url": "https://mixpanel.com/api/2.0",
+        "authentication": "API Secret",
+        "endpoints": ["events", "funnels", "retention", "segmentation"]
+      }
+    }
+  }
+}
+

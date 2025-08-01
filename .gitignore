@@ -1,0 +1,14 @@
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite
+*.log
+.qodo
+.vscode
+.history
+configs/database_config.yaml
+Makefile
+.DS_Store

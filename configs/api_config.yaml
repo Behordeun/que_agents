@@ -1,0 +1,23 @@
+api:
+  host: 0.0.0.0
+  port: 8000
+  reload: true
+  log_level: info
+  title: Agentic AI API
+  description: REST API for Customer Support and Marketing AI agents
+  version: 1.0.0
+  docs_url: /docs
+  redoc_url: /redoc
+
+authentication:
+  api_token: demo-token-123
+
+cors:
+  allow_origins:
+    - "*"
+  allow_credentials: true
+  allow_methods:
+    - "*"
+  allow_headers:
+    - "*"
+

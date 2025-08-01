@@ -1,0 +1,10 @@
+Customer ID,Feedback Date,Rating,Category,Feedback Text,Resolution Status
+1,2024-01-15,4,Product,"Great features but could use better documentation",Resolved
+2,2024-01-16,5,Support,"Excellent customer service, very helpful",Closed
+3,2024-01-17,2,Technical,"API keeps timing out during peak hours",In Progress
+4,2024-01-18,5,Product,"Love the new AI features, very intuitive",Closed
+5,2024-01-19,3,Billing,"Billing cycle is confusing, needs clarification",Resolved
+1,2024-01-20,5,Support,"Quick response time, issue resolved fast",Closed
+3,2024-01-21,1,Technical,"Still experiencing API issues, very frustrated",Open
+2,2024-01-22,4,Product,"Good overall but missing some advanced features",Closed
+
