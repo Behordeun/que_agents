@@ -1,2 +1,4 @@
 knowledge_base:
   db_path: knowledge_base.db
+  chroma_path: ./chroma_db
+  embedding_model: all-MiniLM-L6-v2

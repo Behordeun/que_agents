@@ -13,6 +13,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
+
 from src.que_agents.agents.customer_support_agent import CustomerSupportAgent
 from src.que_agents.agents.marketing_agent import (
     CampaignRequest,
@@ -101,6 +102,7 @@ class HealthResponse(BaseModel):
 
 # Authentication dependency (simplified for demo)
 
+
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify API token (simplified for demo)"""
     # In production, implement proper JWT validation
@@ -111,6 +113,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
             headers={"WWW-Authenticate": "Bearer"},
         )
     return credentials.credentials
+
 
 # Health check endpoint
 @app.get("/health", response_model=HealthResponse)

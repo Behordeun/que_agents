@@ -12,3 +12,4 @@ __pycache__/
 configs/database_config.yaml
 Makefile
 .DS_Store
+chroma_db

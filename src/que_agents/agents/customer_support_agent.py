@@ -6,19 +6,24 @@
 # @Description: This module implements a customer support agent using LangChain and SQLAlchemy
 
 
-import yaml
-
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from src.que_agents.core.database import Customer, CustomerInteraction, SupportTicket, get_session
-from src.que_agents.knowledge_base.kb_manager import search_knowledge_base
+import yaml
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from langchain_openai import ChatOpenAI
+
+from src.que_agents.core.database import (
+    Customer,
+    CustomerInteraction,
+    SupportTicket,
+    get_session,
+)
+from src.que_agents.knowledge_base.kb_manager import search_knowledge_base
 
 
 @dataclass
@@ -44,6 +49,7 @@ class AgentResponse:
     suggested_actions: List[str]
     knowledge_sources: List[str]
     sentiment: str
+
 
 # Load agent configuration
 with open("/configs/agent_config.yaml", "r") as f:

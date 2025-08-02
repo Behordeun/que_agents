@@ -12,7 +12,10 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List
 
+import chromadb
 import yaml
+from sentence_transformers import SentenceTransformer
+
 from src.que_agents.core.database import KnowledgeBase, get_session
 
 # Load knowledge base configuration
@@ -25,10 +28,13 @@ class SimpleKnowledgeBase:
 
     def __init__(self):
         self.db_path = kb_config["knowledge_base"]["db_path"]
+        self.chroma_path = kb_config["knowledge_base"]["chroma_path"]
+        self.embedding_model_name = kb_config["knowledge_base"]["embedding_model"]
+        self.embedding_model = SentenceTransformer(self.embedding_model_name)
         self.init_db()
 
     def init_db(self):
-        """Initialize the knowledge base database"""
+        """Initialize the knowledge base database and ChromaDB"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -47,18 +53,14 @@ class SimpleKnowledgeBase:
             )
         """
         )
-
-        # Create simple search index
-        cursor.execute(
-            """
-            CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(
-                title, content, category, content=documents, content_rowid=id
-            )
-        """
-        )
-
         conn.commit()
         conn.close()
+
+        # Initialize ChromaDB client and collection
+        self.chroma_client = chromadb.PersistentClient(path=self.chroma_path)
+        self.chroma_collection = self.chroma_client.get_or_create_collection(
+            name="que_agents_kb"
+        )
 
     def add_document(
         self,
@@ -85,13 +87,21 @@ class SimpleKnowledgeBase:
 
         doc_id = cursor.lastrowid
 
-        # Add to FTS index
-        cursor.execute(
-            """
-            INSERT INTO documents_fts (rowid, title, content, category)
-            VALUES (?, ?, ?, ?)
-        """,
-            (doc_id, title, content, category or ""),
+        # Generate embedding and add to ChromaDB
+        document_text = f"{title}. {content}"
+        embedding = self.embedding_model.encode(document_text).tolist()
+        self.chroma_collection.add(
+            embeddings=[embedding],
+            documents=[document_text],
+            metadatas=[
+                {
+                    "doc_id": doc_id,
+                    "title": title,
+                    "source_type": source_type,
+                    "category": category or "",
+                }
+            ],
+            ids=[str(doc_id)],
         )
 
         conn.commit()
@@ -100,68 +110,51 @@ class SimpleKnowledgeBase:
         return doc_id
 
     def search_documents(self, query: str, limit: int = 10) -> List[Dict]:
-        """Search documents using full-text search"""
+        """Search documents using vector similarity search with ChromaDB"""
+        query_embedding = self.embedding_model.encode(query).tolist()
+
+        results = self.chroma_collection.query(
+            query_embeddings=[query_embedding], n_results=limit, include=["metadatas"]
+        )
+
+        doc_ids = [int(meta[0]["doc_id"]) for meta in results["metadatas"]]
+
+        if not doc_ids:
+            return []
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Sanitize query for FTS
-        sanitized_query = (
-            query.replace("'", "")
-            .replace('"', "")
-            .replace("!", "")
-            .replace("?", "")
-            .replace(".", "")
+        # Fetch full document details from SQLite
+        placeholders = ",".join("?" * len(doc_ids))
+        cursor.execute(
+            f"SELECT id, title, content, source_type, source_path, category, metadata, created_at FROM documents WHERE id IN ({placeholders})",
+            doc_ids,
         )
-        sanitized_query = " ".join(sanitized_query.split())  # Remove extra spaces
 
-        if not sanitized_query.strip():
-            sanitized_query = "help"
-
-        try:
-            # Use FTS for search
-            cursor.execute(
-                """
-                SELECT d.id, d.title, d.content, d.source_type, d.source_path, 
-                       d.category, d.metadata, d.created_at
-                FROM documents_fts fts
-                JOIN documents d ON fts.rowid = d.id
-                WHERE documents_fts MATCH ?
-                ORDER BY rank
-                LIMIT ?
-            """,
-                (sanitized_query, limit),
-            )
-        except sqlite3.OperationalError:
-            # Fallback to LIKE search if FTS fails
-            cursor.execute(
-                """
-                SELECT id, title, content, source_type, source_path, 
-                       category, metadata, created_at
-                FROM documents
-                WHERE title LIKE ? OR content LIKE ?
-                LIMIT ?
-            """,
-                (f"%{query}%", f"%{query}%", limit),
-            )
-
-        results = []
-        for row in cursor.fetchall():
-            metadata = json.loads(row[6]) if row[6] else {}
-            results.append(
-                {
-                    "id": row[0],
-                    "title": row[1],
-                    "content": row[2],
-                    "source_type": row[3],
-                    "source_path": row[4],
-                    "category": row[5],
-                    "metadata": metadata,
-                    "created_at": row[7],
-                }
-            )
-
+        sql_results = cursor.fetchall()
         conn.close()
-        return results
+
+        # Order results based on ChromaDB's ranking
+        ordered_results = []
+        for doc_id in doc_ids:
+            for row in sql_results:
+                if row[0] == doc_id:
+                    metadata = json.loads(row[6]) if row[6] else {}
+                    ordered_results.append(
+                        {
+                            "id": row[0],
+                            "title": row[1],
+                            "content": row[2],
+                            "source_type": row[3],
+                            "source_path": row[4],
+                            "category": row[5],
+                            "metadata": metadata,
+                            "created_at": row[7],
+                        }
+                    )
+                    break
+        return ordered_results
 
     def get_documents_by_category(self, category: str) -> List[Dict]:
         """Get all documents in a specific category"""
