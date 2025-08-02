@@ -6,12 +6,12 @@
 # @Description: This module implements a marketing agent for autonomous campaign management
 
 import json
-import yaml
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
+import yaml
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.output_parser import StrOutputParser
 
