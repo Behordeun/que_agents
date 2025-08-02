@@ -11,10 +11,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema.output_parser import StrOutputParser
-from langchain_openai import ChatOpenAI
-
 from src.que_agents.core.database import (
     AudienceSegment,
     CampaignMetrics,
@@ -22,7 +18,11 @@ from src.que_agents.core.database import (
     MarketingPost,
     get_session,
 )
+from src.que_agents.core.llm_factory import LLMFactory
 from src.que_agents.knowledge_base.kb_manager import search_knowledge_base
+from langchain.prompts import ChatPromptTemplate
+from langchain.schema.output_parser import StrOutputParser
+
 
 
 class CampaignType(Enum):
@@ -92,11 +92,10 @@ class MarketingAgent:
 
     def __init__(self):
         config = agent_config["marketing_agent"]
-        self.llm = ChatOpenAI(
-            model=config["model_name"],
-            temperature=config[
-                "temperature"
-            ],  # Higher creativity for marketing content
+        self.llm = LLMFactory.get_llm(
+            agent_type="marketing",
+            model_name=config["model_name"],
+            temperature=config["temperature"],
             max_tokens=800,
         )
         # Platform-specific constraints

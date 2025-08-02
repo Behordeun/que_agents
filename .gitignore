@@ -10,6 +10,7 @@ __pycache__/
 .vscode
 .history
 configs/database_config.yaml
+configs/llm_config.yaml
 Makefile
 .DS_Store
 chroma_db
