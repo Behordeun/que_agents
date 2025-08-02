@@ -11,6 +11,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
+from langchain.prompts import ChatPromptTemplate
+from langchain.schema.output_parser import StrOutputParser
+
 from src.que_agents.core.database import (
     AudienceSegment,
     CampaignMetrics,
@@ -20,9 +23,6 @@ from src.que_agents.core.database import (
 )
 from src.que_agents.core.llm_factory import LLMFactory
 from src.que_agents.knowledge_base.kb_manager import search_knowledge_base
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema.output_parser import StrOutputParser
-
 
 
 class CampaignType(Enum):

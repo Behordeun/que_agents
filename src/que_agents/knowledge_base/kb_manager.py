@@ -12,11 +12,11 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List
 
-import yaml
-from src.que_agents.core.database import KnowledgeBase, get_session
-
 import chromadb
+import yaml
 from sentence_transformers import SentenceTransformer
+
+from src.que_agents.core.database import KnowledgeBase, get_session
 
 # Load knowledge base configuration
 with open("configs/knowledge_base_config.yaml", "r") as f:
@@ -62,7 +62,9 @@ class SimpleKnowledgeBase:
 
         # Initialize ChromaDB client and collection
         self.chroma_client = chromadb.PersistentClient(path=self.chroma_path)
-        self.chroma_collection = self.chroma_client.get_or_create_collection(name="que_agents_kb")
+        self.chroma_collection = self.chroma_client.get_or_create_collection(
+            name="que_agents_kb"
+        )
 
     def add_document(
         self,
@@ -95,8 +97,15 @@ class SimpleKnowledgeBase:
         self.chroma_collection.add(
             embeddings=[embedding],
             documents=[document_text],
-            metadatas=[{"doc_id": doc_id, "title": title, "source_type": source_type, "category": category or ""}],
-            ids=[str(doc_id)]
+            metadatas=[
+                {
+                    "doc_id": doc_id,
+                    "title": title,
+                    "source_type": source_type,
+                    "category": category or "",
+                }
+            ],
+            ids=[str(doc_id)],
         )
 
         conn.commit()
@@ -109,9 +118,7 @@ class SimpleKnowledgeBase:
         query_embedding = self.embedding_model.encode(query).tolist()
 
         results = self.chroma_collection.query(
-            query_embeddings=[query_embedding],
-            n_results=limit,
-            include=['metadatas']
+            query_embeddings=[query_embedding], n_results=limit, include=["metadatas"]
         )
 
         doc_ids = [int(meta[0]["doc_id"]) for meta in results["metadatas"]]
@@ -123,10 +130,10 @@ class SimpleKnowledgeBase:
         cursor = conn.cursor()
 
         # Fetch full document details from SQLite
-        placeholders = ','.join('?' * len(doc_ids))
+        placeholders = ",".join("?" * len(doc_ids))
         cursor.execute(
             f"SELECT id, title, content, source_type, source_path, category, metadata, created_at FROM documents WHERE id IN ({placeholders})",
-            doc_ids
+            doc_ids,
         )
 
         sql_results = cursor.fetchall()

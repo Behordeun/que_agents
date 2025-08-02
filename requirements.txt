@@ -1,5 +1,6 @@
 # Core Framework Dependencies
 fastapi
+gunicorn
 uvicorn
 pydantic
 python-multipart

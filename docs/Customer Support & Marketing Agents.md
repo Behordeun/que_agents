@@ -13,17 +13,22 @@ A proof-of-concept implementation of autonomous AI agents for customer support a
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web Interface │    │   FastAPI       │    │   AI Agents     │
-│   (HTML/JS/CSS) │◄──►│   Gateway       │◄──►│   (LangChain)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │                        │
-                                ▼                        ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │   PostgreSQL    │    │  Knowledge Base │
-                       │   (Vector Store)│    │  (Vector Store) │
-                       └─────────────────┘    └─────────────────┘
+```mermaid
+graph TD
+    A["🌐 Web Interface<br/>(HTML/JS/CSS)"] <--> B["⚡ FastAPI<br/>Gateway"]
+    B <--> C["🤖 AI Agents<br/>(LangChain)"]
+    B --> D["🗄️ PostgreSQL<br/>(Vector Store)"]
+    C --> E["📚 Knowledge Base<br/>(Vector Store)"]
+
+    classDef frontend fill:#e1f5fe
+    classDef api fill:#f3e5f5
+    classDef agents fill:#e8f5e8
+    classDef storage fill:#fff3e0
+
+    class A frontend
+    class B api
+    class C agents
+    class D,E storage
 ```
 
 ## 🛠️ Technology Stack
@@ -48,8 +53,8 @@ A proof-of-concept implementation of autonomous AI agents for customer support a
 
 ```bash
 # Clone the repository (if using git)
-git clone <repository-url>
-cd agentic-ai-system
+git clone [https://github.com/Behordeun/que_agents.git](https://github.com/Behordeun/que_agents.git)
+cd que_agents
 
 # Create virtual environment
 python3 -m venv venv
@@ -86,6 +91,7 @@ Configurations are now managed via YAML files in the `configs/` directory. You c
 - `configs/knowledge_base_config.yaml`: Knowledge base settings (e.g., SQLite DB path).
 
 **Example `configs/database_config.yaml`:**
+
 ```yaml
 database:
   url: postgresql://agentic_user:agentic_pass@localhost/agentic_ai
@@ -124,9 +130,9 @@ python3 -m http.server 8080
 
 ### 6. Access the System
 
-- **Web Interface**: http://localhost:8080
-- **API Documentation**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
+- **Web Interface**: [http://localhost:8080](http://localhost:8080)
+- **API Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
 
 ## 🧪 Testing
 
@@ -216,18 +222,21 @@ curl -X GET "http://localhost:8000/api/v1/knowledge-base/search?query=password%2
 The system integrates three types of data as specified:
 
 ### Structured Data (PostgreSQL)
+
 - Customer information and account details
 - Campaign metrics and performance data
 - System configuration and user management
 - Interaction history and ticket tracking
 
 ### Semi-Structured Data (CSV)
+
 - Customer feedback and survey responses
 - Campaign performance analytics
 - Market research data
 - A/B testing results
 
 ### Unstructured Data (Documents)
+
 - FAQ databases and help articles
 - Product documentation and manuals
 - Company policies and procedures
@@ -243,6 +252,7 @@ All critical system settings are now managed through dedicated YAML configuratio
 - `configs/knowledge_base_config.yaml`: Knowledge base settings (e.g., SQLite DB path).
 
 **Example `configs/database_config.yaml`:**
+
 ```yaml
 database:
   url: postgresql://agentic_user:agentic_pass@localhost/agentic_ai
@@ -325,7 +335,8 @@ Authorization: Bearer demo-token-123
 
 ### Common Issues
 
-**Database Connection Error**
+#### Database Connection Error
+
 ```bash
 # Check PostgreSQL status
 sudo systemctl status postgresql
@@ -334,7 +345,8 @@ sudo systemctl status postgresql
 sudo -u postgres psql -l | grep agentic_ai
 ```
 
-**OpenAI API Error**
+#### OpenAI API Error
+
 ```bash
 # Verify API key
 echo $OPENAI_API_KEY
@@ -343,7 +355,8 @@ echo $OPENAI_API_KEY
 curl -H "Authorization: Bearer $OPENAI_API_KEY" https://api.openai.com/v1/models
 ```
 
-**Import Errors**
+#### Import Errors
+
 ```bash
 # Reinstall dependencies
 pip install --force-reinstall -r requirements.txt
@@ -426,7 +439,7 @@ que_agents/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -439,7 +452,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For questions or support:
 
-1. Check the [Technical Documentation](TECHNICAL_DOCUMENTATION.md)
+1. Check the [Technical Documentation](./Technical%20Documentation.md)
 2. Review the [API Documentation](http://localhost:8000/docs)
 3. Run the integration tests to verify setup
 4. Check the troubleshooting section above

@@ -6,7 +6,7 @@ Tests end-to-end workflows and data integration
 import yaml
 
 # Load API configuration
-with open("/home/ubuntu/configs/api_config.yaml", "r") as f:
+with open("configs/api_config.yaml", "r") as f:
     api_config = yaml.safe_load(f)
 
 # Configuration
@@ -363,11 +363,11 @@ def main():
         )
 
         # Save report
-        with open("/home/ubuntu/integration_test_report.json", "w") as f:
+        with open("integration_test_report.json", "w") as f:
             json.dump(report, f, indent=2)
 
         print(
-            f"\n📄 Detailed report saved to: /home/ubuntu/integration_test_report.json"
+            f"\n📄 Detailed report saved to: integration_test_report.json"
         )
 
         return True
