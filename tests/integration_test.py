@@ -3,6 +3,11 @@ Comprehensive integration test for the Agentic AI system
 Tests end-to-end workflows and data integration
 """
 
+import json
+import time
+from datetime import datetime
+
+import requests
 import yaml
 
 # Load API configuration
@@ -258,7 +263,7 @@ def run_performance_test():
     start_time = time.time()
 
     # Make multiple concurrent-like requests
-    for i in range(5):
+    for _ in range(5):
         response = requests.get(f"{API_BASE}/health")
         assert response.status_code == 200
 
@@ -266,7 +271,7 @@ def run_performance_test():
 
     # Test API response time
     start_time = time.time()
-    response = requests.get(
+    requests.get(
         f"{API_BASE}/api/v1/knowledge-base/search",
         headers=HEADERS,
         params={"query": "help", "limit": 5},
@@ -286,7 +291,7 @@ def run_performance_test():
 def generate_test_report(results):
     """Generate a comprehensive test report"""
     report = {
-        "test_timestamp": datetime.utcnow().isoformat(),
+        "test_timestamp": datetime.now().isoformat(),
         "system_status": "PASSED",
         "test_results": results,
         "summary": {
@@ -354,7 +359,7 @@ def main():
         # Generate report
         report = generate_test_report(results)
 
-        print(f"\n📊 TEST SUMMARY:")
+        print("\n📊 TEST SUMMARY:")
         print(f"   Total Tests: {report['summary']['total_tests']}")
         print(f"   Passed: {report['summary']['passed_tests']}")
         print(f"   Failed: {report['summary']['failed_tests']}")
@@ -366,7 +371,7 @@ def main():
         with open("integration_test_report.json", "w") as f:
             json.dump(report, f, indent=2)
 
-        print(f"\n📄 Detailed report saved to: integration_test_report.json")
+        print("\n📄 Detailed report saved to: integration_test_report.json")
 
         return True
 
