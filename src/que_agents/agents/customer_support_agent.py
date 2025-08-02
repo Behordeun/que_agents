@@ -52,7 +52,7 @@ class AgentResponse:
 
 
 # Load agent configuration
-with open("/configs/agent_config.yaml", "r") as f:
+with open("configs/agent_config.yaml", "r") as f:
     agent_config = yaml.safe_load(f)
 
 

@@ -108,23 +108,23 @@ database:
 
 ```bash
 # Create database tables
-python3 src/core/database.py
+python -m src.que_agents.core.database.
 
 # Populate with sample data
-python3 src/utils/data_populator.py
+python -m src.que_agents.utils.data_populator
 
 # Initialize knowledge base (loads data from PostgreSQL and files into SQLite FTS)
-python3 src/knowledge_base/kb_manager.py
+python -m src.que_agents.knowledge_base.kb_manager
 ```
 
 ### 5. Start Services
 
 ```bash
 # Terminal 1: Start API server
-python3 src/api/main.py
+python -m src.que_agents.api.main
 
 # Terminal 2: Start web interface
-cd web_demo
+cd template
 python3 -m http.server 8080
 ```
 
@@ -140,20 +140,20 @@ python3 -m http.server 8080
 
 ```bash
 # Run comprehensive test suite
-python3 src/utils/tests/integration_test.py
+python -m src.que_agents.utils.tests.integration_test
 
 # Run API tests
-python3 src/utils/tests/test_api.py
+python -m src.que_agents.utils.tests.test_api
 ```
 
 ### Test Individual Agents
 
 ```bash
 # Test Customer Support Agent
-python3 src/agents/customer_support_agent.py
+python3 src.que_agents.agents.customer_support_agent
 
 # Test Marketing Agent
-python3 src/agents/marketing_agent.py
+python3 src.que_agents.agents.marketing_agent
 ```
 
 ## 📚 API Usage Examples
@@ -274,7 +274,7 @@ database:
 pip install gunicorn
 
 # Run with Gunicorn
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker src.api.main:app --bind 0.0.0.0:8000
+gunicorn -w 4 -k uvicorn.workers.UvicornWorker src.que_agents.api.main:app --bind 0.0.0.0:8000
 
 # Or use Docker (if Dockerfile provided)
 docker build -t agentic-ai .
@@ -370,7 +370,7 @@ python3 --version  # Should be 3.11+
 ```bash
 # Enable debug logging
 export LOG_LEVEL=DEBUG
-python3 src/api/main.py
+python -m src.que_agents.api.main.py
 ```
 
 ## 📝 File Structure

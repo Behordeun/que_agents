@@ -1,8 +1,17 @@
+# OpenAI Agent Configuration
+
+#customer_support_agent:
+#  model_name: gpt-4-1106-preview
+#  temperature: 0.3
+
+#marketing_agent:
+#  model_name: gpt-4-1106-preview
+#  temperature: 0.7
+
+# GROQ Agent Configuration
 customer_support_agent:
-  model_name: gpt-4-1106-preview
+  model_name: llama3-70b-8192 # Use Groq's model name
   temperature: 0.3
-
 marketing_agent:
-  model_name: gpt-4-1106-preview
+  model_name: llama3-70b-8192 # Use Groq's model name
   temperature: 0.7
-

@@ -6,6 +6,7 @@
 # @Description: This module implements a marketing agent for autonomous campaign management
 
 import json
+import yaml
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -79,8 +80,6 @@ class CampaignPlan:
     success_metrics: List[str]
     estimated_performance: Dict[str, Any]
 
-
-import yaml
 
 # Load agent configuration
 with open("configs/agent_config.yaml", "r") as f:
