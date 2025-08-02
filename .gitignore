@@ -14,3 +14,5 @@ configs/llm_config.yaml
 Makefile
 .DS_Store
 chroma_db
+.pytest_cache
+.idea

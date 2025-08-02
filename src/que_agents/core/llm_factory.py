@@ -1,3 +1,10 @@
+# @Author: Muhammad Abiodun SULAIMAN
+# @Email: abiodun.msulaiman@gmail.com
+# @Date: 2025-08-01 23:53:31
+# @Last Modified by:   Muhammad Abiodun SULAIMAN
+# @Last Modified time: 2025-08-01 23:53:31
+# @Description: This module contains the LLMFactory class for creating language models based on configuration.
+
 import os
 
 import yaml

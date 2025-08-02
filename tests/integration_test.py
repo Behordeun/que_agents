@@ -1,7 +1,9 @@
-"""
-Comprehensive integration test for the Agentic AI system
-Tests end-to-end workflows and data integration
-"""
+# @Author: Muhammad Abiodun SULAIMAN
+# @Email: abiodun.msulaiman@gmail.com
+# @Date: 2025-08-01 23:53:31
+# @Last Modified by:   Muhammad Abiodun SULAIMAN
+# @Last Modified time: 2025-08-01 23:53:31
+# @Description: This module contains integration tests for the Que Agents API.
 
 import json
 import time

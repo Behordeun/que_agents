@@ -3,7 +3,7 @@
 # @Date: 2025-08-01 23:53:31
 # @Last Modified by:   Muhammad Abiodun SULAIMAN
 # @Last Modified time: 2025-08-01 23:53:31
-# @Description: database.py
+# @Description: This module contains the database models for the Que Agents application.
 
 from datetime import datetime
 

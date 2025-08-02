@@ -1,3 +1,10 @@
+# @Author: Muhammad Abiodun SULAIMAN
+# @Email: abiodun.msulaiman@gmail.com
+# @Date: 2025-08-01 23:53:31
+# @Last Modified by:   Muhammad Abiodun SULAIMAN
+# @Last Modified time: 2025-08-01 23:53:31
+# @Description: This module contains tests for the API endpoints of the Que Agents application.
+
 from datetime import datetime
 from unittest.mock import MagicMock, mock_open, patch
 
