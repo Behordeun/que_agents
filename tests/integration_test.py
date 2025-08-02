@@ -366,9 +366,7 @@ def main():
         with open("integration_test_report.json", "w") as f:
             json.dump(report, f, indent=2)
 
-        print(
-            f"\n📄 Detailed report saved to: integration_test_report.json"
-        )
+        print(f"\n📄 Detailed report saved to: integration_test_report.json")
 
         return True
 
