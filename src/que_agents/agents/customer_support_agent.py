@@ -211,37 +211,31 @@ Provide a helpful response that addresses the customer's concern. If escalation 
             session.close()
 
     def analyze_sentiment(self, message: str) -> str:
-        """Simple sentiment analysis based on keywords"""
-        message_lower = message.lower()
+        """Analyze sentiment of the message using the LLM"""
+        sentiment_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "You are a sentiment analysis expert. Analyze the sentiment of the following customer message and respond with only one word: 'positive', 'negative', or 'neutral'.",
+                ),
+                ("human", "{message}"),
+            ]
+        )
 
-        negative_words = [
-            "angry",
-            "frustrated",
-            "terrible",
-            "awful",
-            "hate",
-            "worst",
-            "horrible",
-            "disappointed",
-        ]
-        positive_words = [
-            "great",
-            "excellent",
-            "love",
-            "amazing",
-            "wonderful",
-            "fantastic",
-            "perfect",
-        ]
+        sentiment_chain = sentiment_prompt | self.llm | StrOutputParser()
 
-        negative_count = sum(1 for word in negative_words if word in message_lower)
-        positive_count = sum(1 for word in positive_words if word in message_lower)
-
-        if negative_count > positive_count:
-            return "negative"
-        elif positive_count > negative_count:
-            return "positive"
-        else:
+        try:
+            sentiment = sentiment_chain.invoke({"message": message}).strip().lower()
+            if sentiment in ["positive", "negative", "neutral"]:
+                return sentiment
+            else:
+                # Fallback if LLM returns unexpected output
+                print(
+                    f"Warning: LLM returned unexpected sentiment: {sentiment}. Falling back to neutral."
+                )
+                return "neutral"
+        except Exception as e:
+            print(f"Error during LLM sentiment analysis: {e}. Falling back to neutral.")
             return "neutral"
 
     def should_escalate(self, message: str, customer_context: CustomerContext) -> bool:

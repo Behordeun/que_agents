@@ -12,6 +12,7 @@ langchain-anthropic
 langchain-groq
 
 langchain-community
+ollama
 openai
 sentence-transformers
 

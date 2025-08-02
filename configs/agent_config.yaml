@@ -11,7 +11,7 @@
 # GROQ Agent Configuration
 customer_support_agent:
   model_name: llama3-70b-8192 # Use Groq's model name
-  temperature: 0.3
+  temperature: 0.4
 marketing_agent:
   model_name: llama3-70b-8192 # Use Groq's model name
-  temperature: 0.7
+  temperature: 0.6

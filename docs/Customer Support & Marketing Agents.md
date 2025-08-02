@@ -121,7 +121,7 @@ python -m src.que_agents.knowledge_base.kb_manager
 
 ```bash
 # Terminal 1: Start API server
-python -m src.que_agents.api.main
+uvicorn src.que_agents.api.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir src
 
 # Terminal 2: Start web interface
 cd template

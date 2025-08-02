@@ -394,9 +394,23 @@
         </div>
     </div>
 
+// Replace the entire script section starting from line 398
     <script>
-        const API_BASE = 'http://localhost:8000';
+        // Smart environment detection
+        function getApiBase() {
+            // Check if we're on localhost or a local IP
+            const hostname = window.location.hostname;
+            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
+                return 'http://localhost:8000';
+            }
+            // Otherwise use ngrok for remote access
+            return 'https://fe69745cefee.ngrok-free.app';
+        }
+
+        const API_BASE = getApiBase();
         const API_TOKEN = 'demo-token-123';
+
+        console.log(`Using API_BASE: ${API_BASE}`);
 
         function switchTab(tabName) {
             // Hide all sections
@@ -413,12 +427,9 @@
             document.getElementById(tabName).classList.add('active');
 
             // Add active class to clicked tab
-            // Find the button that triggered the event
-            // Use document.activeElement if event is not passed
             if (window.event && window.event.target) {
                 window.event.target.classList.add('active');
             } else {
-                // Fallback: set active on the tab matching tabName
                 document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
             }
 
@@ -433,7 +444,9 @@
                 method: method,
                 headers: {
                     'Authorization': `Bearer ${API_TOKEN}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'  // Critical for ngrok
                 }
             };
 
@@ -442,16 +455,88 @@
             }
 
             try {
+                console.log(`Making ${method} request to: ${API_BASE}${endpoint}`);
+                console.log('Request headers:', options.headers);
+                console.log('Request body:', options.body);
+
                 const response = await fetch(`${API_BASE}${endpoint}`, options);
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+                // Check if the response is JSON
+                const contentType = response.headers.get('content-type');
+                console.log('Content-Type:', contentType);
+
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    
+                    // Check if it's an HTML error page
+                    if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
+                        throw new Error('Server returned HTML instead of JSON. Check if API server is running correctly.');
+                    }
+                    
+                    throw new Error(`Server returned ${contentType}. Expected JSON. Response: ${text.substring(0, 200)}...`);
+                }
+
                 const result = await response.json();
+                console.log('Parsed JSON response:', result);
 
                 if (!response.ok) {
-                    throw new Error(result.detail || 'API request failed');
+                    console.error('API error response:', result);
+                    throw new Error(result.detail || result.message || `HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 return result;
             } catch (error) {
                 console.error('API call failed:', error);
+                
+                // Provide more specific error messages
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    throw new Error('Cannot connect to API server. Check if the server is running and ngrok tunnel is active.');
+                } else if (error.name === 'SyntaxError' && error.message.includes('Unexpected token')) {
+                    throw new Error('Server returned invalid JSON. This usually means the API returned an HTML error page.');
+                }
+                
+                throw error;
+            }
+        }
+
+        // Test connection function for debugging
+        async function testApiConnection() {
+            console.log('Testing API connection...');
+            try {
+                const response = await fetch(`${API_BASE}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`,
+                        'Accept': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    }
+                });
+
+                console.log('Health check status:', response.status);
+                console.log('Health check headers:', Object.fromEntries(response.headers.entries()));
+
+                const text = await response.text();
+                console.log('Health check raw response:', text);
+
+                if (response.ok) {
+                    try {
+                        const json = JSON.parse(text);
+                        console.log('✅ API connection successful:', json);
+                        return json;
+                    } catch (parseError) {
+                        console.error('❌ Response is not valid JSON:', parseError);
+                        throw new Error('API returned non-JSON response');
+                    }
+                } else {
+                    console.error('❌ API returned error status:', response.status);
+                    throw new Error(`API health check failed with status ${response.status}`);
+                }
+            } catch (error) {
+                console.error('❌ API connection test failed:', error);
                 throw error;
             }
         }
@@ -496,13 +581,13 @@
                             <div class="metric-label">Sentiment</div>
                         </div>
                     </div>
-                    ${result.suggested_actions.length > 0 ? `
+                    ${result.suggested_actions && result.suggested_actions.length > 0 ? `
                         <div class="response-content">
                             <h4>Suggested Actions:</h4>
                             <ul>${result.suggested_actions.map(action => `<li>${action}</li>`).join('')}</ul>
                         </div>
                     ` : ''}
-                    ${result.knowledge_sources.length > 0 ? `
+                    ${result.knowledge_sources && result.knowledge_sources.length > 0 ? `
                         <div class="response-content">
                             <h4>Knowledge Sources:</h4>
                             <ul>${result.knowledge_sources.map(source => `<li>${source}</li>`).join('')}</ul>
@@ -531,8 +616,8 @@
                         <p><strong>Email:</strong> ${result.email}</p>
                         <p><strong>Tier:</strong> ${result.tier}</p>
                         <p><strong>Company:</strong> ${result.company}</p>
-                        <p><strong>Open Tickets:</strong> ${result.open_tickets.length}</p>
-                        <p><strong>Recent Interactions:</strong> ${result.recent_interactions.length}</p>
+                        <p><strong>Open Tickets:</strong> ${result.open_tickets ? result.open_tickets.length : 0}</p>
+                        <p><strong>Recent Interactions:</strong> ${result.recent_interactions ? result.recent_interactions.length : 0}</p>
                     </div>
                 `;
 
@@ -567,31 +652,33 @@
                 responseEl.innerHTML = `
                     <div class="response-content">
                         <h4>Campaign Created: ${result.campaign_id}</h4>
-                        <p><strong>Strategy:</strong> ${result.strategy.substring(0, 200)}...</p>
+                        <p><strong>Strategy:</strong> ${result.strategy ? result.strategy.substring(0, 200) + '...' : 'Strategy generated'}</p>
                     </div>
                     <div class="metrics">
                         <div class="metric">
-                            <div class="metric-value">${result.content_pieces.length}</div>
+                            <div class="metric-value">${result.content_pieces ? result.content_pieces.length : 0}</div>
                             <div class="metric-label">Content Pieces</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value">${result.estimated_performance.total_reach.toLocaleString()}</div>
+                            <div class="metric-value">${result.estimated_performance ? result.estimated_performance.total_reach?.toLocaleString() || 'N/A' : 'N/A'}</div>
                             <div class="metric-label">Estimated Reach</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value">${result.estimated_performance.estimated_roi}x</div>
+                            <div class="metric-value">${result.estimated_performance ? result.estimated_performance.estimated_roi || 'N/A' : 'N/A'}x</div>
                             <div class="metric-label">Estimated ROI</div>
                         </div>
                     </div>
-                    <div class="response-content">
-                        <h4>Sample Content:</h4>
-                        ${result.content_pieces.slice(0, 2).map(content => `
-                            <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                                <strong>${content.platform} (${content.content_type}):</strong><br>
-                                ${content.content.substring(0, 150)}...
-                            </div>
-                        `).join('')}
-                    </div>
+                    ${result.content_pieces && result.content_pieces.length > 0 ? `
+                        <div class="response-content">
+                            <h4>Sample Content:</h4>
+                            ${result.content_pieces.slice(0, 2).map(content => `
+                                <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                                    <strong>${content.platform} (${content.content_type}):</strong><br>
+                                    ${content.content ? content.content.substring(0, 150) + '...' : 'Content generated'}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                 `;
 
             } catch (error) {
@@ -616,12 +703,12 @@
                 responseEl.innerHTML = `
                     <div class="response-content">
                         <h4>Generated Content for ${result.platform}:</h4>
-                        <p><strong>Title:</strong> ${result.title}</p>
+                        <p><strong>Title:</strong> ${result.title || 'Generated Title'}</p>
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
                             ${result.content}
                         </div>
-                        <p><strong>Hashtags:</strong> ${result.hashtags.join(', ')}</p>
-                        <p><strong>Estimated Reach:</strong> ${result.estimated_reach.toLocaleString()}</p>
+                        <p><strong>Hashtags:</strong> ${result.hashtags ? result.hashtags.join(', ') : 'Generated hashtags'}</p>
+                        <p><strong>Estimated Reach:</strong> ${result.estimated_reach ? result.estimated_reach.toLocaleString() : 'N/A'}</p>
                     </div>
                 `;
 
@@ -632,45 +719,85 @@
 
         async function refreshAnalytics() {
             try {
-                // Get health status
+                // Get health status first
                 const health = await apiCall('/health');
                 document.getElementById('api-status').textContent = health.status;
 
-                // Get customers count
-                const customers = await apiCall('/api/v1/customers?limit=1');
-                document.getElementById('total-customers').textContent = customers.total;
+                // Try to get other data, but don't fail if endpoints aren't implemented
+                try {
+                    const customers = await apiCall('/api/v1/customers?limit=1');
+                    document.getElementById('total-customers').textContent = customers.total || customers.customers?.length || 'N/A';
+                } catch (e) {
+                    document.getElementById('total-customers').textContent = 'N/A';
+                }
 
-                // Get campaigns count
-                const campaigns = await apiCall('/api/v1/campaigns?limit=1');
-                document.getElementById('total-campaigns').textContent = campaigns.total;
+                try {
+                    const campaigns = await apiCall('/api/v1/campaigns?limit=1');
+                    document.getElementById('total-campaigns').textContent = campaigns.total || campaigns.campaigns?.length || 'N/A';
+                } catch (e) {
+                    document.getElementById('total-campaigns').textContent = 'N/A';
+                }
 
-                // Search knowledge base to get document count
-                const kb = await apiCall('/api/v1/knowledge-base/search?query=help&limit=50');
-                document.getElementById('knowledge-base-docs').textContent = kb.results.length;
+                try {
+                    const kb = await apiCall('/api/v1/knowledge-base/search?query=help&limit=50');
+                    document.getElementById('knowledge-base-docs').textContent = kb.results?.length || 'N/A';
+                } catch (e) {
+                    document.getElementById('knowledge-base-docs').textContent = 'N/A';
+                }
 
                 // Update recent activity
                 document.getElementById('recent-activity').innerHTML = `
                     <div class="response-content">
                         <h4>System Status:</h4>
                         <p>✅ API Server: ${health.status}</p>
-                        <p>✅ Customer Support Agent: ${health.agents.customer_support}</p>
-                        <p>✅ Marketing Agent: ${health.agents.marketing}</p>
-                        <p>✅ Database: Connected</p>
-                        <p>✅ Knowledge Base: ${kb.results.length} documents indexed</p>
+                        <p>✅ Customer Support Agent: ${health.agents?.customer_support || 'active'}</p>
+                        <p>✅ Marketing Agent: ${health.agents?.marketing || 'active'}</p>
+                        <p>✅ Last Updated: ${new Date().toLocaleTimeString()}</p>
                     </div>
                 `;
 
             } catch (error) {
+                console.error('Analytics refresh error:', error);
                 document.getElementById('recent-activity').innerHTML = `
                     <div class="error">Error loading analytics: ${error.message}</div>
                 `;
+                // Set default values for metrics
+                document.getElementById('api-status').textContent = 'Error';
+                document.getElementById('total-customers').textContent = 'N/A';
+                document.getElementById('total-campaigns').textContent = 'N/A';
+                document.getElementById('knowledge-base-docs').textContent = 'N/A';
             }
         }
 
-        // Load analytics on page load
+        // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            // Set default values
-            document.getElementById('customer-message').value = "I can't log into my account. I keep getting an error message saying 'invalid credentials' even though I'm sure my password is correct.";
+            console.log('Page loaded, testing API connection...');
+            
+            // Test API connection on page load
+            testApiConnection()
+                .then(health => {
+                    console.log('✅ API connection successful on page load');
+                    // Optionally show success message
+                    document.body.insertAdjacentHTML('afterbegin', `
+                        <div style="background: #d4edda; color: #155724; padding: 10px; text-align: center; border-bottom: 1px solid #c3e6cb;">
+                            ✅ API Connected Successfully - Status: ${health.status}
+                        </div>
+                    `);
+                    // Remove message after 3 seconds
+                    setTimeout(() => {
+                        const msg = document.querySelector('div[style*="background: #d4edda"]');
+                        if (msg) msg.remove();
+                    }, 3000);
+                })
+                .catch(error => {
+                    console.error('❌ API connection failed on page load:', error);
+                    // Show connection error
+                    document.body.insertAdjacentHTML('afterbegin', `
+                        <div style="background: #f8d7da; color: #721c24; padding: 10px; text-align: center; border-bottom: 1px solid #f5c6cb;">
+                            ⚠️ API Connection Error: ${error.message}
+                        </div>
+                    `);
+                });
         });
     </script>
 </body>
