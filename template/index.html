@@ -459,7 +459,7 @@
                 console.log('Request body:', options.body);
 
                 const response = await fetch(`${API_BASE}${endpoint}`, options);
-                
+
                 console.log('Response status:', response.status);
                 console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
@@ -470,12 +470,12 @@
                 if (!contentType || !contentType.includes('application/json')) {
                     const text = await response.text();
                     console.error('Non-JSON response:', text);
-                    
+
                     // Check if it's an HTML error page
                     if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
                         throw new Error('Server returned HTML instead of JSON. Check if API server is running correctly.');
                     }
-                    
+
                     throw new Error(`Server returned ${contentType}. Expected JSON. Response: ${text.substring(0, 200)}...`);
                 }
 
@@ -490,14 +490,14 @@
                 return result;
             } catch (error) {
                 console.error('API call failed:', error);
-                
+
                 // Provide more specific error messages
                 if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
                     throw new Error('Cannot connect to API server. Check if the server is running and ngrok tunnel is active.');
                 } else if (error.name === 'SyntaxError' && error.message.includes('Unexpected token')) {
                     throw new Error('Server returned invalid JSON. This usually means the API returned an HTML error page.');
                 }
-                
+
                 throw error;
             }
         }
@@ -727,6 +727,7 @@
                     const customers = await apiCall('/api/v1/customers?limit=1');
                     document.getElementById('total-customers').textContent = customers.total || customers.customers?.length || 'N/A';
                 } catch (e) {
+                    console.error('Error fetching total customers:', e);
                     document.getElementById('total-customers').textContent = 'N/A';
                 }
 
@@ -734,6 +735,7 @@
                     const campaigns = await apiCall('/api/v1/campaigns?limit=1');
                     document.getElementById('total-campaigns').textContent = campaigns.total || campaigns.campaigns?.length || 'N/A';
                 } catch (e) {
+                    console.error('Error fetching total campaigns:', e);
                     document.getElementById('total-campaigns').textContent = 'N/A';
                 }
 
@@ -741,6 +743,7 @@
                     const kb = await apiCall('/api/v1/knowledge-base/search?query=help&limit=50');
                     document.getElementById('knowledge-base-docs').textContent = kb.results?.length || 'N/A';
                 } catch (e) {
+                    console.error('Error fetching knowledge base documents:', e);
                     document.getElementById('knowledge-base-docs').textContent = 'N/A';
                 }
 
@@ -771,7 +774,7 @@
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Page loaded, testing API connection...');
-            
+
             // Test API connection on page load
             testApiConnection()
                 .then(health => {
