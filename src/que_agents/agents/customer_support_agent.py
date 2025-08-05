@@ -29,13 +29,17 @@ try:
         search_knowledge_base,
     )
 except ImportError:
-    def search_agent_knowledge_base(agent_type: str, query: str, limit: int = 5) -> List[Dict]:
+
+    def search_agent_knowledge_base(
+        agent_type: str, query: str, limit: int = 5
+    ) -> List[Dict]:
         """Fallback when knowledge base is not available"""
         return []
-    
+
     def search_knowledge_base(query: str, limit: int = 5) -> List[Dict]:
         """Fallback when knowledge base is not available"""
         return []
+
 
 # Load agent configuration
 with open("configs/agent_config.yaml", "r") as f:
@@ -53,7 +57,7 @@ class CustomerSupportAgent:
             temperature=config["temperature"],
             max_tokens=500,
         )
-        
+
         # Memory for conversation history
         self.memory = ConversationBufferWindowMemory(
             k=10,  # Keep last 10 exchanges
@@ -68,8 +72,20 @@ class CustomerSupportAgent:
             "cancellation": ["cancel", "unsubscribe", "terminate", "quit"],
             "refund": ["refund", "money back", "chargeback", "dispute"],
             "management": ["manager", "supervisor", "boss", "escalate", "senior"],
-            "complaint": ["complaint", "complain", "terrible", "awful", "horrible", "worst"],
-            "dissatisfaction": ["unacceptable", "frustrated", "disappointed", "disgusted"],
+            "complaint": [
+                "complaint",
+                "complain",
+                "terrible",
+                "awful",
+                "horrible",
+                "worst",
+            ],
+            "dissatisfaction": [
+                "unacceptable",
+                "frustrated",
+                "disappointed",
+                "disgusted",
+            ],
             "urgency": ["urgent", "immediately", "asap", "emergency", "critical"],
         }
 
@@ -107,29 +123,41 @@ class CustomerSupportAgent:
             print(f"Error searching support knowledge: {e}")
             return []
 
-    def get_enhanced_context(self, customer_message: str, customer_context: CustomerContext) -> str:
+    def get_enhanced_context(
+        self, customer_message: str, customer_context: CustomerContext
+    ) -> str:
         """Get enhanced context from knowledge base"""
         try:
             # Categorize the issue first
             category = self.categorize_issue(customer_message)
-            
+
             # Search for category-specific knowledge
-            category_knowledge = self.get_support_knowledge(f"{category} {customer_message}")
-            
+            category_knowledge = self.get_support_knowledge(
+                f"{category} {customer_message}"
+            )
+
             # Search for tier-specific knowledge
-            tier_knowledge = self.get_support_knowledge(f"{customer_context.tier} customer support")
-            
+            tier_knowledge = self.get_support_knowledge(
+                f"{customer_context.tier} customer support"
+            )
+
             enhanced_context = ""
             if category_knowledge:
                 enhanced_context += "Relevant Support Knowledge:\n"
                 for kb_item in category_knowledge:
-                    enhanced_context += f"- {kb_item['title']}: {kb_item['content'][:200]}...\n"
-            
+                    enhanced_context += (
+                        f"- {kb_item['title']}: {kb_item['content'][:200]}...\n"
+                    )
+
             if tier_knowledge:
-                enhanced_context += f"\n{customer_context.tier.title()} Tier Guidelines:\n"
+                enhanced_context += (
+                    f"\n{customer_context.tier.title()} Tier Guidelines:\n"
+                )
                 for kb_item in tier_knowledge:
-                    enhanced_context += f"- {kb_item['title']}: {kb_item['content'][:150]}...\n"
-            
+                    enhanced_context += (
+                        f"- {kb_item['title']}: {kb_item['content'][:150]}...\n"
+                    )
+
             return enhanced_context
         except Exception as e:
             print(f"Error getting enhanced context: {e}")
@@ -208,10 +236,9 @@ Customer message: {message}
 
 Respond with ONLY the sentiment category from the list above."""
 
-        return ChatPromptTemplate.from_messages([
-            ("system", system_message),
-            ("human", "{message}")
-        ])
+        return ChatPromptTemplate.from_messages(
+            [("system", system_message), ("human", "{message}")]
+        )
 
     def _create_escalation_prompt(self) -> ChatPromptTemplate:
         """Create prompt for escalation analysis"""
@@ -238,10 +265,12 @@ Respond with:
 
 Format: ESCALATE: YES/NO - [reason if applicable]"""
 
-        return ChatPromptTemplate.from_messages([
-            ("system", system_message),
-            ("human", "Analyze escalation need for: {customer_message}")
-        ])
+        return ChatPromptTemplate.from_messages(
+            [
+                ("system", system_message),
+                ("human", "Analyze escalation need for: {customer_message}"),
+            ]
+        )
 
     def _create_category_prompt(self) -> ChatPromptTemplate:
         """Create prompt for issue categorization"""
@@ -266,10 +295,9 @@ Customer message: {customer_message}
 
 Respond with ONLY the category name from the list above."""
 
-        return ChatPromptTemplate.from_messages([
-            ("system", system_message),
-            ("human", "{customer_message}")
-        ])
+        return ChatPromptTemplate.from_messages(
+            [("system", system_message), ("human", "{customer_message}")]
+        )
 
     def _create_main_chain(self):
         """Create the main LangChain processing chain"""
@@ -309,7 +337,7 @@ Respond with ONLY the category name from the list above."""
                     email=f"customer{customer_id}@example.com",
                     tier="business",
                     company=f"Company {customer_id}",
-                    created_at=datetime.now()
+                    created_at=datetime.now(),
                 )
                 session.add(customer)
                 session.commit()
@@ -332,8 +360,16 @@ Respond with ONLY the category name from the list above."""
             )
 
             # Calculate satisfaction trend
-            satisfaction_scores = [i.satisfaction_score for i in recent_interactions if i.satisfaction_score]
-            avg_satisfaction = sum(satisfaction_scores) / len(satisfaction_scores) if satisfaction_scores else 3.5
+            satisfaction_scores = [
+                i.satisfaction_score
+                for i in recent_interactions
+                if i.satisfaction_score
+            ]
+            avg_satisfaction = (
+                sum(satisfaction_scores) / len(satisfaction_scores)
+                if satisfaction_scores
+                else 3.5
+            )
 
             return CustomerContext(
                 customer_id=customer.id,
@@ -345,8 +381,16 @@ Respond with ONLY the category name from the list above."""
                 recent_interactions=[
                     {
                         "type": i.interaction_type,
-                        "message": i.message[:100] + "..." if len(i.message) > 100 else i.message,
-                        "response": i.response[:100] + "..." if len(i.response) > 100 else i.response,
+                        "message": (
+                            i.message[:100] + "..."
+                            if len(i.message) > 100
+                            else i.message
+                        ),
+                        "response": (
+                            i.response[:100] + "..."
+                            if len(i.response) > 100
+                            else i.response
+                        ),
                         "sentiment": i.sentiment,
                         "satisfaction": i.satisfaction_score,
                         "date": i.created_at.isoformat() if i.created_at else None,
@@ -376,9 +420,17 @@ Respond with ONLY the category name from the list above."""
     def analyze_sentiment_enhanced(self, message: str) -> str:
         """Enhanced sentiment analysis using the LLM"""
         try:
-            sentiment = self.sentiment_chain.invoke({"message": message}).strip().lower()
-            
-            valid_sentiments = ["very_positive", "positive", "neutral", "negative", "very_negative"]
+            sentiment = (
+                self.sentiment_chain.invoke({"message": message}).strip().lower()
+            )
+
+            valid_sentiments = [
+                "very_positive",
+                "positive",
+                "neutral",
+                "negative",
+                "very_negative",
+            ]
             if sentiment in valid_sentiments:
                 return sentiment
             else:
@@ -391,24 +443,44 @@ Respond with ONLY the category name from the list above."""
     def _fallback_sentiment_analysis(self, message: str) -> str:
         """Fallback sentiment analysis using keywords"""
         message_lower = message.lower()
-        
-        very_positive_words = ["excellent", "amazing", "fantastic", "perfect", "love", "thrilled"]
+
+        very_positive_words = [
+            "excellent",
+            "amazing",
+            "fantastic",
+            "perfect",
+            "love",
+            "thrilled",
+        ]
         positive_words = ["good", "great", "thanks", "thank you", "helpful", "resolved"]
         negative_words = ["bad", "poor", "slow", "problem", "issue", "error", "broken"]
-        very_negative_words = ["terrible", "awful", "horrible", "hate", "angry", "furious"]
-        
+        very_negative_words = [
+            "terrible",
+            "awful",
+            "horrible",
+            "hate",
+            "angry",
+            "furious",
+        ]
+
         # Count sentiment indicators
-        very_negative_count = sum(1 for word in very_negative_words if word in message_lower)
+        very_negative_count = sum(
+            1 for word in very_negative_words if word in message_lower
+        )
         negative_count = sum(1 for word in negative_words if word in message_lower)
         positive_count = sum(1 for word in positive_words if word in message_lower)
-        very_positive_count = sum(1 for word in very_positive_words if word in message_lower)
-        
+        very_positive_count = sum(
+            1 for word in very_positive_words if word in message_lower
+        )
+
         # Check for escalation keywords
         escalation_count = sum(
-            1 for category in self.escalation_keywords.values()
-            for word in category if word in message_lower
+            1
+            for category in self.escalation_keywords.values()
+            for word in category
+            if word in message_lower
         )
-        
+
         if very_negative_count > 0 or escalation_count > 2:
             return "very_negative"
         elif negative_count > positive_count:
@@ -423,7 +495,11 @@ Respond with ONLY the category name from the list above."""
     def categorize_issue(self, message: str) -> str:
         """Categorize the customer issue"""
         try:
-            category = self.category_chain.invoke({"customer_message": message}).strip().lower()
+            category = (
+                self.category_chain.invoke({"customer_message": message})
+                .strip()
+                .lower()
+            )
             if category in self.support_categories:
                 return category
             else:
@@ -435,45 +511,77 @@ Respond with ONLY the category name from the list above."""
     def _fallback_categorization(self, message: str) -> str:
         """Fallback issue categorization using keywords"""
         message_lower = message.lower()
-        
+
         category_keywords = {
-            "account_access": ["login", "log in", "sign in", "access", "locked", "password"],
-            "billing": ["bill", "charge", "payment", "invoice", "refund", "cost", "price"],
-            "technical_issues": ["bug", "error", "broken", "not working", "crash", "slow"],
+            "account_access": [
+                "login",
+                "log in",
+                "sign in",
+                "access",
+                "locked",
+                "password",
+            ],
+            "billing": [
+                "bill",
+                "charge",
+                "payment",
+                "invoice",
+                "refund",
+                "cost",
+                "price",
+            ],
+            "technical_issues": [
+                "bug",
+                "error",
+                "broken",
+                "not working",
+                "crash",
+                "slow",
+            ],
             "api_problems": ["api", "endpoint", "integration", "webhook", "rate limit"],
             "password_reset": ["password", "reset", "forgot", "change password"],
             "subscription": ["plan", "upgrade", "downgrade", "subscription", "tier"],
             "data_export": ["export", "download", "backup", "migration", "import"],
             "security": ["security", "breach", "hack", "unauthorized", "permission"],
         }
-        
+
         for category, keywords in category_keywords.items():
             if any(keyword in message_lower for keyword in keywords):
                 return category
-        
+
         return "troubleshooting"  # Default category
 
-    def should_escalate_enhanced(self, message: str, customer_context: CustomerContext) -> tuple[bool, str]:
+    def should_escalate_enhanced(
+        self, message: str, customer_context: CustomerContext
+    ) -> tuple[bool, str]:
         """Enhanced escalation analysis"""
         try:
-            escalation_result = self.escalation_chain.invoke({
-                "customer_tier": customer_context.tier,
-                "open_tickets": len(customer_context.open_tickets),
-                "recent_interactions": len(customer_context.recent_interactions),
-                "customer_message": message
-            }).strip()
-            
+            escalation_result = self.escalation_chain.invoke(
+                {
+                    "customer_tier": customer_context.tier,
+                    "open_tickets": len(customer_context.open_tickets),
+                    "recent_interactions": len(customer_context.recent_interactions),
+                    "customer_message": message,
+                }
+            ).strip()
+
             if escalation_result.startswith("ESCALATE: YES"):
-                reason = escalation_result.split(" - ", 1)[1] if " - " in escalation_result else "Multiple escalation indicators"
+                reason = (
+                    escalation_result.split(" - ", 1)[1]
+                    if " - " in escalation_result
+                    else "Multiple escalation indicators"
+                )
                 return True, reason
             else:
                 return False, ""
-                
+
         except Exception as e:
             print(f"Error in enhanced escalation analysis: {e}")
             return self._fallback_escalation_analysis(message, customer_context)
 
-    def _fallback_escalation_analysis(self, message: str, customer_context: CustomerContext) -> tuple[bool, str]:
+    def _fallback_escalation_analysis(
+        self, message: str, customer_context: CustomerContext
+    ) -> tuple[bool, str]:
         """Fallback escalation analysis"""
         message_lower = message.lower()
         reasons = []
@@ -484,41 +592,51 @@ Respond with ONLY the category name from the list above."""
                 reasons.append(f"{category} indicators detected")
 
         # Check customer tier and ticket count
-        if customer_context.tier == "enterprise" and len(customer_context.open_tickets) > 1:
+        if (
+            customer_context.tier == "enterprise"
+            and len(customer_context.open_tickets) > 1
+        ):
             reasons.append("Enterprise customer with multiple open tickets")
 
         # Check satisfaction trend
-        if hasattr(customer_context, 'average_satisfaction') and customer_context.average_satisfaction < 2.5:
+        if (
+            hasattr(customer_context, "average_satisfaction")
+            and customer_context.average_satisfaction < 2.5
+        ):
             reasons.append("Low customer satisfaction trend")
 
         # Check for urgent issues
-        urgent_tickets = [t for t in customer_context.open_tickets if t.get("priority") == "urgent"]
+        urgent_tickets = [
+            t for t in customer_context.open_tickets if t.get("priority") == "urgent"
+        ]
         if urgent_tickets:
             reasons.append("Urgent tickets present")
 
         return len(reasons) > 0, "; ".join(reasons) if reasons else ""
 
-    def search_knowledge_base_enhanced(self, query: str, category: str = None) -> List[Dict]:
+    def search_knowledge_base_enhanced(
+        self, query: str, category: str = None
+    ) -> List[Dict]:
         """Enhanced knowledge base search with category filtering"""
         try:
             # Search agent-specific knowledge first
             agent_results = self.get_support_knowledge(query)
-            
+
             # Search general knowledge base
             general_results = search_knowledge_base(query, limit=3)
-            
+
             # Combine and deduplicate results
             all_results = agent_results + general_results
             seen_titles = set()
             unique_results = []
-            
+
             for result in all_results:
-                if result['title'] not in seen_titles:
-                    seen_titles.add(result['title'])
+                if result["title"] not in seen_titles:
+                    seen_titles.add(result["title"])
                     unique_results.append(result)
-            
+
             return unique_results[:5]  # Return top 5 unique results
-            
+
         except Exception as e:
             print(f"Error in enhanced knowledge base search: {e}")
             return []
@@ -550,7 +668,9 @@ Respond with ONLY the category name from the list above."""
         sentiment = self.analyze_sentiment_enhanced(message)
 
         # Check for escalation
-        should_escalate, escalation_reason = self.should_escalate_enhanced(message, customer_context)
+        should_escalate, escalation_reason = self.should_escalate_enhanced(
+            message, customer_context
+        )
 
         # Prepare comprehensive context for the LLM
         context_str = f"""
@@ -567,31 +687,41 @@ Recent Interaction Summary:
 """
 
         kb_str = self._format_knowledge_results(kb_results)
-        escalation_str = f"Escalation: {'Required' if should_escalate else 'Not Required'}"
+        escalation_str = (
+            f"Escalation: {'Required' if should_escalate else 'Not Required'}"
+        )
         if should_escalate:
             escalation_str += f" - Reason: {escalation_reason}"
 
         # Generate response using the enhanced chain
         try:
-            response = self.main_chain.invoke({
-                "customer_context": context_str,
-                "enhanced_context": enhanced_context,
-                "knowledge_base_results": kb_str,
-                "issue_category": issue_category,
-                "escalation_analysis": escalation_str,
-                "customer_message": message,
-            })
+            response = self.main_chain.invoke(
+                {
+                    "customer_context": context_str,
+                    "enhanced_context": enhanced_context,
+                    "knowledge_base_results": kb_str,
+                    "issue_category": issue_category,
+                    "escalation_analysis": escalation_str,
+                    "customer_message": message,
+                }
+            )
 
             # Update memory
             self.memory.chat_memory.add_user_message(message)
             self.memory.chat_memory.add_ai_message(response)
 
             # Calculate confidence based on multiple factors
-            confidence = self._calculate_confidence(kb_results, sentiment, customer_context)
+            confidence = self._calculate_confidence(
+                kb_results, sentiment, customer_context
+            )
 
             # Generate comprehensive suggested actions
             suggested_actions = self._generate_suggested_actions(
-                should_escalate, escalation_reason, sentiment, issue_category, customer_context
+                should_escalate,
+                escalation_reason,
+                sentiment,
+                issue_category,
+                customer_context,
             )
 
             return AgentResponse(
@@ -609,7 +739,10 @@ Recent Interaction Summary:
                 message="I sincerely apologize for the technical difficulty. To ensure you receive the best possible service, I'm immediately connecting you with one of our specialist agents who can provide hands-on assistance.",
                 confidence=0.0,
                 escalate=True,
-                suggested_actions=["Immediate escalation to human agent", "Technical support review"],
+                suggested_actions=[
+                    "Immediate escalation to human agent",
+                    "Technical support review",
+                ],
                 knowledge_sources=[],
                 sentiment=sentiment,
             )
@@ -618,82 +751,116 @@ Recent Interaction Summary:
         """Format ticket information for context"""
         if not tickets:
             return "No recent tickets"
-        
+
         formatted = []
         for ticket in tickets:
-            formatted.append(f"#{ticket['id']}: {ticket['title']} ({ticket['status']}, {ticket['priority']})")
+            formatted.append(
+                f"#{ticket['id']}: {ticket['title']} ({ticket['status']}, {ticket['priority']})"
+            )
         return "\n".join(formatted)
 
     def _format_interactions(self, interactions: List[Dict]) -> str:
         """Format interaction information for context"""
         if not interactions:
             return "No recent interactions"
-        
+
         formatted = []
         for interaction in interactions:
-            formatted.append(f"- {interaction['type']}: {interaction['sentiment']} sentiment")
+            formatted.append(
+                f"- {interaction['type']}: {interaction['sentiment']} sentiment"
+            )
         return "\n".join(formatted)
 
     def _format_knowledge_results(self, kb_results: List[Dict]) -> str:
         """Format knowledge base results for context"""
         if not kb_results:
             return "No specific knowledge base matches found"
-        
+
         formatted = []
         for result in kb_results:
             formatted.append(f"- {result['title']}: {result['content'][:200]}...")
         return "\n".join(formatted)
 
-    def _calculate_confidence(self, kb_results: List[Dict], sentiment: str, customer_context: CustomerContext) -> float:
+    def _calculate_confidence(
+        self, kb_results: List[Dict], sentiment: str, customer_context: CustomerContext
+    ) -> float:
         """Calculate confidence score based on multiple factors"""
         base_confidence = 0.5
-        
+
         # Knowledge base match boost
         kb_boost = min(0.3, len(kb_results) * 0.1)
-        
+
         # Sentiment factor
         sentiment_factors = {
             "very_positive": 0.1,
             "positive": 0.05,
             "neutral": 0.0,
             "negative": -0.05,
-            "very_negative": -0.1
+            "very_negative": -0.1,
         }
         sentiment_factor = sentiment_factors.get(sentiment, 0.0)
-        
+
         # Customer tier factor
         tier_factors = {"enterprise": 0.1, "business": 0.05, "free": 0.0}
         tier_factor = tier_factors.get(customer_context.tier, 0.0)
-        
+
         # Customer satisfaction factor
-        if hasattr(customer_context, 'average_satisfaction'):
+        if hasattr(customer_context, "average_satisfaction"):
             satisfaction_factor = (customer_context.average_satisfaction - 3.0) * 0.1
         else:
             satisfaction_factor = 0.0
-        
-        confidence = base_confidence + kb_boost + sentiment_factor + tier_factor + satisfaction_factor
+
+        confidence = (
+            base_confidence
+            + kb_boost
+            + sentiment_factor
+            + tier_factor
+            + satisfaction_factor
+        )
         return min(0.95, max(0.1, confidence))
 
-    def _generate_suggested_actions(self, should_escalate: bool, escalation_reason: str, 
-                                   sentiment: str, category: str, customer_context: CustomerContext) -> List[str]:
+    def _generate_suggested_actions(
+        self,
+        should_escalate: bool,
+        escalation_reason: str,
+        sentiment: str,
+        category: str,
+        customer_context: CustomerContext,
+    ) -> List[str]:
         """Generate comprehensive suggested actions"""
         actions = []
-        
+
         if should_escalate:
             actions.append(f"Escalate to supervisor: {escalation_reason}")
-        
+
         # Category-specific actions
         category_actions = {
-            "account_access": ["Verify identity", "Check account status", "Password reset assistance"],
-            "billing": ["Review billing history", "Process refund if applicable", "Update payment method"],
-            "technical_issues": ["Technical diagnostics", "Check system status", "Submit bug report"],
-            "api_problems": ["Check API status", "Review integration logs", "Rate limit analysis"],
+            "account_access": [
+                "Verify identity",
+                "Check account status",
+                "Password reset assistance",
+            ],
+            "billing": [
+                "Review billing history",
+                "Process refund if applicable",
+                "Update payment method",
+            ],
+            "technical_issues": [
+                "Technical diagnostics",
+                "Check system status",
+                "Submit bug report",
+            ],
+            "api_problems": [
+                "Check API status",
+                "Review integration logs",
+                "Rate limit analysis",
+            ],
             "security": ["Security review", "Account audit", "Enable 2FA"],
         }
-        
+
         if category in category_actions:
             actions.extend(category_actions[category][:2])
-        
+
         # Sentiment-based actions
         if sentiment in ["negative", "very_negative"]:
             actions.append("Follow up within 4 hours")
@@ -701,16 +868,18 @@ Recent Interaction Summary:
                 actions.append("Priority handling required")
         elif sentiment in ["positive", "very_positive"]:
             actions.append("Document success for best practices")
-        
+
         # Tier-specific actions
         if customer_context.tier == "enterprise":
             actions.append("Dedicated support specialist assignment")
         elif customer_context.tier == "free":
             actions.append("Direct to self-service resources")
-        
+
         return actions[:5]  # Limit to 5 actions
 
-    def create_support_ticket(self, customer_id: int, message: str, category: str, priority: str = "medium") -> int:
+    def create_support_ticket(
+        self, customer_id: int, message: str, category: str, priority: str = "medium"
+    ) -> int:
         """Create a support ticket for tracking"""
         session = get_session()
         try:
@@ -721,7 +890,7 @@ Recent Interaction Summary:
                 category=category,
                 priority=priority,
                 status="open",
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
             session.add(ticket)
             session.commit()
@@ -733,8 +902,14 @@ Recent Interaction Summary:
         finally:
             session.close()
 
-    def log_interaction_enhanced(self, customer_id: int, message: str, response: AgentResponse, 
-                               category: str, ticket_id: int = None):
+    def log_interaction_enhanced(
+        self,
+        customer_id: int,
+        message: str,
+        response: AgentResponse,
+        category: str,
+        ticket_id: int = None,
+    ):
         """Enhanced interaction logging with more metadata"""
         session = get_session()
         try:
@@ -744,10 +919,10 @@ Recent Interaction Summary:
                 "positive": 4.0,
                 "neutral": 3.0,
                 "negative": 2.0,
-                "very_negative": 1.0
+                "very_negative": 1.0,
             }
             satisfaction = satisfaction_mapping.get(response.sentiment, 3.0)
-            
+
             # Adjust based on confidence
             if response.confidence > 0.8:
                 satisfaction = min(5.0, satisfaction + 0.5)
@@ -768,9 +943,9 @@ Recent Interaction Summary:
                     "escalated": response.escalate,
                     "knowledge_sources": response.knowledge_sources,
                     "suggested_actions": response.suggested_actions,
-                    "ticket_id": ticket_id
+                    "ticket_id": ticket_id,
                 },
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
             session.add(interaction)
             session.commit()
@@ -780,23 +955,35 @@ Recent Interaction Summary:
         finally:
             session.close()
 
-    def handle_customer_request_enhanced(self, customer_id: int, message: str, 
-                                       create_ticket: bool = False) -> Dict[str, Any]:
+    def handle_customer_request_enhanced(
+        self, customer_id: int, message: str, create_ticket: bool = False
+    ) -> Dict[str, Any]:
         """Enhanced main method to handle a customer request"""
         # Categorize the issue first
         category = self.categorize_issue(message)
-        
+
         # Create ticket if requested or if it's a complex issue
         ticket_id = None
         if create_ticket or category in ["technical_issues", "billing", "security"]:
-            priority = "urgent" if any(word in message.lower() for word in ["urgent", "critical", "emergency"]) else "medium"
-            ticket_id = self.create_support_ticket(customer_id, message, category, priority)
+            priority = (
+                "urgent"
+                if any(
+                    word in message.lower()
+                    for word in ["urgent", "critical", "emergency"]
+                )
+                else "medium"
+            )
+            ticket_id = self.create_support_ticket(
+                customer_id, message, category, priority
+            )
 
         # Process the message
         response = self.process_customer_message(customer_id, message)
 
         # Log the enhanced interaction
-        self.log_interaction_enhanced(customer_id, message, response, category, ticket_id)
+        self.log_interaction_enhanced(
+            customer_id, message, response, category, ticket_id
+        )
 
         # Return comprehensive structured response
         return {
@@ -812,8 +999,8 @@ Recent Interaction Summary:
             "metadata": {
                 "agent_version": "enhanced_v2.0",
                 "processing_time": "< 3 seconds",
-                "knowledge_base_used": len(response.knowledge_sources) > 0
-            }
+                "knowledge_base_used": len(response.knowledge_sources) > 0,
+            },
         }
 
     def get_customer_insights(self, customer_id: int) -> Dict[str, Any]:
@@ -825,9 +1012,11 @@ Recent Interaction Summary:
         session = get_session()
         try:
             # Get interaction statistics
-            interactions = session.query(CustomerInteraction).filter(
-                CustomerInteraction.customer_id == customer_id
-            ).all()
+            interactions = (
+                session.query(CustomerInteraction)
+                .filter(CustomerInteraction.customer_id == customer_id)
+                .all()
+            )
 
             sentiment_distribution = {}
             category_distribution = {}
@@ -836,12 +1025,16 @@ Recent Interaction Summary:
             for interaction in interactions:
                 # Sentiment distribution
                 sentiment = interaction.sentiment
-                sentiment_distribution[sentiment] = sentiment_distribution.get(sentiment, 0) + 1
+                sentiment_distribution[sentiment] = (
+                    sentiment_distribution.get(sentiment, 0) + 1
+                )
 
                 # Category distribution (from metadata)
-                if interaction.metadata and 'category' in interaction.metadata:
-                    category = interaction.metadata['category']
-                    category_distribution[category] = category_distribution.get(category, 0) + 1
+                if interaction.metadata and "category" in interaction.metadata:
+                    category = interaction.metadata["category"]
+                    category_distribution[category] = (
+                        category_distribution.get(category, 0) + 1
+                    )
 
                 # Satisfaction scores
                 if interaction.satisfaction_score:
@@ -852,19 +1045,31 @@ Recent Interaction Summary:
                     "name": customer_context.name,
                     "email": customer_context.email,
                     "tier": customer_context.tier,
-                    "company": customer_context.company
+                    "company": customer_context.company,
                 },
                 "interaction_stats": {
                     "total_interactions": len(interactions),
                     "sentiment_distribution": sentiment_distribution,
                     "category_distribution": category_distribution,
-                    "average_satisfaction": sum(satisfaction_scores) / len(satisfaction_scores) if satisfaction_scores else 0,
-                    "satisfaction_trend": satisfaction_scores[-5:] if len(satisfaction_scores) >= 5 else satisfaction_scores
+                    "average_satisfaction": (
+                        sum(satisfaction_scores) / len(satisfaction_scores)
+                        if satisfaction_scores
+                        else 0
+                    ),
+                    "satisfaction_trend": (
+                        satisfaction_scores[-5:]
+                        if len(satisfaction_scores) >= 5
+                        else satisfaction_scores
+                    ),
                 },
                 "current_status": {
                     "open_tickets": len(customer_context.open_tickets),
-                    "recent_sentiment": customer_context.recent_interactions[0]['sentiment'] if customer_context.recent_interactions else 'neutral'
-                }
+                    "recent_sentiment": (
+                        customer_context.recent_interactions[0]["sentiment"]
+                        if customer_context.recent_interactions
+                        else "neutral"
+                    ),
+                },
             }
         finally:
             session.close()
@@ -880,37 +1085,37 @@ def test_customer_support_agent_enhanced():
             "customer_id": 1,
             "message": "I can't log into my account. I keep getting an error message saying 'invalid credentials' but I'm sure my password is correct.",
             "description": "Account access issue",
-            "create_ticket": False
+            "create_ticket": False,
         },
         {
             "customer_id": 2,
             "message": "This is absolutely ridiculous! I was charged twice this month for $299 each and I want my money back immediately or I'm calling my lawyer!",
             "description": "Angry billing dispute",
-            "create_ticket": True
+            "create_ticket": True,
         },
         {
             "customer_id": 3,
             "message": "Our production API is returning 500 errors since this morning. This is affecting thousands of our customers. We need immediate assistance.",
             "description": "Critical technical issue",
-            "create_ticket": True
+            "create_ticket": True,
         },
         {
             "customer_id": 1,
             "message": "Thank you so much for helping me reset my password yesterday. Everything is working perfectly now and your support was excellent!",
             "description": "Positive feedback",
-            "create_ticket": False
+            "create_ticket": False,
         },
         {
             "customer_id": 4,
             "message": "I need to upgrade my subscription plan but I'm not sure which one would be best for our company's needs.",
             "description": "Subscription inquiry",
-            "create_ticket": False
+            "create_ticket": False,
         },
         {
             "customer_id": 5,
             "message": "We've had a security breach and unauthorized access to our API keys. I need to speak with your security team immediately.",
             "description": "Security incident",
-            "create_ticket": True
+            "create_ticket": True,
         },
     ]
 
@@ -923,9 +1128,7 @@ def test_customer_support_agent_enhanced():
         print(f"Create Ticket: {test_case['create_ticket']}")
 
         result = agent.handle_customer_request_enhanced(
-            test_case["customer_id"], 
-            test_case["message"],
-            test_case["create_ticket"]
+            test_case["customer_id"], test_case["message"], test_case["create_ticket"]
         )
 
         print(f"Response: {result['response'][:200]}...")
