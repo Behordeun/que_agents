@@ -5,8 +5,6 @@
 # @Last Modified time: 2025-08-01 23:53:31
 # @Description: This module implements a customer support agent using LangChain and SQLAlchemy
 
-
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -23,33 +21,8 @@ from src.que_agents.core.database import (
     get_session,
 )
 from src.que_agents.core.llm_factory import LLMFactory
+from src.que_agents.core.schemas import AgentResponse, CustomerContext
 from src.que_agents.knowledge_base.kb_manager import search_knowledge_base
-
-
-@dataclass
-class CustomerContext:
-    """Customer context information"""
-
-    customer_id: int
-    name: str
-    email: str
-    tier: str
-    company: str
-    recent_interactions: List[Dict]
-    open_tickets: List[Dict]
-
-
-@dataclass
-class AgentResponse:
-    """Agent response structure"""
-
-    message: str
-    confidence: float
-    escalate: bool
-    suggested_actions: List[str]
-    knowledge_sources: List[str]
-    sentiment: str
-
 
 # Load agent configuration
 with open("configs/agent_config.yaml", "r") as f:

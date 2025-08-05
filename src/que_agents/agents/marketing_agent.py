@@ -6,9 +6,7 @@
 # @Description: This module implements a marketing agent for autonomous campaign management
 
 import json
-from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from typing import Any, Dict, List
 
 import yaml
@@ -23,63 +21,14 @@ from src.que_agents.core.database import (
     get_session,
 )
 from src.que_agents.core.llm_factory import LLMFactory
+from src.que_agents.core.schemas import (
+    CampaignPlan,
+    CampaignRequest,
+    CampaignType,
+    ContentPiece,
+    ContentType,
+)
 from src.que_agents.knowledge_base.kb_manager import search_knowledge_base
-
-
-class CampaignType(Enum):
-    PRODUCT_LAUNCH = "product_launch"
-    CUSTOMER_RETENTION = "customer_retention"
-    LEAD_GENERATION = "lead_generation"
-    BRAND_AWARENESS = "brand_awareness"
-    SEASONAL_PROMOTION = "seasonal_promotion"
-
-
-class ContentType(Enum):
-    SOCIAL_MEDIA = "social_media"
-    EMAIL = "email"
-    BLOG_POST = "blog_post"
-    AD_COPY = "ad_copy"
-    LANDING_PAGE = "landing_page"
-
-
-@dataclass
-class CampaignRequest:
-    """Campaign creation request"""
-
-    campaign_type: CampaignType
-    target_audience: str
-    budget: float
-    duration_days: int
-    goals: List[str]
-    channels: List[str]
-    content_requirements: List[ContentType]
-
-
-@dataclass
-class ContentPiece:
-    """Generated content piece"""
-
-    content_type: ContentType
-    platform: str
-    title: str
-    content: str
-    hashtags: List[str]
-    call_to_action: str
-    estimated_reach: int
-
-
-@dataclass
-class CampaignPlan:
-    """Complete campaign plan"""
-
-    campaign_id: str
-    strategy: str
-    content_pieces: List[ContentPiece]
-    schedule: List[Dict]
-    budget_allocation: Dict[str, float]
-    success_metrics: List[str]
-    estimated_performance: Dict[str, Any]
-
 
 # Load agent configuration
 with open("configs/agent_config.yaml", "r") as f:

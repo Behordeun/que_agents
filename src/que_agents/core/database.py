@@ -165,34 +165,150 @@ class CampaignMetrics(Base):
     campaign = relationship("MarketingCampaign", back_populates="metrics")
 
 
-# Personal Assistant Agent Models
-class UserPreference(Base):
+# Personal Virtual Assistant Agent Models
+class UserPreferences(Base):
     __tablename__ = "user_preferences"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, unique=True, nullable=False)  # Assuming a generic user ID
-    preferences = Column(
-        JSON
-    )  # Stores a dictionary of preferences (e.g., {"music_genre": "classical", "news_topics": ["tech", "science"]})
+    user_id = Column(String(100), nullable=False, unique=True)  # User identifier
+    preferences = Column(JSON)  # User preferences (location, interests, etc.)
+    learned_behaviors = Column(JSON)  # AI-learned user patterns
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    reminders = relationship("Reminder", back_populates="user")
+
+
+class Reminder(Base):
+    __tablename__ = "reminders"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        String(100), ForeignKey("user_preferences.user_id"), nullable=False
+    )
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    reminder_time = Column(DateTime, nullable=False)
+    is_recurring = Column(Boolean, default=False)
+    recurrence_pattern = Column(String(100))  # daily, weekly, monthly, etc.
+    status = Column(String(50), default="active")  # active, completed, cancelled
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime)
+
+    # Relationships
+    user = relationship("UserPreferences", back_populates="reminders")
 
 
 class SmartDevice(Base):
     __tablename__ = "smart_devices"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False)  # Owner of the device
-    name = Column(
-        String(255), nullable=False
-    )  # e.g., "living room light", "bedroom thermostat"
-    type = Column(String(50), nullable=False)  # e.g., "light", "thermostat", "speaker"
-    status = Column(
-        JSON
-    )  # Current state of the device (e.g., {"power": "on", "brightness": 80})
-    location = Column(String(255))
+    user_id = Column(String(100), nullable=False)
+    device_name = Column(String(255), nullable=False)
+    device_type = Column(
+        String(100), nullable=False
+    )  # light, thermostat, speaker, etc.
+    location = Column(String(255))  # room or area
+    current_state = Column(JSON)  # Current device state (on/off, temperature, etc.)
+    capabilities = Column(JSON)  # What the device can do
+    is_online = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PVAInteraction(Base):
+    __tablename__ = "pva_interactions"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(100), nullable=False)
+    intent = Column(String(100))  # weather, reminder, device_control, general_query
+    user_message = Column(Text, nullable=False)
+    agent_response = Column(Text, nullable=False)
+    entities_extracted = Column(JSON)  # Extracted entities from user message
+    confidence_score = Column(Float)
+    session_id = Column(String(100))  # For conversation tracking
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# Financial Trading Bot Agent Models
+class TradingStrategy(Base):
+    __tablename__ = "trading_strategies"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    strategy_type = Column(
+        String(100), nullable=False
+    )  # momentum, mean_reversion, arbitrage, etc.
+    parameters = Column(JSON)  # Strategy-specific parameters
+    risk_parameters = Column(JSON)  # Risk management settings
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    trades = relationship("TradeLog", back_populates="strategy")
+
+
+class TradeLog(Base):
+    __tablename__ = "trade_logs"
+
+    id = Column(Integer, primary_key=True)
+    strategy_id = Column(Integer, ForeignKey("trading_strategies.id"), nullable=False)
+    symbol = Column(String(20), nullable=False)  # Stock/crypto symbol
+    trade_type = Column(String(10), nullable=False)  # buy, sell
+    quantity = Column(Float, nullable=False)
+    price = Column(Float, nullable=False)
+    total_value = Column(Float, nullable=False)
+    fees = Column(Float, default=0.0)
+    market_conditions = Column(JSON)  # Market data at time of trade
+    confidence_score = Column(Float)  # AI confidence in the trade
+    executed_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    strategy = relationship("TradingStrategy", back_populates="trades")
+
+
+class Portfolio(Base):
+    __tablename__ = "portfolios"
+
+    id = Column(Integer, primary_key=True)
+    portfolio_name = Column(String(255), nullable=False, default="Default Portfolio")
+    cash_balance = Column(Float, default=10000.0)  # Starting cash
+    total_value = Column(Float, default=10000.0)  # Current total portfolio value
+    holdings = Column(JSON)  # Current stock/crypto holdings
+    performance_metrics = Column(JSON)  # ROI, Sharpe ratio, etc.
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class MarketData(Base):
+    __tablename__ = "market_data"
+
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String(20), nullable=False)
+    price = Column(Float, nullable=False)
+    volume = Column(Float)
+    market_cap = Column(Float)
+    change_24h = Column(Float)  # 24-hour price change percentage
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    data_source = Column(String(100))  # API source
+    additional_metrics = Column(JSON)  # RSI, MACD, etc.
+
+
+class TradingSignal(Base):
+    __tablename__ = "trading_signals"
+
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String(20), nullable=False)
+    signal_type = Column(String(20), nullable=False)  # buy, sell, hold
+    strength = Column(Float, nullable=False)  # Signal strength (0-1)
+    strategy_source = Column(String(100))  # Which strategy generated the signal
+    market_conditions = Column(JSON)  # Market data used for signal
+    reasoning = Column(Text)  # AI reasoning for the signal
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime)  # When signal becomes invalid
 
 
 # Load database configuration

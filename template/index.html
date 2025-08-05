@@ -257,13 +257,19 @@
         </div>
 
         <div class="tabs">
-            <button class="tab active" type="button" onclick="switchTab('customer-support')">
+            <button class="tab active" type="button" onclick="switchTab(\'customer-support\')">
                 💬 Customer Support Agent
             </button>
-            <button class="tab" type="button" onclick="switchTab('marketing')">
+            <button class="tab" type="button" onclick="switchTab(\'marketing\')">
                 📈 Marketing Agent
             </button>
-            <button class="tab" type="button" onclick="switchTab('analytics')">
+            <button class="tab" type="button" onclick="switchTab(\'personal-virtual-assistant\')">
+                🗣️ Personal Virtual Assistant
+            </button>
+            <button class="tab" type="button" onclick="switchTab(\'financial-trading-bot\')">
+                💰 Financial Trading Bot
+            </button>
+            <button class="tab" type="button" onclick="switchTab(\'analytics\')">
                 📊 Analytics Dashboard
             </button>
         </div>
@@ -380,6 +386,24 @@
                         <div class="metric-value" id="api-status">-</div>
                         <div class="metric-label">API Status</div>
                     </div>
+                    <div class="metric">
+                        <div class="metric-value" id="customer-support-status">-</div>
+                        <div class="metric-label">Customer Support Agent</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="marketing-status">-</div>
+                        <div class="metric-label">Marketing Agent</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="pva-status">-</div>
+                        <div class="metric-label">Personal Virtual Assistant</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="trading-bot-status">-</div>
+                        <div class="metric-label">Financial Trading Bot</div>
+                    </div>
+
+
                 </div>
 
                 <div class="response-area">
@@ -411,6 +435,214 @@
 
         console.log(`Using API_BASE: ${API_BASE}`);
 
+        // PVA Agent Functions
+        async function sendPVAMessage() {
+            const userId = document.getElementById('pva-user-id').value;
+            const message = document.getElementById('pva-message').value;
+            const loadingDiv = document.getElementById('pva-loading');
+            const responseDiv = document.getElementById('pva-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall('/api/v1/pva/chat', 'POST', { user_id: userId, message: message });
+                responseDiv.innerHTML = `
+                    <div class="response-content">
+                        <p><strong>Response:</strong> ${data.response}</p>
+                        <p><strong>Intent:</strong> ${data.intent}</p>
+                        <p><strong>Confidence:</strong> ${data.confidence.toFixed(2)}</p>
+                        <p><strong>Actions Taken:</strong> ${data.actions_taken.join(', ')}</p>
+                        <p><strong>Suggestions:</strong> ${data.suggestions.join(', ')}</p>
+                        <p><strong>Timestamp:</strong> ${new Date(data.timestamp).toLocaleString()}</p>
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        async function getPVAReminders() {
+            const userId = document.getElementById('pva-user-id').value;
+            const loadingDiv = document.getElementById('pva-loading');
+            const responseDiv = document.getElementById('pva-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall(`/api/v1/pva/user/${userId}/reminders`);
+                if (data.reminders && data.reminders.length > 0) {
+                    responseDiv.innerHTML = `
+                        <div class="response-content">
+                            <h3>Your Reminders (${data.total}):</h3>
+                            <ul>
+                                ${data.reminders.map(r => `<li>${r.title} at ${new Date(r.target_time).toLocaleString()} (Status: ${r.status})</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    responseDiv.innerHTML = `<div class="response-content"><p>No reminders found for user ${userId}.</p></div>`;
+                }
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        async function getPVADevices() {
+            const userId = document.getElementById('pva-user-id').value;
+            const loadingDiv = document.getElementById('pva-loading');
+            const responseDiv = document.getElementById('pva-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall(`/api/v1/pva/user/${userId}/devices`);
+                if (data.devices && data.devices.length > 0) {
+                    responseDiv.innerHTML = `
+                        <div class="response-content">
+                            <h3>Your Smart Devices (${data.total}):</h3>
+                            <ul>
+                                ${data.devices.map(d => `<li>${d.name} (${d.type}) - Status: ${d.status}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    responseDiv.innerHTML = `<div class="response-content"><p>No smart devices found for user ${userId}.</p></div>`;
+                }
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        // Financial Trading Bot Functions
+        async function analyzeTrading() {
+            const symbol = document.getElementById('trading-symbol').value;
+            const strategyType = document.getElementById('trading-strategy').value;
+            const loadingDiv = document.getElementById('trading-loading');
+            const responseDiv = document.getElementById('trading-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall('/api/v1/trading/analyze', 'POST', { symbol: symbol, strategy_type: strategyType });
+                responseDiv.innerHTML = `
+                    <div class="response-content">
+                        <p><strong>Action:</strong> ${data.action.toUpperCase()}</p>
+                        <p><strong>Symbol:</strong> ${data.symbol}</p>
+                        <p><strong>Quantity:</strong> ${data.quantity}</p>
+                        <p><strong>Confidence:</strong> ${data.confidence.toFixed(2)}</p>
+                        <p><strong>Reasoning:</strong> ${data.reasoning}</p>
+                        <p><strong>Risk Score:</strong> ${data.risk_score.toFixed(2)}</p>
+                        <p><strong>Expected Return:</strong> ${(data.expected_return * 100).toFixed(2)}%</p>
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        async function runTradingCycle() {
+            const loadingDiv = document.getElementById('trading-loading');
+            const responseDiv = document.getElementById('trading-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall('/api/v1/trading/cycle', 'POST', {});
+                responseDiv.innerHTML = `
+                    <div class="response-content">
+                        <h3>Trading Cycle Report</h3>
+                        <p><strong>Timestamp:</strong> ${new Date(data.timestamp).toLocaleString()}</p>
+                        <p><strong>Symbols Analyzed:</strong> ${data.symbols_analyzed}</p>
+                        <p><strong>Trades Executed:</strong> ${data.trades_executed}</p>
+                        <p><strong>Average Confidence:</strong> ${data.average_confidence.toFixed(2)}</p>
+                        <h4>Decisions:</h4>
+                        <ul>
+                            ${data.decisions.map(d => `<li>${d.symbol}: ${d.action.toUpperCase()} (Confidence: ${d.confidence.toFixed(2)}, Executed: ${d.executed})</li>`).join('')}
+                        </ul>
+                        <h4>Portfolio Status:</h4>
+                        <pre>${JSON.stringify(data.portfolio_status, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        async function getPortfolioStatus() {
+            const loadingDiv = document.getElementById('trading-loading');
+            const responseDiv = document.getElementById('trading-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall('/api/v1/trading/portfolio');
+                responseDiv.innerHTML = `
+                    <div class="response-content">
+                        <h3>Portfolio Status</h3>
+                        <p><strong>Total Value:</strong> $${data.portfolio_value.toFixed(2)}</p>
+                        <p><strong>Cash Balance:</strong> $${data.cash_balance.toFixed(2)}</p>
+                        <p><strong>Unrealized PnL:</strong> $${data.unrealized_pnl.toFixed(2)}</p>
+                        <p><strong>Realized PnL:</strong> $${data.realized_pnl.toFixed(2)}</p>
+                        <h4>Holdings:</h4>
+                        <pre>${JSON.stringify(data.holdings, null, 2)}</pre>
+                        <h4>Performance Metrics:</h4>
+                        <pre>${JSON.stringify(data.performance_metrics, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        async function getMarketData() {
+            const symbol = document.getElementById('trading-symbol').value;
+            const loadingDiv = document.getElementById('trading-loading');
+            const responseDiv = document.getElementById('trading-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall(`/api/v1/trading/market/${symbol}`);
+                responseDiv.innerHTML = `
+                    <div class="response-content">
+                        <h3>Market Data for ${data.symbol}</h3>
+                        <p><strong>Current Price:</strong> $${data.current_price.toFixed(2)}</p>
+                        <p><strong>24h Change:</strong> ${data.change_24h.toFixed(2)}%</p>
+                        <p><strong>Volume:</strong> ${data.volume.toLocaleString()}</p>
+                        <p><strong>RSI:</strong> ${data.rsi.toFixed(2)}</p>
+                        <p><strong>MACD:</strong> ${data.macd.toFixed(2)}</p>
+                        <p><strong>Moving Avg (20):</strong> ${data.moving_avg_20.toFixed(2)}</p>
+                        <p><strong>Moving Avg (50):</strong> ${data.moving_avg_50.toFixed(2)}</p>
+                        <p><strong>Volatility:</strong> ${data.volatility.toFixed(2)}</p>
+                        <p><strong>Market Sentiment:</strong> ${data.market_sentiment}</p>
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
         function switchTab(tabName) {
             // Hide all sections
             document.querySelectorAll('.agent-section').forEach(section => {
@@ -423,18 +655,26 @@
             });
 
             // Show selected section
-            document.getElementById(tabName).classList.add('active');
+            document.getElementById(tabName).classList.add(\'active\');
 
             // Add active class to clicked tab
             if (window.event && window.event.target) {
-                window.event.target.classList.add('active');
+                window.event.target.classList.add(\'active\');
             } else {
-                document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
+                document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add(\'active\');
             }
 
             // Load analytics data when switching to analytics tab
-            if (tabName === 'analytics') {
+            if (tabName === \'analytics\') {
                 refreshAnalytics();
+            } else if (tabName === \'customer-support\') {
+                // Optional: load initial data for customer support if needed
+            } else if (tabName === \'marketing\') {
+                // Optional: load initial data for marketing if needed
+            } else if (tabName === \'personal-virtual-assistant\') {
+                // Optional: load initial data for PVA if needed
+            } else if (tabName === \'financial-trading-bot\') {
+                // Optional: load initial data for trading bot if needed
             }
         }
 
@@ -804,3 +1044,75 @@
     </script>
 </body>
 </html>
+
+
+            <!-- Personal Virtual Assistant Section -->
+            <div id="personal-virtual-assistant" class="agent-section">
+                <h2>Personal Virtual Assistant</h2>
+                <p>Interact with your AI-powered personal assistant for daily tasks.</p>
+
+                <div class="two-column">
+                    <div>
+                        <div class="form-group">
+                            <label for="pva-user-id">User ID:</label>
+                            <input type="text" id="pva-user-id" value="user123" placeholder="Enter user ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="pva-message">Your Message:</label>
+                            <textarea id="pva-message" placeholder="Ask me anything...">What's the weather like in London?</textarea>
+                        </div>
+                        <button class="btn" onclick="sendPVAMessage()">Send Message</button>
+                        <button class="btn" onclick="getPVAReminders()">Get Reminders</button>
+                        <button class="btn" onclick="getPVADevices()">Get Devices</button>
+                    </div>
+                    <div>
+                        <div class="response-area">
+                            <h3>Assistant Response</h3>
+                            <div id="pva-loading" class="loading">
+                                <div class="spinner"></div>
+                                <p>Thinking...</p>
+                            </div>
+                            <div id="pva-response"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Trading Bot Section -->
+            <div id="financial-trading-bot" class="agent-section">
+                <h2>Financial Trading Bot</h2>
+                <p>Automated market analysis and trading decisions.</p>
+
+                <div class="two-column">
+                    <div>
+                        <div class="form-group">
+                            <label for="trading-symbol">Stock Symbol:</label>
+                            <input type="text" id="trading-symbol" value="AAPL" placeholder="e.g., AAPL, GOOGL">
+                        </div>
+                        <div class="form-group">
+                            <label for="trading-strategy">Strategy Type:</label>
+                            <select id="trading-strategy">
+                                <option value="momentum">Momentum</option>
+                                <option value="mean_reversion">Mean Reversion</option>
+                                <option value="arbitrage">Arbitrage</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="analyzeTrading()">Analyze & Decide</button>
+                        <button class="btn" onclick="runTradingCycle()">Run Trading Cycle</button>
+                        <button class="btn" onclick="getPortfolioStatus()">Get Portfolio</button>
+                        <button class="btn" onclick="getMarketData()">Get Market Data</button>
+                    </div>
+                    <div>
+                        <div class="response-area">
+                            <h3>Trading Bot Output</h3>
+                            <div id="trading-loading" class="loading">
+                                <div class="spinner"></div>
+                                <p>Analyzing market...</p>
+                            </div>
+                            <div id="trading-response"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Dashboard Section -->
