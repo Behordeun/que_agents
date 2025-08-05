@@ -25,6 +25,7 @@ from src.que_agents.core.schemas import (
     PortfolioStatus,
     TradingDecision,
 )
+from src.que_agents.knowledge_base.kb_manager import search_agent_knowledge_base
 
 # Load agent configuration
 with open("configs/agent_config.yaml", "r") as f:
@@ -74,6 +75,147 @@ class FinancialTradingBotAgent:
         self.analysis_chain = self._create_analysis_chain()
         self.decision_chain = self._create_decision_chain()
         self.risk_chain = self._create_risk_chain()
+
+    def get_trading_knowledge(self, query: str) -> List[Dict]:
+        """Get trading-related knowledge from knowledge base"""
+        try:
+            return search_agent_knowledge_base("financial_trading_bot", query, limit=3)
+        except Exception as e:
+            print(f"Error searching trading knowledge: {e}")
+            return []
+
+    def analyze_market_with_knowledge(self, symbol: str) -> str:
+        """Enhanced market analysis using knowledge base"""
+        # Get basic market data
+        market_data = self.get_market_data(symbol)
+
+        # Search for relevant trading strategies
+        strategy_knowledge = self.get_trading_knowledge(
+            f"{symbol} trading strategy technical analysis"
+        )
+        risk_knowledge = self.get_trading_knowledge(
+            f"risk management {market_data.market_sentiment}"
+        )
+
+        # Prepare enhanced context
+        knowledge_context = ""
+        if strategy_knowledge:
+            knowledge_context += "Relevant Trading Strategies:\n"
+            for kb_item in strategy_knowledge:
+                knowledge_context += (
+                    f"- {kb_item['title']}: {kb_item['content'][:200]}...\n"
+                )
+
+        if risk_knowledge:
+            knowledge_context += "\nRisk Management Guidelines:\n"
+            for kb_item in risk_knowledge:
+                knowledge_context += (
+                    f"- {kb_item['title']}: {kb_item['content'][:200]}...\n"
+                )
+
+        # Enhanced market data string
+        market_data_str = f"""
+Symbol: {market_data.symbol}
+Current Price: ${market_data.current_price:.2f}
+24h Change: {market_data.change_24h:.2f}%
+Volume: {market_data.volume:,.0f}
+Market Sentiment: {market_data.market_sentiment}
+
+Knowledge Base Context:
+{knowledge_context}
+"""
+
+        technical_indicators_str = f"""
+RSI: {market_data.rsi:.2f}
+MACD: {market_data.macd:.2f}
+20-day MA: ${market_data.moving_avg_20:.2f}
+50-day MA: ${market_data.moving_avg_50:.2f}
+Volatility: {market_data.volatility:.2f}
+"""
+
+        # Get historical performance (simulated)
+        historical_data_str = (
+            "Recent performance shows moderate volatility with mixed signals."
+        )
+
+        try:
+            analysis = self.analysis_chain.invoke(
+                {
+                    "symbol": symbol,
+                    "market_data": market_data_str,
+                    "technical_indicators": technical_indicators_str,
+                    "historical_data": historical_data_str,
+                }
+            )
+            return analysis
+        except Exception as e:
+            print(f"Error in enhanced market analysis: {e}")
+            return self.analyze_market(symbol)  # Fallback to basic analysis
+
+    def make_enhanced_trading_decision(
+        self, symbol: str, strategy_type: str = "momentum"
+    ) -> TradingDecision:
+        """Enhanced trading decision using knowledge base"""
+        # Get relevant knowledge for decision making
+        decision_knowledge = self.get_trading_knowledge(
+            f"{strategy_type} strategy {symbol}"
+        )
+
+        # Use enhanced market analysis
+        market_analysis = self.analyze_market_with_knowledge(symbol)
+
+        # Get portfolio status
+        portfolio_status = self.get_portfolio_status()
+
+        # Get market conditions
+        market_conditions = self.get_market_data(symbol)
+
+        # Prepare context for decision making with knowledge
+        portfolio_str = f"""
+Total Value: ${portfolio_status.total_value:.2f}
+Cash Balance: ${portfolio_status.cash_balance:.2f}
+Current Holdings: {portfolio_status.holdings}
+Performance: {portfolio_status.performance_metrics.get('total_return', 0):.2%}
+"""
+
+        risk_parameters_str = f"""
+Max Position Size: {self.max_position_size:.1%}
+Stop Loss: {self.stop_loss_threshold:.1%}
+Take Profit: {self.take_profit_threshold:.1%}
+Min Confidence: {self.min_confidence_threshold:.1%}
+"""
+
+        # Add knowledge context to decision making
+        knowledge_context = ""
+        if decision_knowledge:
+            knowledge_context = "Relevant Decision Knowledge:\n"
+            for kb_item in decision_knowledge:
+                knowledge_context += (
+                    f"- {kb_item['title']}: {kb_item['content'][:150]}...\n"
+                )
+
+        try:
+            decision_text = self.decision_chain.invoke(
+                {
+                    "symbol": symbol,
+                    "market_analysis": f"{market_analysis}\n\nKnowledge Context:\n{knowledge_context}",
+                    "portfolio_status": portfolio_str,
+                    "risk_parameters": risk_parameters_str,
+                    "strategy_type": strategy_type,
+                }
+            )
+
+            # Parse decision (simplified - in real implementation, use structured output)
+            decision = self._parse_trading_decision(
+                decision_text, symbol, market_conditions, portfolio_status
+            )
+
+            return decision
+
+        except Exception as e:
+            print(f"Error making enhanced trading decision: {e}")
+            # Fallback to basic decision making
+            return self.make_trading_decision(symbol, strategy_type)
 
     def _create_analysis_prompt(self) -> ChatPromptTemplate:
         """Create prompt template for market analysis"""
@@ -671,8 +813,11 @@ Min Confidence: {self.min_confidence_threshold:.1%}
 
         for symbol in symbols:
             try:
-                # Make trading decision
-                decision = self.make_trading_decision(symbol)
+                # Make trading decision (use enhanced version if knowledge base is available)
+                try:
+                    decision = self.make_enhanced_trading_decision(symbol)
+                except Exception:
+                    decision = self.make_trading_decision(symbol)
 
                 # Execute trade if conditions are met
                 trade_executed = False
@@ -792,12 +937,32 @@ def test_financial_trading_bot_agent():
     analysis = agent.analyze_market("AAPL")
     print(f"AAPL Analysis: {analysis[:200]}...\n")
 
+    # Test enhanced market analysis with knowledge base
+    print("1.1. Enhanced Market Analysis Test:")
+    try:
+        enhanced_analysis = agent.analyze_market_with_knowledge("AAPL")
+        print(f"Enhanced AAPL Analysis: {enhanced_analysis[:200]}...\n")
+    except Exception as e:
+        print(f"Enhanced analysis failed, falling back to basic: {e}\n")
+
     # Test trading decision
     print("2. Trading Decision Test:")
     decision = agent.make_trading_decision("AAPL")
     print(f"Decision: {decision.action.upper()} {decision.quantity:.2f} AAPL")
     print(f"Confidence: {decision.confidence:.2f}")
     print(f"Reasoning: {decision.reasoning[:100]}...\n")
+
+    # Test enhanced trading decision
+    print("2.1. Enhanced Trading Decision Test:")
+    try:
+        enhanced_decision = agent.make_enhanced_trading_decision("AAPL")
+        print(
+            f"Enhanced Decision: {enhanced_decision.action.upper()} {enhanced_decision.quantity:.2f} AAPL"
+        )
+        print(f"Enhanced Confidence: {enhanced_decision.confidence:.2f}")
+        print(f"Enhanced Reasoning: {enhanced_decision.reasoning[:100]}...\n")
+    except Exception as e:
+        print(f"Enhanced decision failed, falling back to basic: {e}\n")
 
     # Test trading cycle
     print("3. Trading Cycle Test:")
@@ -812,6 +977,16 @@ def test_financial_trading_bot_agent():
     print(f"Portfolio value: ${report['portfolio_value']:.2f}")
     print(f"Total return: {report['total_return_pct']:.2f}%")
     print(f"Total trades: {report['trade_statistics']['total_trades']}")
+
+    # Test knowledge base integration
+    print("\n5. Knowledge Base Integration Test:")
+    try:
+        knowledge = agent.get_trading_knowledge("risk management strategies")
+        print(f"Knowledge base results: {len(knowledge)} items found")
+        if knowledge:
+            print(f"First result: {knowledge[0]['title']}")
+    except Exception as e:
+        print(f"Knowledge base test failed: {e}")
 
 
 if __name__ == "__main__":

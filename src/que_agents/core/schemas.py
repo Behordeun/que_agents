@@ -224,5 +224,3 @@ class AgentResponse:
     suggested_actions: List[str]
     knowledge_sources: List[str]
     sentiment: str
-
-

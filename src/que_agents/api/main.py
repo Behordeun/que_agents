@@ -757,7 +757,8 @@ async def debug_info():
                 getattr(route, "path", None)
                 or (
                     route.url_path_for(route.endpoint.__name__)
-                    if hasattr(route, "endpoint") and hasattr(route.endpoint, "__name__")
+                    if hasattr(route, "endpoint")
+                    and hasattr(route.endpoint, "__name__")
                     else str(route)
                 )
                 if hasattr(route, "endpoint")

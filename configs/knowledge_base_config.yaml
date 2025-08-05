@@ -2,4 +2,17 @@ knowledge_base:
   db_path: knowledge_base.db
   chroma_path: ./chroma_db
   embedding_model: all-MiniLM-L6-v2
-
+  # Agent-specific knowledge base settings
+  agents:
+    customer_support:
+      categories: ["support", "billing", "account", "troubleshooting"]
+      data_sources: ["postgresql", "markdown", "csv"]
+    marketing:
+      categories: ["marketing", "campaigns", "analytics", "content"]
+      data_sources: ["postgresql", "csv", "json"]
+    financial_trading_bot:
+      categories: ["trading", "market_analysis", "risk_management", "portfolio", "financial_data"]
+      data_sources: ["csv", "json", "markdown", "real_time_feeds"]
+    personal_virtual_assistant:
+      categories: ["personal_productivity", "smart_home", "weather", "reminders", "general_knowledge"]
+      data_sources: ["markdown", "json", "postgresql", "external_apis"]

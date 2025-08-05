@@ -246,6 +246,150 @@ class SimpleKnowledgeBase:
         return results
 
 
+class AgentKnowledgeBase:
+    """Agent-specific knowledge base functionality"""
+
+    def __init__(self, agent_type: str, base_kb: SimpleKnowledgeBase):
+        self.agent_type = agent_type
+        self.base_kb = base_kb
+        self.config = kb_config["knowledge_base"]["agents"].get(agent_type, {})
+
+    def load_agent_data(self):
+        """Load agent-specific data into knowledge base"""
+        agent_data_dir = Path(f"data/{self.agent_type}")
+        if not agent_data_dir.exists():
+            print(f"Agent data directory not found: {agent_data_dir}")
+            return 0
+
+        loader = DocumentLoader(self.base_kb)
+        total_loaded = 0
+
+        # Load structured data
+        structured_dir = agent_data_dir / "structured"
+        if structured_dir.exists():
+            files = loader.load_directory(
+                str(structured_dir), f"{self.agent_type}_structured"
+            )
+            total_loaded += len(files)
+            print(f"Loaded {len(files)} structured files for {self.agent_type}")
+
+        # Load semi-structured data
+        semi_structured_dir = agent_data_dir / "semi_structured"
+        if semi_structured_dir.exists():
+            files = loader.load_directory(
+                str(semi_structured_dir), f"{self.agent_type}_semi_structured"
+            )
+            total_loaded += len(files)
+            print(f"Loaded {len(files)} semi-structured files for {self.agent_type}")
+
+        # Load unstructured data
+        unstructured_dir = agent_data_dir / "unstructured"
+        if unstructured_dir.exists():
+            files = loader.load_directory(
+                str(unstructured_dir), f"{self.agent_type}_unstructured"
+            )
+            total_loaded += len(files)
+            print(f"Loaded {len(files)} unstructured files for {self.agent_type}")
+
+        return total_loaded
+
+    def search_agent_knowledge(self, query: str, limit: int = 5) -> List[Dict]:
+        """Search knowledge base with agent-specific context"""
+        # Try agent-specific categories first
+        categories = self.config.get("categories", [])
+        results = []
+
+        for category in categories:
+            category_results = self.base_kb.get_documents_by_category(
+                f"{self.agent_type}_{category}"
+            )
+            query_lower = query.lower()
+            for doc in category_results:
+                if (
+                    query_lower in doc["content"].lower()
+                    or query_lower in doc["title"].lower()
+                ):
+                    results.append(doc)
+
+        # If no agent-specific results, fall back to general search
+        if not results:
+            results = self.base_kb.search_documents(query, limit)
+
+        return results[:limit]
+
+
+def initialize_agent_knowledge_bases():
+    """Initialize knowledge bases for all agents"""
+    base_kb = SimpleKnowledgeBase()
+
+    agents = [
+        "customer_support",
+        "marketing",
+        "financial_trading_bot",
+        "personal_virtual_assistant",
+    ]
+    agent_kbs = {}
+
+    for agent_type in agents:
+        agent_kb = AgentKnowledgeBase(agent_type, base_kb)
+        loaded_count = agent_kb.load_agent_data()
+        agent_kbs[agent_type] = agent_kb
+        print(f"Initialized {agent_type} knowledge base with {loaded_count} documents")
+
+    return base_kb, agent_kbs
+
+
+def search_agent_knowledge_base(
+    agent_type: str, query: str, limit: int = 5
+) -> List[Dict]:
+    """Search knowledge base for specific agent"""
+    try:
+        base_kb = SimpleKnowledgeBase()
+        agent_kb = AgentKnowledgeBase(agent_type, base_kb)
+        return agent_kb.search_agent_knowledge(query, limit)
+    except Exception as e:
+        print(f"Error searching {agent_type} knowledge base: {e}")
+        return _get_agent_fallback_results(agent_type, query, limit)
+
+
+def _get_agent_fallback_results(
+    agent_type: str, query: str, limit: int = 5
+) -> List[Dict]:
+    """Generate agent-specific fallback results"""
+    if agent_type == "financial_trading_bot":
+        return [
+            {
+                "id": f"fallback_{agent_type}_1",
+                "title": "Market Analysis Best Practices",
+                "content": f"Technical analysis guidelines for {query}. Consider RSI, MACD, moving averages, and market sentiment indicators for informed trading decisions.",
+                "source_type": "fallback",
+                "category": "trading",
+                "metadata": {"agent": agent_type, "query": query},
+            },
+            {
+                "id": f"fallback_{agent_type}_2",
+                "title": "Risk Management Strategies",
+                "content": f"Risk management protocols for {query}. Implement position sizing limits, stop-loss orders, and portfolio diversification strategies.",
+                "source_type": "fallback",
+                "category": "risk_management",
+                "metadata": {"agent": agent_type, "query": query},
+            },
+        ]
+    elif agent_type == "personal_virtual_assistant":
+        return [
+            {
+                "id": f"fallback_{agent_type}_1",
+                "title": "Personal Assistant Capabilities",
+                "content": f"Personal assistance features for {query}. Available functions include smart home control, reminder management, weather information, and general queries.",
+                "source_type": "fallback",
+                "category": "personal_productivity",
+                "metadata": {"agent": agent_type, "query": query},
+            }
+        ]
+
+    return []
+
+
 class DocumentLoader:
     """Load documents from various sources into the knowledge base"""
 

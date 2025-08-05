@@ -128,6 +128,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin-right: 10px;
+            margin-bottom: 10px;
         }
 
         .btn:hover {
@@ -257,19 +258,19 @@
         </div>
 
         <div class="tabs">
-            <button class="tab active" type="button" onclick="switchTab(\'customer-support\')">
+            <button class="tab active" type="button" onclick="switchTab('customer-support')">
                 💬 Customer Support Agent
             </button>
-            <button class="tab" type="button" onclick="switchTab(\'marketing\')">
+            <button class="tab" type="button" onclick="switchTab('marketing')">
                 📈 Marketing Agent
             </button>
-            <button class="tab" type="button" onclick="switchTab(\'personal-virtual-assistant\')">
+            <button class="tab" type="button" onclick="switchTab('personal-virtual-assistant')">
                 🗣️ Personal Virtual Assistant
             </button>
-            <button class="tab" type="button" onclick="switchTab(\'financial-trading-bot\')">
+            <button class="tab" type="button" onclick="switchTab('financial-trading-bot')">
                 💰 Financial Trading Bot
             </button>
-            <button class="tab" type="button" onclick="switchTab(\'analytics\')">
+            <button class="tab" type="button" onclick="switchTab('analytics')">
                 📊 Analytics Dashboard
             </button>
         </div>
@@ -364,6 +365,75 @@
                 </div>
             </div>
 
+            <!-- Personal Virtual Assistant Section -->
+            <div id="personal-virtual-assistant" class="agent-section">
+                <h2>Personal Virtual Assistant</h2>
+                <p>Interact with your AI-powered personal assistant for daily tasks.</p>
+
+                <div class="two-column">
+                    <div>
+                        <div class="form-group">
+                            <label for="pva-user-id">User ID:</label>
+                            <input type="text" id="pva-user-id" value="user123" placeholder="Enter user ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="pva-message">Your Message:</label>
+                            <textarea id="pva-message" placeholder="Ask me anything...">What's the weather like in London?</textarea>
+                        </div>
+                        <button class="btn" onclick="sendPVAMessage()">Send Message</button>
+                        <button class="btn" onclick="getPVAReminders()">Get Reminders</button>
+                        <button class="btn" onclick="getPVADevices()">Get Devices</button>
+                    </div>
+                    <div>
+                        <div class="response-area">
+                            <h3>Assistant Response</h3>
+                            <div id="pva-loading" class="loading">
+                                <div class="spinner"></div>
+                                <p>Thinking...</p>
+                            </div>
+                            <div id="pva-response"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Trading Bot Section -->
+            <div id="financial-trading-bot" class="agent-section">
+                <h2>Financial Trading Bot</h2>
+                <p>Automated market analysis and trading decisions.</p>
+
+                <div class="two-column">
+                    <div>
+                        <div class="form-group">
+                            <label for="trading-symbol">Stock Symbol:</label>
+                            <input type="text" id="trading-symbol" value="AAPL" placeholder="e.g., AAPL, GOOGL">
+                        </div>
+                        <div class="form-group">
+                            <label for="trading-strategy">Strategy Type:</label>
+                            <select id="trading-strategy">
+                                <option value="momentum">Momentum</option>
+                                <option value="mean_reversion">Mean Reversion</option>
+                                <option value="arbitrage">Arbitrage</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="analyzeTrading()">Analyze & Decide</button>
+                        <button class="btn" onclick="runTradingCycle()">Run Trading Cycle</button>
+                        <button class="btn" onclick="getPortfolioStatus()">Get Portfolio</button>
+                        <button class="btn" onclick="getMarketData()">Get Market Data</button>
+                    </div>
+                    <div>
+                        <div class="response-area">
+                            <h3>Trading Bot Output</h3>
+                            <div id="trading-loading" class="loading">
+                                <div class="spinner"></div>
+                                <p>Analyzing market...</p>
+                            </div>
+                            <div id="trading-response"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Analytics Dashboard Section -->
             <div id="analytics" class="agent-section">
                 <h2>Analytics Dashboard</h2>
@@ -402,8 +472,6 @@
                         <div class="metric-value" id="trading-bot-status">-</div>
                         <div class="metric-label">Financial Trading Bot</div>
                     </div>
-
-
                 </div>
 
                 <div class="response-area">
@@ -435,12 +503,51 @@
 
         console.log(`Using API_BASE: ${API_BASE}`);
 
+        // Fixed switchTab function
+        function switchTab(tabName) {
+            // Hide all sections
+            document.querySelectorAll('.agent-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected section
+            const targetSection = document.getElementById(tabName);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+
+            // Add active class to clicked tab
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                const targetTab = document.querySelector(`[onclick*="${tabName}"]`);
+                if (targetTab) {
+                    targetTab.classList.add('active');
+                }
+            }
+
+            // Load analytics data when switching to analytics tab
+            if (tabName === 'analytics') {
+                refreshAnalytics();
+            }
+        }
+
         // PVA Agent Functions
         async function sendPVAMessage() {
             const userId = document.getElementById('pva-user-id').value;
             const message = document.getElementById('pva-message').value;
             const loadingDiv = document.getElementById('pva-loading');
             const responseDiv = document.getElementById('pva-response');
+
+            if (!message.trim()) {
+                alert('Please enter a message');
+                return;
+            }
 
             loadingDiv.style.display = 'block';
             responseDiv.innerHTML = '';
@@ -528,6 +635,11 @@
             const strategyType = document.getElementById('trading-strategy').value;
             const loadingDiv = document.getElementById('trading-loading');
             const responseDiv = document.getElementById('trading-response');
+
+            if (!symbol.trim()) {
+                alert('Please enter a stock symbol');
+                return;
+            }
 
             loadingDiv.style.display = 'block';
             responseDiv.innerHTML = '';
@@ -617,6 +729,11 @@
             const loadingDiv = document.getElementById('trading-loading');
             const responseDiv = document.getElementById('trading-response');
 
+            if (!symbol.trim()) {
+                alert('Please enter a stock symbol');
+                return;
+            }
+
             loadingDiv.style.display = 'block';
             responseDiv.innerHTML = '';
 
@@ -643,41 +760,6 @@
             }
         }
 
-        function switchTab(tabName) {
-            // Hide all sections
-            document.querySelectorAll('.agent-section').forEach(section => {
-                section.classList.remove('active');
-            });
-
-            // Remove active class from all tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-
-            // Show selected section
-            document.getElementById(tabName).classList.add(\'active\');
-
-            // Add active class to clicked tab
-            if (window.event && window.event.target) {
-                window.event.target.classList.add(\'active\');
-            } else {
-                document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add(\'active\');
-            }
-
-            // Load analytics data when switching to analytics tab
-            if (tabName === \'analytics\') {
-                refreshAnalytics();
-            } else if (tabName === \'customer-support\') {
-                // Optional: load initial data for customer support if needed
-            } else if (tabName === \'marketing\') {
-                // Optional: load initial data for marketing if needed
-            } else if (tabName === \'personal-virtual-assistant\') {
-                // Optional: load initial data for PVA if needed
-            } else if (tabName === \'financial-trading-bot\') {
-                // Optional: load initial data for trading bot if needed
-            }
-        }
-
         async function apiCall(endpoint, method = 'GET', data = null) {
             const options = {
                 method: method,
@@ -685,7 +767,7 @@
                     'Authorization': `Bearer ${API_TOKEN}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'ngrok-skip-browser-warning': 'true'  // Critical for ngrok
+                    'ngrok-skip-browser-warning': 'true'
                 }
             };
 
@@ -695,87 +777,31 @@
 
             try {
                 console.log(`Making ${method} request to: ${API_BASE}${endpoint}`);
-                console.log('Request headers:', options.headers);
-                console.log('Request body:', options.body);
-
                 const response = await fetch(`${API_BASE}${endpoint}`, options);
-
-                console.log('Response status:', response.status);
-                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-                // Check if the response is JSON
+                
                 const contentType = response.headers.get('content-type');
-                console.log('Content-Type:', contentType);
-
                 if (!contentType || !contentType.includes('application/json')) {
                     const text = await response.text();
-                    console.error('Non-JSON response:', text);
-
-                    // Check if it's an HTML error page
                     if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
                         throw new Error('Server returned HTML instead of JSON. Check if API server is running correctly.');
                     }
-
-                    throw new Error(`Server returned ${contentType}. Expected JSON. Response: ${text.substring(0, 200)}...`);
+                    throw new Error(`Server returned ${contentType}. Expected JSON.`);
                 }
 
                 const result = await response.json();
-                console.log('Parsed JSON response:', result);
-
+                
                 if (!response.ok) {
-                    console.error('API error response:', result);
                     throw new Error(result.detail || result.message || `HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 return result;
             } catch (error) {
                 console.error('API call failed:', error);
-
-                // Provide more specific error messages
+                
                 if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
                     throw new Error('Cannot connect to API server. Check if the server is running and ngrok tunnel is active.');
-                } else if (error.name === 'SyntaxError' && error.message.includes('Unexpected token')) {
-                    throw new Error('Server returned invalid JSON. This usually means the API returned an HTML error page.');
                 }
-
-                throw error;
-            }
-        }
-
-        // Test connection function for debugging
-        async function testApiConnection() {
-            console.log('Testing API connection...');
-            try {
-                const response = await fetch(`${API_BASE}/health`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${API_TOKEN}`,
-                        'Accept': 'application/json',
-                        'ngrok-skip-browser-warning': 'true'
-                    }
-                });
-
-                console.log('Health check status:', response.status);
-                console.log('Health check headers:', Object.fromEntries(response.headers.entries()));
-
-                const text = await response.text();
-                console.log('Health check raw response:', text);
-
-                if (response.ok) {
-                    try {
-                        const json = JSON.parse(text);
-                        console.log('✅ API connection successful:', json);
-                        return json;
-                    } catch (parseError) {
-                        console.error('❌ Response is not valid JSON:', parseError);
-                        throw new Error('API returned non-JSON response');
-                    }
-                } else {
-                    console.error('❌ API returned error status:', response.status);
-                    throw new Error(`API health check failed with status ${response.status}`);
-                }
-            } catch (error) {
-                console.error('❌ API connection test failed:', error);
+                
                 throw error;
             }
         }
@@ -824,12 +850,6 @@
                         <div class="response-content">
                             <h4>Suggested Actions:</h4>
                             <ul>${result.suggested_actions.map(action => `<li>${action}</li>`).join('')}</ul>
-                        </div>
-                    ` : ''}
-                    ${result.knowledge_sources && result.knowledge_sources.length > 0 ? `
-                        <div class="response-content">
-                            <h4>Knowledge Sources:</h4>
-                            <ul>${result.knowledge_sources.map(source => `<li>${source}</li>`).join('')}</ul>
                         </div>
                     ` : ''}
                 `;
@@ -907,17 +927,6 @@
                             <div class="metric-label">Estimated ROI</div>
                         </div>
                     </div>
-                    ${result.content_pieces && result.content_pieces.length > 0 ? `
-                        <div class="response-content">
-                            <h4>Sample Content:</h4>
-                            ${result.content_pieces.slice(0, 2).map(content => `
-                                <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                                    <strong>${content.platform} (${content.content_type}):</strong><br>
-                                    ${content.content ? content.content.substring(0, 150) + '...' : 'Content generated'}
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
                 `;
 
             } catch (error) {
@@ -958,16 +967,13 @@
 
         async function refreshAnalytics() {
             try {
-                // Get health status first
                 const health = await apiCall('/health');
                 document.getElementById('api-status').textContent = health.status;
 
-                // Try to get other data, but don't fail if endpoints aren't implemented
                 try {
                     const customers = await apiCall('/api/v1/customers?limit=1');
                     document.getElementById('total-customers').textContent = customers.total || customers.customers?.length || 'N/A';
                 } catch (e) {
-                    console.error('Error fetching total customers:', e);
                     document.getElementById('total-customers').textContent = 'N/A';
                 }
 
@@ -975,7 +981,6 @@
                     const campaigns = await apiCall('/api/v1/campaigns?limit=1');
                     document.getElementById('total-campaigns').textContent = campaigns.total || campaigns.campaigns?.length || 'N/A';
                 } catch (e) {
-                    console.error('Error fetching total campaigns:', e);
                     document.getElementById('total-campaigns').textContent = 'N/A';
                 }
 
@@ -983,11 +988,9 @@
                     const kb = await apiCall('/api/v1/knowledge-base/search?query=help&limit=50');
                     document.getElementById('knowledge-base-docs').textContent = kb.results?.length || 'N/A';
                 } catch (e) {
-                    console.error('Error fetching knowledge base documents:', e);
                     document.getElementById('knowledge-base-docs').textContent = 'N/A';
                 }
 
-                // Update recent activity
                 document.getElementById('recent-activity').innerHTML = `
                     <div class="response-content">
                         <h4>System Status:</h4>
@@ -1003,116 +1006,19 @@
                 document.getElementById('recent-activity').innerHTML = `
                     <div class="error">Error loading analytics: ${error.message}</div>
                 `;
-                // Set default values for metrics
                 document.getElementById('api-status').textContent = 'Error';
-                document.getElementById('total-customers').textContent = 'N/A';
-                document.getElementById('total-campaigns').textContent = 'N/A';
-                document.getElementById('knowledge-base-docs').textContent = 'N/A';
             }
         }
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, testing API connection...');
-
+            console.log('Page loaded, initializing...');
+            
             // Test API connection on page load
-            testApiConnection()
-                .then(health => {
-                    console.log('✅ API connection successful on page load');
-                    // Optionally show success message
-                    document.body.insertAdjacentHTML('afterbegin', `
-                        <div style="background: #d4edda; color: #155724; padding: 10px; text-align: center; border-bottom: 1px solid #c3e6cb;">
-                            ✅ API Connected Successfully - Status: ${health.status}
-                        </div>
-                    `);
-                    // Remove message after 3 seconds
-                    setTimeout(() => {
-                        const msg = document.querySelector('div[style*="background: #d4edda"]');
-                        if (msg) msg.remove();
-                    }, 3000);
-                })
-                .catch(error => {
-                    console.error('❌ API connection failed on page load:', error);
-                    // Show connection error
-                    document.body.insertAdjacentHTML('afterbegin', `
-                        <div style="background: #f8d7da; color: #721c24; padding: 10px; text-align: center; border-bottom: 1px solid #f5c6cb;">
-                            ⚠️ API Connection Error: ${error.message}
-                        </div>
-                    `);
-                });
+            setTimeout(() => {
+                refreshAnalytics();
+            }, 1000);
         });
     </script>
 </body>
 </html>
-
-
-            <!-- Personal Virtual Assistant Section -->
-            <div id="personal-virtual-assistant" class="agent-section">
-                <h2>Personal Virtual Assistant</h2>
-                <p>Interact with your AI-powered personal assistant for daily tasks.</p>
-
-                <div class="two-column">
-                    <div>
-                        <div class="form-group">
-                            <label for="pva-user-id">User ID:</label>
-                            <input type="text" id="pva-user-id" value="user123" placeholder="Enter user ID">
-                        </div>
-                        <div class="form-group">
-                            <label for="pva-message">Your Message:</label>
-                            <textarea id="pva-message" placeholder="Ask me anything...">What's the weather like in London?</textarea>
-                        </div>
-                        <button class="btn" onclick="sendPVAMessage()">Send Message</button>
-                        <button class="btn" onclick="getPVAReminders()">Get Reminders</button>
-                        <button class="btn" onclick="getPVADevices()">Get Devices</button>
-                    </div>
-                    <div>
-                        <div class="response-area">
-                            <h3>Assistant Response</h3>
-                            <div id="pva-loading" class="loading">
-                                <div class="spinner"></div>
-                                <p>Thinking...</p>
-                            </div>
-                            <div id="pva-response"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Financial Trading Bot Section -->
-            <div id="financial-trading-bot" class="agent-section">
-                <h2>Financial Trading Bot</h2>
-                <p>Automated market analysis and trading decisions.</p>
-
-                <div class="two-column">
-                    <div>
-                        <div class="form-group">
-                            <label for="trading-symbol">Stock Symbol:</label>
-                            <input type="text" id="trading-symbol" value="AAPL" placeholder="e.g., AAPL, GOOGL">
-                        </div>
-                        <div class="form-group">
-                            <label for="trading-strategy">Strategy Type:</label>
-                            <select id="trading-strategy">
-                                <option value="momentum">Momentum</option>
-                                <option value="mean_reversion">Mean Reversion</option>
-                                <option value="arbitrage">Arbitrage</option>
-                            </select>
-                        </div>
-                        <button class="btn" onclick="analyzeTrading()">Analyze & Decide</button>
-                        <button class="btn" onclick="runTradingCycle()">Run Trading Cycle</button>
-                        <button class="btn" onclick="getPortfolioStatus()">Get Portfolio</button>
-                        <button class="btn" onclick="getMarketData()">Get Market Data</button>
-                    </div>
-                    <div>
-                        <div class="response-area">
-                            <h3>Trading Bot Output</h3>
-                            <div id="trading-loading" class="loading">
-                                <div class="spinner"></div>
-                                <p>Analyzing market...</p>
-                            </div>
-                            <div id="trading-response"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Analytics Dashboard Section -->
