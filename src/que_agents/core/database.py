@@ -165,6 +165,36 @@ class CampaignMetrics(Base):
     campaign = relationship("MarketingCampaign", back_populates="metrics")
 
 
+# Personal Assistant Agent Models
+class UserPreference(Base):
+    __tablename__ = "user_preferences"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, unique=True, nullable=False)  # Assuming a generic user ID
+    preferences = Column(
+        JSON
+    )  # Stores a dictionary of preferences (e.g., {"music_genre": "classical", "news_topics": ["tech", "science"]})
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SmartDevice(Base):
+    __tablename__ = "smart_devices"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False)  # Owner of the device
+    name = Column(
+        String(255), nullable=False
+    )  # e.g., "living room light", "bedroom thermostat"
+    type = Column(String(50), nullable=False)  # e.g., "light", "thermostat", "speaker"
+    status = Column(
+        JSON
+    )  # Current state of the device (e.g., {"power": "on", "brightness": 80})
+    location = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # Load database configuration
 with open("configs/database_config.yaml", "r") as f:
     db_config = yaml.safe_load(f)

@@ -5,6 +5,7 @@
 # @Last Modified time: 2025-08-01 23:53:31
 # @Description: This module provides utilities for populating the database with sample data
 
+
 import random
 from datetime import datetime, timedelta
 
@@ -16,7 +17,9 @@ from src.que_agents.core.database import (
     KnowledgeBase,
     MarketingCampaign,
     MarketingPost,
+    SmartDevice,
     SupportTicket,
+    UserPreference,
     get_session,
 )
 
@@ -279,6 +282,55 @@ def populate_sample_data():
             for metric in metrics:
                 session.add(metric)
 
+        # Sample User Preferences
+        user_preferences = [
+            UserPreference(
+                user_id=1,
+                preferences={
+                    "music_genre": "classical",
+                    "news_topics": ["tech", "AI"],
+                    "preferred_language": "en",
+                },
+            ),
+            UserPreference(
+                user_id=2,
+                preferences={
+                    "music_genre": "jazz",
+                    "news_topics": ["finance", "politics"],
+                    "preferred_language": "es",
+                },
+            ),
+        ]
+        for pref in user_preferences:
+            session.add(pref)
+
+        # Sample Smart Devices
+        smart_devices = [
+            SmartDevice(
+                user_id=1,
+                name="living room light",
+                type="light",
+                status={"power": "off", "brightness": 0},
+                location="Living Room",
+            ),
+            SmartDevice(
+                user_id=1,
+                name="bedroom thermostat",
+                type="thermostat",
+                status={"power": "on", "temperature": 22.5, "unit": "celsius"},
+                location="Bedroom",
+            ),
+            SmartDevice(
+                user_id=2,
+                name="kitchen speaker",
+                type="speaker",
+                status={"power": "on", "volume": 50, "playing": "none"},
+                location="Kitchen",
+            ),
+        ]
+        for device in smart_devices:
+            session.add(device)
+
         session.commit()
 
         print("Sample data populated successfully!")
@@ -290,6 +342,8 @@ def populate_sample_data():
         print(f"Created {len(segments)} audience segments")
         print(f"Created {len(posts)} marketing posts")
         print(f"Created {14} campaign metrics entries")
+        print(f"Created {len(user_preferences)} user preferences")
+        print(f"Created {len(smart_devices)} smart devices")
 
     except Exception as e:
         session.rollback()
