@@ -25,20 +25,10 @@ from src.que_agents.core.database import (
     get_session,
 )
 from src.que_agents.core.llm_factory import LLMFactory
-
-try:
-    from src.que_agents.knowledge_base.kb_manager import (
-        search_agent_knowledge_base,
-        search_knowledge_base,
-    )
-except ImportError:
-    def search_agent_knowledge_base(_agent_type: str, _query: str, _limit: int = 5) -> List[Dict]:
-        """Fallback when knowledge base is not available"""
-        return []
-
-    def search_knowledge_base(_query: str, _category: str = None, _limit: int = 5) -> List[Dict]:
-        """Fallback when knowledge base is not available"""
-        return []
+from src.que_agents.knowledge_base.kb_manager import (
+    search_agent_knowledge_base,
+    search_knowledge_base,
+)
 
 
 @dataclass
@@ -127,7 +117,9 @@ class PersonalVirtualAssistantAgent:
     def get_assistant_knowledge(self, query: str) -> List[Dict]:
         """Get personal assistant knowledge from knowledge base"""
         try:
-            return search_agent_knowledge_base("personal_virtual_assistant", query, limit=3)
+            return search_agent_knowledge_base(
+                "personal_virtual_assistant", query, limit=3
+            )
         except Exception as e:
             print(f"Error searching assistant knowledge: {e}")
             return []
@@ -137,13 +129,13 @@ class PersonalVirtualAssistantAgent:
         try:
             # Search for relevant knowledge based on intent and message
             knowledge_results = self.get_assistant_knowledge(f"{intent} {user_message}")
-            
+
             if knowledge_results:
                 context = "Relevant Knowledge:\n"
                 for kb_item in knowledge_results:
                     context += f"- {kb_item['title']}: {kb_item['content'][:150]}...\n"
                 return context
-            
+
             return ""
         except Exception as e:
             print(f"Error getting enhanced context: {e}")
@@ -337,7 +329,7 @@ Provide a helpful and friendly response that addresses the user's request."""
                         is_online=True,
                     ),
                 ]
-                
+
                 for device in default_devices:
                     session.add(device)
                 session.commit()
@@ -398,22 +390,47 @@ Provide a helpful and friendly response that addresses the user's request."""
     def _calculate_intent_confidence(self, user_message: str, intent: str) -> float:
         """Calculate confidence score for intent recognition"""
         message_lower = user_message.lower()
-        
+
         # Define intent keywords
         intent_keywords = {
-            "weather": ["weather", "temperature", "rain", "sunny", "cloudy", "forecast"],
-            "set_reminder": ["remind", "reminder", "schedule", "appointment", "meeting"],
-            "list_reminders": ["reminders", "what's scheduled", "appointments", "my schedule"],
-            "device_control": ["turn on", "turn off", "lights", "thermostat", "dim", "brighten"],
+            "weather": [
+                "weather",
+                "temperature",
+                "rain",
+                "sunny",
+                "cloudy",
+                "forecast",
+            ],
+            "set_reminder": [
+                "remind",
+                "reminder",
+                "schedule",
+                "appointment",
+                "meeting",
+            ],
+            "list_reminders": [
+                "reminders",
+                "what's scheduled",
+                "appointments",
+                "my schedule",
+            ],
+            "device_control": [
+                "turn on",
+                "turn off",
+                "lights",
+                "thermostat",
+                "dim",
+                "brighten",
+            ],
             "greeting": ["hello", "hi", "hey", "good morning", "good afternoon"],
             "goodbye": ["bye", "goodbye", "see you", "talk later"],
             "time_date": ["time", "date", "what time", "what day"],
             "recommendation": ["recommend", "suggest", "what's good", "where should"],
         }
-        
+
         keywords = intent_keywords.get(intent, [])
         matches = sum(1 for keyword in keywords if keyword in message_lower)
-        
+
         if matches > 0:
             return min(0.9, 0.6 + (matches * 0.1))
         else:
@@ -460,7 +477,11 @@ Provide a helpful and friendly response that addresses the user's request."""
 
         elif intent == "set_reminder":
             # Extract reminder title and time
-            entities["reminder_title"] = user_message.replace("remind me to", "").replace("set a reminder", "").strip()
+            entities["reminder_title"] = (
+                user_message.replace("remind me to", "")
+                .replace("set a reminder", "")
+                .strip()
+            )
 
             # Enhanced time extraction
             time_patterns = [
@@ -512,14 +533,16 @@ Provide a helpful and friendly response that addresses the user's request."""
         )
 
         # Get weather knowledge from knowledge base
-        weather_knowledge = self.get_assistant_knowledge(f"weather information {location}")
-        
+        weather_knowledge = self.get_assistant_knowledge(
+            f"weather information {location}"
+        )
+
         # Simulate weather API call
         weather_info = self._get_weather_simulation(location)
-        
+
         # Enhance with knowledge base information
         if weather_knowledge:
-            weather_tips = weather_knowledge[0]['content'][:200]
+            weather_tips = weather_knowledge[0]["content"][:200]
             weather_info += f"\n\nTip: {weather_tips}..."
 
         actions_taken = [f"Retrieved weather for {location}"]
@@ -555,7 +578,9 @@ Provide a helpful and friendly response that addresses the user's request."""
 
             if not reminder_time:
                 # Get productivity knowledge for reminder tips
-                reminder_knowledge = self.get_assistant_knowledge("reminder time scheduling")
+                reminder_knowledge = self.get_assistant_knowledge(
+                    "reminder time scheduling"
+                )
                 tip = ""
                 if reminder_knowledge:
                     tip = f" Tip: {reminder_knowledge[0]['content'][:100]}..."
@@ -612,8 +637,13 @@ Provide a helpful and friendly response that addresses the user's request."""
         else:
             # Handle specific days of week
             weekdays = {
-                "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
-                "friday": 4, "saturday": 5, "sunday": 6
+                "monday": 0,
+                "tuesday": 1,
+                "wednesday": 2,
+                "thursday": 3,
+                "friday": 4,
+                "saturday": 5,
+                "sunday": 6,
             }
 
             for day_name, day_num in weekdays.items():
@@ -659,7 +689,9 @@ Provide a helpful and friendly response that addresses the user's request."""
     def handle_list_reminders(self, user_context: UserContext) -> tuple[str, List[str]]:
         """Handle listing reminders with enhanced formatting"""
         if not user_context.active_reminders:
-            productivity_tips = self.get_assistant_knowledge("productivity reminder tips")
+            productivity_tips = self.get_assistant_knowledge(
+                "productivity reminder tips"
+            )
             tip = ""
             if productivity_tips:
                 tip = f"\n\n💡 Tip: {productivity_tips[0]['content'][:150]}..."
@@ -709,8 +741,9 @@ Provide a helpful and friendly response that addresses the user's request."""
             name_words = device_name.split()
 
             # Check for partial matches
-            if any(word in device["name"].lower() for word in name_words) or \
-               any(word in device_name for word in device_words):
+            if any(word in device["name"].lower() for word in name_words) or any(
+                word in device_name for word in device_words
+            ):
                 matching_device = device
                 break
 
@@ -738,11 +771,18 @@ Provide a helpful and friendly response that addresses the user's request."""
             )
 
     def _control_device_enhanced(
-        self, device: Dict[str, Any], action: str, temperature: int = None, value: str = None
+        self,
+        device: Dict[str, Any],
+        action: str,
+        temperature: int = None,
+        value: str = None,
     ) -> tuple[bool, str]:
         """Enhanced device control with more actions and feedback"""
         if not device["is_online"]:
-            return False, "The device appears to be offline. Please check your connection."
+            return (
+                False,
+                "The device appears to be offline. Please check your connection.",
+            )
 
         device_type = device["type"]
         device_name = device["name"]
@@ -751,42 +791,53 @@ Provide a helpful and friendly response that addresses the user's request."""
         try:
             if action in ["turn on", "on"]:
                 return True, f"I've turned on the {device_name}."
-            
+
             elif action in ["turn off", "off"]:
                 return True, f"I've turned off the {device_name}."
-            
+
             elif action == "dim" and "brightness" in capabilities:
                 return True, f"I've dimmed the {device_name}."
-            
+
             elif action == "brighten" and "brightness" in capabilities:
                 return True, f"I've brightened the {device_name}."
-            
-            elif action == "set" and temperature is not None and device_type == "thermostat":
+
+            elif (
+                action == "set"
+                and temperature is not None
+                and device_type == "thermostat"
+            ):
                 return True, f"I've set the {device_name} to {temperature}°F."
-            
+
             elif action == "set" and value is not None:
                 return True, f"I've set the {device_name} to {value}."
-            
+
             else:
                 available_actions = self._get_device_actions(device_type, capabilities)
-                return False, f"I don't understand that action. Available actions for {device_name}: {', '.join(available_actions)}"
+                return (
+                    False,
+                    f"I don't understand that action. Available actions for {device_name}: {', '.join(available_actions)}",
+                )
 
         except Exception as e:
             return False, f"There was an error controlling the device: {str(e)}"
 
-    def _get_device_actions(self, device_type: str, capabilities: List[str]) -> List[str]:
+    def _get_device_actions(
+        self, device_type: str, capabilities: List[str]
+    ) -> List[str]:
         """Get available actions for a device type"""
         actions = ["turn on", "turn off"]
-        
+
         if "brightness" in capabilities:
             actions.extend(["dim", "brighten", "set brightness"])
-        
+
         if "color" in capabilities:
             actions.extend(["set color"])
-        
+
         if device_type == "thermostat":
-            actions.extend(["set temperature", "increase temperature", "decrease temperature"])
-        
+            actions.extend(
+                ["set temperature", "increase temperature", "decrease temperature"]
+            )
+
         return actions
 
     def handle_enhanced_general_query(
@@ -796,16 +847,16 @@ Provide a helpful and friendly response that addresses the user's request."""
         try:
             # Search agent-specific knowledge first
             pva_results = self.get_assistant_knowledge(user_message)
-            
+
             if pva_results:
                 result = pva_results[0]
                 response = f"Based on my knowledge: {result['content'][:300]}..."
                 actions_taken = ["Searched personal assistant knowledge base"]
                 return response, actions_taken
-            
+
             # Fall back to general knowledge base
             kb_results = search_knowledge_base(user_message, category=None, limit=3)
-            
+
             if kb_results:
                 result = kb_results[0]
                 response = f"Here's what I found: {result['content'][:300]}..."
@@ -816,7 +867,7 @@ Provide a helpful and friendly response that addresses the user's request."""
                     "I don't have specific information about that, but I'm here to help with reminders, weather, device control, and more!",
                     [],
                 )
-                
+
         except Exception as e:
             print(f"Error handling enhanced general query: {e}")
             return (
@@ -828,10 +879,14 @@ Provide a helpful and friendly response that addresses the user's request."""
         self, _entities: Dict[str, Any], _user_context: UserContext
     ) -> tuple[str, List[str]]:
         """Handle smart home help requests"""
-        smart_home_knowledge = self.get_assistant_knowledge("smart home setup troubleshooting")
-        
+        smart_home_knowledge = self.get_assistant_knowledge(
+            "smart home setup troubleshooting"
+        )
+
         if smart_home_knowledge:
-            response = f"🏠 Smart Home Help:\n{smart_home_knowledge[0]['content'][:400]}..."
+            response = (
+                f"🏠 Smart Home Help:\n{smart_home_knowledge[0]['content'][:400]}..."
+            )
         else:
             response = """🏠 Smart Home Help:
             
@@ -846,7 +901,7 @@ Try saying things like:
 • "Set the thermostat to 72 degrees"
 • "Dim the bedroom lights"
 """
-        
+
         actions_taken = ["Provided smart home help"]
         return response, actions_taken
 
@@ -854,8 +909,10 @@ Try saying things like:
         self, entities: Dict[str, Any], user_context: UserContext
     ) -> tuple[str, List[str]]:
         """Handle productivity tips requests"""
-        productivity_knowledge = self.get_assistant_knowledge("productivity tips personal management")
-        
+        productivity_knowledge = self.get_assistant_knowledge(
+            "productivity tips personal management"
+        )
+
         if productivity_knowledge:
             response = f"💡 Productivity Tips:\n{productivity_knowledge[0]['content'][:400]}..."
         else:
@@ -869,7 +926,7 @@ Here are some ways I can help boost your productivity:
 
 Try setting a reminder: "Remind me to take a break in 1 hour"
 """
-        
+
         actions_taken = ["Provided productivity tips"]
         return response, actions_taken
 
@@ -881,7 +938,9 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
         location = user_context.preferences.get("location", "your area")
 
         # Get recommendation knowledge from knowledge base
-        rec_knowledge = self.get_assistant_knowledge(f"{rec_type} recommendations {location}")
+        rec_knowledge = self.get_assistant_knowledge(
+            f"{rec_type} recommendations {location}"
+        )
 
         if rec_knowledge:
             response = f"Based on my knowledge: {rec_knowledge[0]['content'][:300]}..."
@@ -910,20 +969,25 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
             # Simple implementation - cancel the most recent reminder
             # In a more sophisticated version, we'd parse which specific reminder
             latest_reminder = user_context.active_reminders[0]
-            
-            reminder = session.query(Reminder).filter(
-                Reminder.id == latest_reminder["id"]
-            ).first()
-            
+
+            reminder = (
+                session.query(Reminder)
+                .filter(Reminder.id == latest_reminder["id"])
+                .first()
+            )
+
             if reminder:
                 reminder.status = "cancelled"
                 session.commit()
-                
+
                 actions_taken = [f"Cancelled reminder: {reminder.title}"]
-                return f"✓ I've cancelled the reminder '{reminder.title}'.", actions_taken
+                return (
+                    f"✓ I've cancelled the reminder '{reminder.title}'.",
+                    actions_taken,
+                )
             else:
                 return "I couldn't find that reminder to cancel.", []
-                
+
         except Exception as e:
             print(f"Error cancelling reminder: {e}")
             return "I had trouble cancelling the reminder. Please try again.", []
@@ -1009,7 +1073,9 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
                 additional_info = f"Hello! I'm your personal assistant. I can help you with weather, reminders, device control, and more. What can I do for you today?"
                 actions_taken = ["Greeted user"]
             elif intent_result.intent == "goodbye":
-                additional_info = "Goodbye! Feel free to ask me anything anytime. Have a great day!"
+                additional_info = (
+                    "Goodbye! Feel free to ask me anything anytime. Have a great day!"
+                )
                 actions_taken = ["Said goodbye"]
             else:
                 additional_info = "I'm here to help! I can assist with weather, reminders, smart devices, productivity tips, and general questions. What would you like to do?"
@@ -1069,40 +1135,52 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
         suggestions = []
 
         if intent == "weather":
-            suggestions.extend([
-                "Would you like me to set a reminder if rain is expected?",
-                "I can also check weather for other locations"
-            ])
+            suggestions.extend(
+                [
+                    "Would you like me to set a reminder if rain is expected?",
+                    "I can also check weather for other locations",
+                ]
+            )
         elif intent == "set_reminder":
-            suggestions.extend([
-                "I can set recurring reminders too",
-                "Try: 'Remind me to exercise every Monday at 7am'"
-            ])
+            suggestions.extend(
+                [
+                    "I can set recurring reminders too",
+                    "Try: 'Remind me to exercise every Monday at 7am'",
+                ]
+            )
         elif intent == "device_control":
             if user_context.smart_devices:
-                suggestions.extend([
-                    "You can control multiple devices at once",
-                    "Ask me about smart home automation tips"
-                ])
+                suggestions.extend(
+                    [
+                        "You can control multiple devices at once",
+                        "Ask me about smart home automation tips",
+                    ]
+                )
         elif intent == "general_query":
-            suggestions.extend([
-                "I can help you set reminders",
-                "Ask me about the weather",
-                "I can control your smart devices",
-                "Need productivity tips?"
-            ])
+            suggestions.extend(
+                [
+                    "I can help you set reminders",
+                    "Ask me about the weather",
+                    "I can control your smart devices",
+                    "Need productivity tips?",
+                ]
+            )
         elif intent == "greeting":
-            suggestions.extend([
-                "Ask me about the weather",
-                "Set a reminder for something important",
-                "Control your smart devices",
-                "Get productivity tips"
-            ])
+            suggestions.extend(
+                [
+                    "Ask me about the weather",
+                    "Set a reminder for something important",
+                    "Control your smart devices",
+                    "Get productivity tips",
+                ]
+            )
         elif intent == "smart_home_help":
-            suggestions.extend([
-                "Try: 'Turn on the living room lights'",
-                "Say: 'Set the thermostat to 72 degrees'"
-            ])
+            suggestions.extend(
+                [
+                    "Try: 'Turn on the living room lights'",
+                    "Say: 'Set the thermostat to 72 degrees'",
+                ]
+            )
 
         return suggestions[:3]  # Limit to 3 suggestions
 
@@ -1175,62 +1253,62 @@ def test_personal_virtual_assistant_agent():
         {
             "user_id": "user123",
             "message": "Hello! How are you?",
-            "description": "Greeting test"
+            "description": "Greeting test",
         },
         {
             "user_id": "user123",
             "message": "What's the weather like in San Francisco?",
-            "description": "Weather request with location"
+            "description": "Weather request with location",
         },
         {
             "user_id": "user123",
             "message": "Set a reminder to call mom tomorrow at 3pm",
-            "description": "Reminder setting with specific time"
+            "description": "Reminder setting with specific time",
         },
         {
             "user_id": "user123",
             "message": "Turn on the living room lights",
-            "description": "Smart device control"
+            "description": "Smart device control",
         },
         {
             "user_id": "user123",
             "message": "Set the thermostat to 72 degrees",
-            "description": "Thermostat control with temperature"
+            "description": "Thermostat control with temperature",
         },
         {
             "user_id": "user123",
             "message": "What are my reminders?",
-            "description": "List reminders"
+            "description": "List reminders",
         },
         {
             "user_id": "user123",
             "message": "Can you recommend a good restaurant?",
-            "description": "Recommendation request"
+            "description": "Recommendation request",
         },
         {
             "user_id": "user123",
             "message": "What time is it?",
-            "description": "Time request"
+            "description": "Time request",
         },
         {
             "user_id": "user123",
             "message": "Help me with smart home setup",
-            "description": "Smart home help"
+            "description": "Smart home help",
         },
         {
             "user_id": "user123",
             "message": "Give me some productivity tips",
-            "description": "Productivity advice"
+            "description": "Productivity advice",
         },
         {
             "user_id": "user123",
             "message": "How do I improve my morning routine?",
-            "description": "General knowledge query"
+            "description": "General knowledge query",
         },
         {
             "user_id": "user123",
             "message": "Goodbye for now",
-            "description": "Goodbye message"
+            "description": "Goodbye message",
         },
     ]
 
