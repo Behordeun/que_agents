@@ -7,6 +7,7 @@
 
 import os
 from datetime import datetime
+from typing import List
 
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -166,7 +167,7 @@ async def customer_support_chat(
             )
 
         # Call the actual agent
-        result = customer_support_agent.handle_customer_request(
+        result = customer_support_agent.handle_customer_request_enhanced(
             customer_id=request.customer_id, message=request.message
         )
 
@@ -239,192 +240,263 @@ async def get_customer_context(customer_id: int, token: str = Depends(verify_tok
     return {**customer, "open_tickets": [], "recent_interactions": []}
 
 
-# Marketing endpoints with fallback responses
+# Marketing endpoints with corrected method calls
 @app.post("/api/v1/marketing/campaign/create")
-async def create_marketing_campaign(
-    request: MarketingCampaignRequest, token: str = Depends(verify_token)
+def create_marketing_campaign(
+    request: MarketingCampaignRequest,
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
 ):
     """Create a new marketing campaign"""
     try:
         if not marketing_agent:
-            # Return mock response if agent not available
-            return {
-                "campaign_id": f"camp_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                "strategy": f"Multi-channel {request.campaign_type} campaign targeting {request.target_audience}",
-                "content_pieces": [
-                    {
-                        "platform": "linkedin",
-                        "content_type": "post",
-                        "content": "Sample LinkedIn post content",
-                    },
-                    {
-                        "platform": "email",
-                        "content_type": "newsletter",
-                        "content": "Sample email content",
-                    },
-                ],
-                "estimated_performance": {
-                    "total_reach": int(request.budget * 10),
-                    "estimated_roi": 2.5,
-                },
-            }
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
 
-        # Import the required classes
-        from src.que_agents.agents.marketing_agent import (
-            CampaignRequest,
-            CampaignType,
-            ContentType,
-        )
-
-        # Convert string campaign_type to enum
-        try:
-            campaign_type_enum = CampaignType(request.campaign_type)
-        except ValueError:
-            # If the campaign type is not recognized, default to LEAD_GENERATION
-            campaign_type_enum = CampaignType.LEAD_GENERATION
-
-        # Convert content_requirements strings to ContentType enums
-        content_types = []
-        for content_req in request.content_requirements:
-            try:
-                content_types.append(ContentType(content_req))
-            except ValueError:
-                # Default to SOCIAL_MEDIA if not recognized
-                content_types.append(ContentType.SOCIAL_MEDIA)
-
-        # Create CampaignRequest object
-        campaign_request = CampaignRequest(
-            campaign_type=campaign_type_enum,
-            target_audience=request.target_audience,
-            budget=request.budget,
-            duration_days=request.duration_days,
-            goals=request.goals,
-            channels=request.channels,
-            content_requirements=content_types,
-        )
-
-        # Call the marketing agent with the correct CampaignRequest object
-        result = marketing_agent.create_campaign_plan(campaign_request)
-
-        # Convert the result to a JSON-serializable format
-        return {
-            "campaign_id": result.campaign_id,
-            "strategy": result.strategy,
-            "content_pieces": [
-                {
-                    "platform": cp.platform,
-                    "content_type": cp.content_type.value,
-                    "title": cp.title,
-                    "content": cp.content,
-                    "hashtags": cp.hashtags,
-                    "call_to_action": cp.call_to_action,
-                    "estimated_reach": cp.estimated_reach,
-                }
-                for cp in result.content_pieces
-            ],
-            "schedule": result.schedule,
-            "budget_allocation": result.budget_allocation,
-            "success_metrics": result.success_metrics,
-            "estimated_performance": result.estimated_performance,
+        # Convert Pydantic model to dict
+        request_dict = {
+            "campaign_type": request.campaign_type,
+            "target_audience": request.target_audience,
+            "budget": request.budget,
+            "duration_days": request.duration_days,
+            "goals": request.goals,
+            "channels": request.channels,
+            "content_requirements": request.content_requirements,
+            "industry": request.industry,
+            "brand_voice": request.brand_voice,
         }
 
+        result = marketing_agent.create_marketing_campaign(request_dict)
+        return result
+
     except Exception as e:
-        print(f"Error creating campaign: {e}")
-        import traceback
-
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating marketing campaign: {str(e)}",
-        )
+        return {"error": f"Failed to create campaign: {str(e)}", "status": "failed"}
 
 
-# Marketing content generation endpoint
 @app.post("/api/v1/marketing/content/generate")
-async def generate_marketing_content(
-    request: ContentGenerationRequest, token: str = Depends(verify_token)
+def generate_marketing_content(
+    request: ContentGenerationRequest,
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
 ):
     """Generate marketing content"""
     try:
         if not marketing_agent:
-            # Return mock content
-            return {
-                "platform": request.platform,
-                "content": f"🚀 Exciting news for {request.target_audience}! Our {request.campaign_theme} is here to transform your workflow. Key benefits: {', '.join(request.key_messages)}. #Innovation #Technology #Growth",
-                "hashtags": ["#Innovation", "#Technology", "#Growth", "#AI"],
-                "estimated_reach": 5000,
-                "title": f"Generated Content for {request.platform}",
-                "call_to_action": "Learn more",
-            }
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
 
-        # Import ContentType enum
-        from src.que_agents.agents.marketing_agent import ContentType
-
-        # Convert string content_type to enum
-        try:
-            content_type_enum = ContentType(request.content_type)
-        except ValueError:
-            # Default to SOCIAL_MEDIA if not recognized
-            content_type_enum = ContentType.SOCIAL_MEDIA
-
-        # Generate content using the marketing agent
-        result = marketing_agent.generate_content(
-            platform=request.platform,
-            content_type=content_type_enum,
-            campaign_theme=request.campaign_theme,
-            target_audience=request.target_audience,
-            key_messages=request.key_messages,
-        )
-
-        # Convert ContentPiece to JSON-serializable format
-        return {
-            "platform": result.platform,
-            "content_type": result.content_type.value,
-            "title": result.title,
-            "content": result.content,
-            "hashtags": result.hashtags,
-            "call_to_action": result.call_to_action,
-            "estimated_reach": result.estimated_reach,
+        # Convert Pydantic model to dict
+        request_dict = {
+            "platform": request.platform,
+            "content_type": request.content_type,
+            "campaign_theme": request.campaign_theme,
+            "target_audience": request.target_audience,
+            "key_messages": request.key_messages,
+            "brand_voice": request.brand_voice,
+            "tone": request.tone,
+            "include_hashtags": request.include_hashtags,
         }
 
-    except Exception as e:
-        print(f"Error generating content: {e}")
-        import traceback
+        result = marketing_agent.generate_marketing_content(request_dict)
+        return result
 
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error generating marketing content: {str(e)}",
+    except Exception as e:
+        return {
+            "error": f"Failed to generate content: {str(e)}",
+            "status": "failed",
+            "content": "Unable to generate content at this time.",
+        }
+
+
+@app.get("/api/v1/marketing/campaign/{campaign_id}/analyze")
+def analyze_marketing_campaign(
+    campaign_id: int, _: HTTPAuthorizationCredentials = Depends(verify_token)
+):
+    """Analyze marketing campaign performance"""
+    try:
+        if not marketing_agent:
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
+
+        result = marketing_agent.analyze_campaign_performance(campaign_id)
+        return result
+
+    except Exception as e:
+        return {
+            "error": f"Failed to analyze campaign: {str(e)}",
+            "status": "failed",
+            "campaign_id": campaign_id,
+        }
+
+
+@app.post("/api/v1/marketing/campaign/{campaign_id}/optimize")
+def optimize_marketing_campaign(
+    campaign_id: int,
+    optimization_goals: List[str] = None,
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+):
+    """Optimize marketing campaign"""
+    try:
+        if not marketing_agent:
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
+
+        result = marketing_agent.optimize_campaign(campaign_id, optimization_goals)
+        return result
+
+    except Exception as e:
+        return {
+            "error": f"Failed to optimize campaign: {str(e)}",
+            "status": "failed",
+            "campaign_id": campaign_id,
+        }
+
+
+@app.get("/api/v1/marketing/campaign/{campaign_id}/insights")
+def get_marketing_campaign_insights(
+    campaign_id: int, _: HTTPAuthorizationCredentials = Depends(verify_token)
+):
+    """Get marketing campaign insights"""
+    try:
+        if not marketing_agent:
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
+
+        result = marketing_agent.get_campaign_insights(campaign_id)
+        return result
+
+    except Exception as e:
+        return {
+            "error": f"Failed to get campaign insights: {str(e)}",
+            "status": "failed",
+            "campaign_id": campaign_id,
+        }
+
+
+@app.get("/api/v1/marketing/audience/analyze")
+def analyze_target_audience(
+    target_audience: str,
+    industry: str = None,
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+):
+    """Analyze target audience"""
+    try:
+        if not marketing_agent:
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
+
+        result = marketing_agent.get_audience_analysis(target_audience, industry)
+        return result
+
+    except Exception as e:
+        return {
+            "error": f"Failed to analyze audience: {str(e)}",
+            "status": "failed",
+            "target_audience": target_audience,
+        }
+
+
+@app.get("/api/v1/marketing/market/intelligence")
+def get_market_intelligence(
+    campaign_type: str,
+    industry: str = None,
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+):
+    """Get market intelligence"""
+    try:
+        if not marketing_agent:
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
+
+        result = marketing_agent.get_market_intelligence(campaign_type, industry)
+        return result
+
+    except Exception as e:
+        return {
+            "error": f"Failed to get market intelligence: {str(e)}",
+            "status": "failed",
+            "campaign_type": campaign_type,
+        }
+
+
+@app.get("/api/v1/marketing/content/suggestions")
+def get_content_suggestions(
+    platform: str,
+    industry: str = None,
+    content_type: str = "social_media",
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+):
+    """Get content suggestions for platform"""
+    try:
+        if not marketing_agent:
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
+
+        result = marketing_agent.get_content_suggestions(
+            platform, industry, content_type
         )
+        return result
+
+    except Exception as e:
+        return {
+            "error": f"Failed to get content suggestions: {str(e)}",
+            "status": "failed",
+            "platform": platform,
+        }
+
+
+@app.get("/api/v1/marketing/templates")
+def get_campaign_templates(
+    campaign_type: str,
+    industry: str = None,
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+):
+    """Get campaign templates"""
+    try:
+        if not marketing_agent:
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
+
+        result = marketing_agent.get_campaign_templates(campaign_type, industry)
+        return result
+
+    except Exception as e:
+        return {
+            "error": f"Failed to get campaign templates: {str(e)}",
+            "status": "failed",
+            "campaign_type": campaign_type,
+        }
 
 
 # Add a debug endpoint to show valid enum values
 @app.get("/api/v1/marketing/enums")
-async def get_marketing_enums(token: str = Depends(verify_token)):
+def get_marketing_enums():
     """Get valid enum values for marketing endpoints"""
     try:
-        from src.que_agents.agents.marketing_agent import CampaignType, ContentType
+        from src.que_agents.core.schemas import CampaignType, ContentType
 
         return {
             "campaign_types": [ct.value for ct in CampaignType],
             "content_types": [ct.value for ct in ContentType],
-        }
-    except Exception:
-        return {
-            "campaign_types": [
-                "product_launch",
-                "customer_retention",
-                "lead_generation",
-                "brand_awareness",
-                "seasonal_promotion",
-            ],
-            "content_types": [
-                "social_media",
+            "platforms": [
+                "twitter",
+                "linkedin",
+                "facebook",
+                "instagram",
                 "email",
-                "blog_post",
-                "ad_copy",
-                "landing_page",
+                "youtube",
+                "tiktok",
             ],
+            "brand_voices": [
+                "professional",
+                "casual",
+                "friendly",
+                "authoritative",
+                "playful",
+            ],
+            "industries": [
+                "technology",
+                "healthcare",
+                "finance",
+                "retail",
+                "education",
+                "manufacturing",
+            ],
+        }
+    except Exception as e:
+        return {
+            "error": f"Failed to get enum values: {str(e)}",
+            "campaign_types": ["brand_awareness", "lead_generation", "product_launch"],
+            "content_types": ["social_media", "email", "blog_post", "video"],
         }
 
 
