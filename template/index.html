@@ -276,7 +276,6 @@
         </div>
 
         <div class="content">
-            <!-- Customer Support Agent Section -->
             <div id="customer-support" class="agent-section active">
                 <h2>Customer Support Agent</h2>
                 <p>Test the AI-powered customer support agent with natural language queries.</p>
@@ -316,7 +315,6 @@
                 </div>
             </div>
 
-            <!-- Marketing Agent Section -->
             <div id="marketing" class="agent-section">
                 <h2>Marketing Agent</h2>
                 <p>Create marketing campaigns and generate content with AI assistance.</p>
@@ -365,7 +363,6 @@
                 </div>
             </div>
 
-            <!-- Personal Virtual Assistant Section -->
             <div id="personal-virtual-assistant" class="agent-section">
                 <h2>Personal Virtual Assistant</h2>
                 <p>Interact with your AI-powered personal assistant for daily tasks.</p>
@@ -397,7 +394,6 @@
                 </div>
             </div>
 
-            <!-- Financial Trading Bot Section -->
             <div id="financial-trading-bot" class="agent-section">
                 <h2>Financial Trading Bot</h2>
                 <p>Automated market analysis and trading decisions.</p>
@@ -434,7 +430,6 @@
                 </div>
             </div>
 
-            <!-- Analytics Dashboard Section -->
             <div id="analytics" class="agent-section">
                 <h2>Analytics Dashboard</h2>
                 <p>View system performance and usage statistics.</p>
@@ -537,6 +532,144 @@
             }
         }
 
+        // Customer Support Agent Functions
+        async function sendCustomerSupportMessage() {
+            const customerId = document.getElementById('customer-id').value;
+            const message = document.getElementById('customer-message').value;
+            const loadingDiv = document.getElementById('support-loading');
+            const responseDiv = document.getElementById('support-response');
+
+            if (!message.trim()) {
+                alert('Please enter a message');
+                return;
+            }
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall('/api/v1/customer-support/chat', 'POST', {
+                    customer_id: parseInt(customerId),
+                    message: message,
+                    session_id: `session-${customerId}-${Date.now()}`
+                });
+                responseDiv.innerHTML = `
+                    <div class="response-content">
+                        <p><strong>Response:</strong> ${data.response}</p>
+                        <p><strong>Confidence:</strong> ${data.confidence.toFixed(2)}</p>
+                        <p><strong>Sentiment:</strong> ${data.sentiment}</p>
+                        <p><strong>Category:</strong> ${data.category}</p>
+                        <p><strong>Escalated:</strong> ${data.escalate ? 'Yes' : 'No'}</p>
+                        <p><strong>Ticket ID:</strong> ${data.ticket_id || 'N/A'}</p>
+                        <p><strong>Suggested Actions:</strong> ${data.suggested_actions.join(', ')}</p>
+                        <p><strong>Knowledge Sources:</strong> ${data.knowledge_sources.join(', ')}</p>
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        async function loadCustomerContext() {
+            const customerId = document.getElementById('customer-id').value;
+            const loadingDiv = document.getElementById('support-loading');
+            const responseDiv = document.getElementById('support-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall(`/api/v1/customer-support/customer/${customerId}`);
+                responseDiv.innerHTML = `
+                    <div class="response-content">
+                        <h3>Customer Context for ${data.customer_name}</h3>
+                        <p><strong>Email:</strong> ${data.email}</p>
+                        <p><strong>Support Tier:</strong> ${data.support_tier}</p>
+                        <p><strong>Recent Interactions:</strong></p>
+                        <ul>
+                            ${data.recent_interactions.map(interaction => `<li>${new Date(interaction.timestamp).toLocaleString()}: ${interaction.message}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+        
+        // Marketing Agent Functions
+        async function createCampaign() {
+            const campaignType = document.getElementById('campaign-type').value;
+            const targetAudience = document.getElementById('target-audience').value;
+            const budget = document.getElementById('budget').value;
+            const duration = document.getElementById('duration').value;
+            const loadingDiv = document.getElementById('marketing-loading');
+            const responseDiv = document.getElementById('marketing-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall('/api/v1/marketing/campaign/create', 'POST', {
+                    campaign_type: campaignType,
+                    target_audience: targetAudience,
+                    budget: parseFloat(budget),
+                    duration_days: parseInt(duration)
+                });
+                responseDiv.innerHTML = `
+                    <div class="response-content">
+                        <h3>Campaign Created</h3>
+                        <p><strong>Campaign ID:</strong> ${data.campaign_id}</p>
+                        <p><strong>Campaign Type:</strong> ${data.campaign_type}</p>
+                        <p><strong>Status:</strong> ${data.status}</p>
+                        <p><strong>Start Date:</strong> ${data.start_date}</p>
+                        <p><strong>End Date:</strong> ${data.end_date}</p>
+                        <p><strong>Budget:</strong> $${data.budget.toLocaleString()}</p>
+                        <p><strong>Campaign Summary:</strong> ${data.campaign_summary}</p>
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        async function generateContent() {
+            const campaignType = document.getElementById('campaign-type').value;
+            const targetAudience = document.getElementById('target-audience').value;
+            const loadingDiv = document.getElementById('marketing-loading');
+            const responseDiv = document.getElementById('marketing-response');
+
+            loadingDiv.style.display = 'block';
+            responseDiv.innerHTML = '';
+
+            try {
+                const data = await apiCall('/api/v1/marketing/content/generate', 'POST', {
+                    campaign_type: campaignType,
+                    target_audience: targetAudience
+                });
+                responseDiv.innerHTML = `
+                    <div class="response-content">
+                        <h3>Generated Content</h3>
+                        <h4>Email Subject:</h4>
+                        <p>${data.email_subject}</p>
+                        <h4>Email Body:</h4>
+                        <p>${data.email_body}</p>
+                        <h4>Social Media Post:</h4>
+                        <p>${data.social_media_post}</p>
+                    </div>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+        
         // PVA Agent Functions
         async function sendPVAMessage() {
             const userId = document.getElementById('pva-user-id').value;
@@ -759,7 +892,54 @@
                 loadingDiv.style.display = 'none';
             }
         }
+        
+        // Analytics Dashboard Functions
+        async function refreshAnalytics() {
+            const loadingDiv = document.getElementById('analytics-loading');
+            const metrics = {
+                'total-customers': 'Total Customers',
+                'total-campaigns': 'Active Campaigns',
+                'knowledge-base-docs': 'Knowledge Base Documents',
+                'api-status': 'API Status',
+                'customer-support-status': 'Customer Support Agent',
+                'marketing-status': 'Marketing Agent',
+                'pva-status': 'Personal Virtual Assistant',
+                'trading-bot-status': 'Financial Trading Bot'
+            };
+            const responseArea = document.getElementById('recent-activity');
+            responseArea.innerHTML = '<p>Loading recent activity...</p>';
+            
+            try {
+                const data = await apiCall('/api/v1/analytics');
 
+                for (const key in metrics) {
+                    const value = data.system_metrics[key] || '-';
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.textContent = value;
+                    }
+                }
+                
+                responseArea.innerHTML = `
+                    <h4>Recent Interactions:</h4>
+                    <ul>
+                        ${data.recent_interactions.map(i => `<li>[${i.agent_name}] ${new Date(i.timestamp).toLocaleString()}: ${i.interaction_summary}</li>`).join('')}
+                    </ul>
+                `;
+
+            } catch (error) {
+                for (const key in metrics) {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.textContent = 'Error';
+                    }
+                }
+                responseArea.innerHTML = `<div class="error">Error fetching analytics: ${error.message}</div>`;
+            }
+        }
+
+
+        // Fixed API Call Utility Function
         async function apiCall(endpoint, method = 'GET', data = null) {
             const options = {
                 method: method,
@@ -791,234 +971,16 @@
                 const result = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(result.detail || result.message || `HTTP ${response.status}: ${response.statusText}`);
+                    throw new Error(result.detail || result.message || `HTTP Error! Status: ${response.status}`);
                 }
 
                 return result;
+
             } catch (error) {
-                console.error('API call failed:', error);
-                
-                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                    throw new Error('Cannot connect to API server. Check if the server is running and ngrok tunnel is active.');
-                }
-                
+                console.error('API Call Error:', error);
                 throw error;
             }
         }
-
-        async function sendCustomerSupportMessage() {
-            const customerId = document.getElementById('customer-id').value;
-            const message = document.getElementById('customer-message').value;
-
-            if (!message.trim()) {
-                alert('Please enter a message');
-                return;
-            }
-
-            const loadingEl = document.getElementById('support-loading');
-            const responseEl = document.getElementById('support-response');
-
-            loadingEl.style.display = 'block';
-            responseEl.innerHTML = '';
-
-            try {
-                const result = await apiCall('/api/v1/customer-support/chat', 'POST', {
-                    customer_id: parseInt(customerId),
-                    message: message
-                });
-
-                responseEl.innerHTML = `
-                    <div class="response-content">
-                        <h4>Agent Response:</h4>
-                        <p>${result.response}</p>
-                    </div>
-                    <div class="metrics">
-                        <div class="metric">
-                            <div class="metric-value">${(result.confidence * 100).toFixed(1)}%</div>
-                            <div class="metric-label">Confidence</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">${result.escalate ? 'Yes' : 'No'}</div>
-                            <div class="metric-label">Escalate</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">${result.sentiment}</div>
-                            <div class="metric-label">Sentiment</div>
-                        </div>
-                    </div>
-                    ${result.suggested_actions && result.suggested_actions.length > 0 ? `
-                        <div class="response-content">
-                            <h4>Suggested Actions:</h4>
-                            <ul>${result.suggested_actions.map(action => `<li>${action}</li>`).join('')}</ul>
-                        </div>
-                    ` : ''}
-                `;
-
-            } catch (error) {
-                responseEl.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingEl.style.display = 'none';
-            }
-        }
-
-        async function loadCustomerContext() {
-            const customerId = document.getElementById('customer-id').value;
-            const responseEl = document.getElementById('support-response');
-
-            try {
-                const result = await apiCall(`/api/v1/customer-support/customer/${customerId}`);
-
-                responseEl.innerHTML = `
-                    <div class="response-content">
-                        <h4>Customer Information:</h4>
-                        <p><strong>Name:</strong> ${result.name}</p>
-                        <p><strong>Email:</strong> ${result.email}</p>
-                        <p><strong>Tier:</strong> ${result.tier}</p>
-                        <p><strong>Company:</strong> ${result.company}</p>
-                        <p><strong>Open Tickets:</strong> ${result.open_tickets ? result.open_tickets.length : 0}</p>
-                        <p><strong>Recent Interactions:</strong> ${result.recent_interactions ? result.recent_interactions.length : 0}</p>
-                    </div>
-                `;
-
-            } catch (error) {
-                responseEl.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            }
-        }
-
-        async function createCampaign() {
-            const campaignType = document.getElementById('campaign-type').value;
-            const targetAudience = document.getElementById('target-audience').value;
-            const budget = parseFloat(document.getElementById('budget').value);
-            const duration = parseInt(document.getElementById('duration').value);
-
-            const loadingEl = document.getElementById('marketing-loading');
-            const responseEl = document.getElementById('marketing-response');
-
-            loadingEl.style.display = 'block';
-            responseEl.innerHTML = '';
-
-            try {
-                const result = await apiCall('/api/v1/marketing/campaign/create', 'POST', {
-                    campaign_type: campaignType,
-                    target_audience: targetAudience,
-                    budget: budget,
-                    duration_days: duration,
-                    goals: ['increase awareness', 'generate leads', 'drive engagement'],
-                    channels: ['linkedin', 'twitter', 'email'],
-                    content_requirements: ['social_media', 'email']
-                });
-
-                responseEl.innerHTML = `
-                    <div class="response-content">
-                        <h4>Campaign Created: ${result.campaign_id}</h4>
-                        <p><strong>Strategy:</strong> ${result.strategy ? result.strategy.substring(0, 200) + '...' : 'Strategy generated'}</p>
-                    </div>
-                    <div class="metrics">
-                        <div class="metric">
-                            <div class="metric-value">${result.content_pieces ? result.content_pieces.length : 0}</div>
-                            <div class="metric-label">Content Pieces</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">${result.estimated_performance ? result.estimated_performance.total_reach?.toLocaleString() || 'N/A' : 'N/A'}</div>
-                            <div class="metric-label">Estimated Reach</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">${result.estimated_performance ? result.estimated_performance.estimated_roi || 'N/A' : 'N/A'}x</div>
-                            <div class="metric-label">Estimated ROI</div>
-                        </div>
-                    </div>
-                `;
-
-            } catch (error) {
-                responseEl.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingEl.style.display = 'none';
-            }
-        }
-
-        async function generateContent() {
-            const responseEl = document.getElementById('marketing-response');
-
-            try {
-                const result = await apiCall('/api/v1/marketing/content/generate', 'POST', {
-                    platform: 'linkedin',
-                    content_type: 'social_media',
-                    campaign_theme: 'AI Analytics Platform',
-                    target_audience: 'data scientists and analysts',
-                    key_messages: ['powerful analytics', 'easy integration', 'real-time insights']
-                });
-
-                responseEl.innerHTML = `
-                    <div class="response-content">
-                        <h4>Generated Content for ${result.platform}:</h4>
-                        <p><strong>Title:</strong> ${result.title || 'Generated Title'}</p>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
-                            ${result.content}
-                        </div>
-                        <p><strong>Hashtags:</strong> ${result.hashtags ? result.hashtags.join(', ') : 'Generated hashtags'}</p>
-                        <p><strong>Estimated Reach:</strong> ${result.estimated_reach ? result.estimated_reach.toLocaleString() : 'N/A'}</p>
-                    </div>
-                `;
-
-            } catch (error) {
-                responseEl.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            }
-        }
-
-        async function refreshAnalytics() {
-            try {
-                const health = await apiCall('/health');
-                document.getElementById('api-status').textContent = health.status;
-
-                try {
-                    const customers = await apiCall('/api/v1/customers?limit=1');
-                    document.getElementById('total-customers').textContent = customers.total || customers.customers?.length || 'N/A';
-                } catch (e) {
-                    document.getElementById('total-customers').textContent = 'N/A';
-                }
-
-                try {
-                    const campaigns = await apiCall('/api/v1/campaigns?limit=1');
-                    document.getElementById('total-campaigns').textContent = campaigns.total || campaigns.campaigns?.length || 'N/A';
-                } catch (e) {
-                    document.getElementById('total-campaigns').textContent = 'N/A';
-                }
-
-                try {
-                    const kb = await apiCall('/api/v1/knowledge-base/search?query=help&limit=50');
-                    document.getElementById('knowledge-base-docs').textContent = kb.results?.length || 'N/A';
-                } catch (e) {
-                    document.getElementById('knowledge-base-docs').textContent = 'N/A';
-                }
-
-                document.getElementById('recent-activity').innerHTML = `
-                    <div class="response-content">
-                        <h4>System Status:</h4>
-                        <p>✅ API Server: ${health.status}</p>
-                        <p>✅ Customer Support Agent: ${health.agents?.customer_support || 'active'}</p>
-                        <p>✅ Marketing Agent: ${health.agents?.marketing || 'active'}</p>
-                        <p>✅ Last Updated: ${new Date().toLocaleTimeString()}</p>
-                    </div>
-                `;
-
-            } catch (error) {
-                console.error('Analytics refresh error:', error);
-                document.getElementById('recent-activity').innerHTML = `
-                    <div class="error">Error loading analytics: ${error.message}</div>
-                `;
-                document.getElementById('api-status').textContent = 'Error';
-            }
-        }
-
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, initializing...');
-            
-            // Test API connection on page load
-            setTimeout(() => {
-                refreshAnalytics();
-            }, 1000);
-        });
     </script>
 </body>
 </html>
