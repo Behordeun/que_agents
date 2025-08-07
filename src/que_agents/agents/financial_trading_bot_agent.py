@@ -7,7 +7,7 @@
 
 import random
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import yaml
 from langchain.prompts import ChatPromptTemplate
@@ -27,6 +27,8 @@ from src.que_agents.core.schemas import (
 )
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.knowledge_base.kb_manager import search_agent_knowledge_base
+
+system_logger.info("Initializing Financial Trading Bot Agent ...")
 
 # Load agent configuration
 with open("configs/agent_config.yaml", "r") as f:
@@ -80,9 +82,19 @@ class FinancialTradingBotAgent:
     def get_trading_knowledge(self, query: str) -> List[Dict]:
         """Get trading-related knowledge from knowledge base"""
         try:
-            return search_agent_knowledge_base("financial_trading_bot", query, limit=3)
+            kb_results = search_agent_knowledge_base(
+                "financial_trading_bot", query, limit=3
+            )
+            return kb_results
         except Exception as e:
-            system_logger.error(f"Error searching trading knowledge: {e}")
+            system_logger.error(
+                f"Error searching trading knowledge: {e}",
+                additional_info={
+                    "query": query,
+                    "results": 0,
+                },
+                exc_info=True,
+            )
             return []
 
     def analyze_market_with_knowledge(self, symbol: str) -> str:
@@ -150,7 +162,16 @@ Volatility: {market_data.volatility:.2f}
             )
             return analysis
         except Exception as e:
-            system_logger.error(f"Error in enhanced market analysis: {e}")
+            system_logger.error(
+                f"Error in enhanced market analysis: {e}",
+                additional_info={
+                    "symbol": symbol,
+                    "market_data": market_data_str,
+                    "technical_indicators": technical_indicators_str,
+                    "historical_data": historical_data_str,
+                },
+                exc_info=True,
+            )
             return self.analyze_market(symbol)  # Fallback to basic analysis
 
     def make_enhanced_trading_decision(
@@ -214,7 +235,17 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             return decision
 
         except Exception as e:
-            system_logger.error(f"Error making enhanced trading decision: {e}")
+            system_logger.error(
+                f"Error making enhanced trading decision: {e}",
+                additional_info={
+                    "symbol": symbol,
+                    "market_analysis": market_analysis,
+                    "portfolio_status": portfolio_status,
+                    "risk_parameters": risk_parameters_str,
+                    "strategy_type": strategy_type,
+                },
+                exc_info=True,
+            )
             # Fallback to basic decision making
             return self.make_trading_decision(symbol, strategy_type)
 
@@ -486,7 +517,16 @@ Volatility: {market_data.volatility:.2f}
             )
             return analysis
         except Exception as e:
-            system_logger.error(f"Error analyzing market: {e}")
+            system_logger.error(
+                f"Error analyzing market: {e}",
+                additional_info={
+                    "symbol": symbol,
+                    "market_data": market_data_str,
+                    "technical_indicators": technical_indicators_str,
+                    "historical_data": historical_data_str,
+                },
+                exc_info=True,
+            )
             return f"Market analysis for {symbol}: Current price ${market_data.current_price:.2f}, RSI {market_data.rsi:.1f}, trending {market_data.market_sentiment}."
 
     def make_trading_decision(
@@ -536,7 +576,17 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             return decision
 
         except Exception as e:
-            system_logger.error(f"Error making trading decision: {e}")
+            system_logger.error(
+                f"Error making trading decision: {e}",
+                additional_info={
+                    "symbol": symbol,
+                    "market_analysis": market_analysis,
+                    "portfolio_status": portfolio_str,
+                    "risk_parameters": risk_parameters_str,
+                    "strategy_type": strategy_type,
+                },
+                exc_info=True,
+            )
             return TradingDecision(
                 action="hold",
                 symbol=symbol,
@@ -664,9 +714,9 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             risk_score += position_ratio * 0.3
 
         # Market sentiment risk
-        if market_conditions.market_sentiment == "bearish" and action == "buy":
-            risk_score += 0.2
-        elif market_conditions.market_sentiment == "bullish" and action == "sell":
+        if (market_conditions.market_sentiment == "bearish" and action == "buy") or (
+            market_conditions.market_sentiment == "bullish" and action == "sell"
+        ):
             risk_score += 0.2
 
         return min(1.0, max(0.0, risk_score))
@@ -709,6 +759,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             return False
 
         session = get_session()
+        portfolio = None  # Ensure portfolio is always defined
         try:
             # Get current portfolio
             portfolio = (
@@ -734,9 +785,9 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             if decision.action == "buy":
                 # Check if we have enough cash
                 total_cost = trade_value + fees
-                if total_cost > portfolio.cash_balance:
+                if total_cost > float(portfolio.cash_balance):
                     print(
-                        f"Insufficient cash: need ${total_cost:.2f}, have ${portfolio.cash_balance:.2f}"
+                        f"Insufficient cash: need ${total_cost:.2f}, have ${float(portfolio.cash_balance):.2f}"
                     )
                     return False
 
@@ -792,13 +843,20 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             return True
 
         except Exception as e:
-            system_logger.error(f"Error executing trade: {e}")
+            system_logger.error(
+                f"Error executing trade: {e}",
+                additional_info={
+                    "decision": decision.__dict__,
+                    "portfolio": portfolio.__dict__ if portfolio is not None else None,
+                },
+                exc_info=True,
+            )
             session.rollback()
             return False
         finally:
             session.close()
 
-    def run_trading_cycle(self, symbols: List[str] = None) -> Dict[str, Any]:
+    def run_trading_cycle(self, symbols: Optional[List[str]] = None) -> Dict[str, Any]:
         """Run a complete trading cycle for specified symbols"""
         if symbols is None:
             symbols = self.supported_symbols[:5]  # Trade top 5 symbols
@@ -811,6 +869,8 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             "portfolio_status": None,
             "total_confidence": 0.0,
         }
+
+        portfolio = None  # Ensure portfolio is always defined
 
         for symbol in symbols:
             try:
@@ -845,7 +905,16 @@ Min Confidence: {self.min_confidence_threshold:.1%}
                 results["total_confidence"] += decision.confidence
 
             except Exception as e:
-                system_logger.error(f"Error processing {symbol}: {e}")
+                system_logger.error(
+                    f"Error processing {symbol}: {e}",
+                    additional_info={
+                        "decision": decision.__dict__,
+                        "portfolio": (
+                            portfolio.__dict__ if portfolio is not None else None
+                        ),
+                    },
+                    exc_info=True,
+                )
                 results["decisions"].append(
                     {"symbol": symbol, "action": "error", "error": str(e)}
                 )
@@ -870,7 +939,11 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             )
 
             if not portfolio:
-                system_logger.error("Portfolio not found")
+                system_logger.error(
+                    "Portfolio not found",
+                    additional_info={"portfolio_id": self.portfolio_id},
+                    exc_info=True,
+                )
                 return {"error": "Portfolio not found"}
 
             # Get trade history
