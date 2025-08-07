@@ -65,6 +65,14 @@ pydantic-settings
 pre-commit
 pytest-cov
 
+yfinance
+pandas
+numpy
+ta-lib
+requests
+psutil
+
+
 # Optional Dependencies for Extended Functionality
 # Uncomment if you need these features
 # langchain-embeddings

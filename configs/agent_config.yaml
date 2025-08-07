@@ -21,10 +21,12 @@ marketing_agent:
   model_name: llama3-70b-8192 # Use Groq's model name
   temperature: 0.6
 personal_virtual_assistant:
-  model: llama3-70b-8192 # Use Groq's model name
+  model_name: llama3-70b-8192 # Use Groq's model name
   temperature: 0.5
   memory_window: 15
+  max_tokens: 600
 financial_trading_bot:
-  model: llama3-70b-8192 # Use Groq's model name
+  model_name: llama3-70b-8192 # Use Groq's model name
   temperature: 0.3
   risk_tolerance: 0.1
+  max_tokens: 800
