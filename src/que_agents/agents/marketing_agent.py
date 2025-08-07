@@ -8,11 +8,13 @@
 import json
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import yaml
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.output_parser import StrOutputParser
+
+DEFAULT_CALL_TO_ACTION = "Learn more"
 
 from src.que_agents.core.database import (
     AudienceSegment,
@@ -29,155 +31,195 @@ from src.que_agents.core.schemas import (
     ContentPiece,
     ContentType,
 )
+from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.knowledge_base.kb_manager import search_agent_knowledge_base
 
+system_logger.info("Initializing Marketing Agent ...")
+
 # Load agent configuration
-with open("configs/agent_config.yaml", "r") as f:
-    agent_config = yaml.safe_load(f)
+try:
+    with open("configs/agent_config.yaml", "r") as f:
+        agent_config = yaml.safe_load(f)
+    system_logger.info("Agent configuration loaded successfully")
+except Exception as e:
+    system_logger.error(
+        error=f"Error loading agent configuration: {e}",
+        exc_info=True,
+        additional_info={"file": "agent_config.yaml"},
+    )
+    # Fallback configuration
+    agent_config = {"marketing_agent": {"model_name": "gpt-4", "temperature": 0.7}}
+    system_logger.warning("Using fallback agent configuration")
 
 
 class MarketingAgent:
     """Enhanced Marketing Agent for autonomous campaign management with AI-powered insights"""
 
     def __init__(self):
-        config = agent_config["marketing_agent"]
-        self.llm = LLMFactory.get_llm(
-            agent_type="marketing",
-            model_name=config["model_name"],
-            temperature=config["temperature"],
-            max_tokens=800,
-        )
+        system_logger._add_session_separator()
+        system_logger.info("Initializing Marketing Agent")
 
-        # Enhanced platform-specific constraints and features
-        self.platform_limits = {
-            "twitter": {
-                "max_chars": 280,
-                "hashtag_limit": 3,
-                "optimal_posting_times": ["9:00", "12:00", "18:00"],
-                "best_content_types": ["images", "videos", "polls"],
-                "engagement_multiplier": 1.2,
-            },
-            "linkedin": {
-                "max_chars": 3000,
-                "hashtag_limit": 5,
-                "optimal_posting_times": ["8:00", "12:00", "17:00"],
-                "best_content_types": ["articles", "professional_updates", "videos"],
-                "engagement_multiplier": 0.8,
-            },
-            "facebook": {
-                "max_chars": 2000,
-                "hashtag_limit": 5,
-                "optimal_posting_times": ["9:00", "13:00", "15:00"],
-                "best_content_types": ["images", "videos", "events"],
-                "engagement_multiplier": 1.0,
-            },
-            "instagram": {
-                "max_chars": 2200,
-                "hashtag_limit": 10,
-                "optimal_posting_times": ["11:00", "14:00", "20:00"],
-                "best_content_types": ["images", "stories", "reels"],
-                "engagement_multiplier": 1.5,
-            },
-            "email": {
-                "subject_max": 50,
-                "body_max": 2000,
-                "optimal_sending_times": ["10:00", "14:00"],
-                "best_content_types": ["newsletters", "promotions", "updates"],
-                "engagement_multiplier": 2.0,
-            },
-            "youtube": {
-                "title_max": 100,
-                "description_max": 5000,
-                "hashtag_limit": 15,
-                "optimal_posting_times": ["14:00", "16:00", "18:00"],
-                "best_content_types": ["tutorials", "demos", "testimonials"],
-                "engagement_multiplier": 3.0,
-            },
-            "tiktok": {
-                "max_chars": 300,
-                "hashtag_limit": 5,
-                "optimal_posting_times": ["9:00", "12:00", "19:00"],
-                "best_content_types": ["short_videos", "trends", "challenges"],
-                "engagement_multiplier": 2.5,
-            },
-        }
+        try:
+            config = agent_config["marketing_agent"]
+            self.llm = LLMFactory.get_llm(
+                agent_type="marketing",
+                model_name=config["model_name"],
+                temperature=config["temperature"],
+                max_tokens=800,
+            )
 
-        # Enhanced campaign types and strategies
-        self.campaign_strategies = {
-            "brand_awareness": {
-                "primary_metrics": ["reach", "impressions", "brand_mention"],
-                "recommended_channels": ["facebook", "instagram", "youtube"],
-                "content_focus": ["storytelling", "brand_values", "visual_content"],
-            },
-            "lead_generation": {
-                "primary_metrics": ["leads", "cost_per_lead", "conversion_rate"],
-                "recommended_channels": ["linkedin", "email", "google_ads"],
-                "content_focus": ["educational", "whitepapers", "webinars"],
-            },
-            "product_launch": {
-                "primary_metrics": ["awareness", "engagement", "sign_ups"],
-                "recommended_channels": ["twitter", "linkedin", "email", "youtube"],
-                "content_focus": ["features", "benefits", "demos"],
-            },
-            "customer_retention": {
-                "primary_metrics": ["engagement", "loyalty", "repeat_purchases"],
-                "recommended_channels": ["email", "in_app", "social_media"],
-                "content_focus": ["tips", "updates", "exclusive_content"],
-            },
-        }
+            # Enhanced platform-specific constraints and features
+            self.platform_limits = {
+                "twitter": {
+                    "max_chars": 280,
+                    "hashtag_limit": 3,
+                    "optimal_posting_times": ["9:00", "12:00", "18:00"],
+                    "best_content_types": ["images", "videos", "polls"],
+                    "engagement_multiplier": 1.2,
+                },
+                "linkedin": {
+                    "max_chars": 3000,
+                    "hashtag_limit": 5,
+                    "optimal_posting_times": ["8:00", "12:00", "17:00"],
+                    "best_content_types": [
+                        "articles",
+                        "professional_updates",
+                        "videos",
+                    ],
+                    "engagement_multiplier": 0.8,
+                },
+                "facebook": {
+                    "max_chars": 2000,
+                    "hashtag_limit": 5,
+                    "optimal_posting_times": ["9:00", "13:00", "15:00"],
+                    "best_content_types": ["images", "videos", "events"],
+                    "engagement_multiplier": 1.0,
+                },
+                "instagram": {
+                    "max_chars": 2200,
+                    "hashtag_limit": 10,
+                    "optimal_posting_times": ["11:00", "14:00", "20:00"],
+                    "best_content_types": ["images", "stories", "reels"],
+                    "engagement_multiplier": 1.5,
+                },
+                "email": {
+                    "subject_max": 50,
+                    "body_max": 2000,
+                    "optimal_sending_times": ["10:00", "14:00"],
+                    "best_content_types": ["newsletters", "promotions", "updates"],
+                    "engagement_multiplier": 2.0,
+                },
+                "youtube": {
+                    "title_max": 100,
+                    "description_max": 5000,
+                    "hashtag_limit": 15,
+                    "optimal_posting_times": ["14:00", "16:00", "18:00"],
+                    "best_content_types": ["tutorials", "demos", "testimonials"],
+                    "engagement_multiplier": 3.0,
+                },
+                "tiktok": {
+                    "max_chars": 300,
+                    "hashtag_limit": 5,
+                    "optimal_posting_times": ["9:00", "12:00", "19:00"],
+                    "best_content_types": ["short_videos", "trends", "challenges"],
+                    "engagement_multiplier": 2.5,
+                },
+            }
 
-        # Industry benchmarks (enhanced)
-        self.industry_benchmarks = {
-            "technology": {
-                "email_open_rate": 0.22,
-                "email_click_rate": 0.035,
-                "social_engagement": 0.045,
-                "conversion_rate": 0.025,
-            },
-            "healthcare": {
-                "email_open_rate": 0.25,
-                "email_click_rate": 0.038,
-                "social_engagement": 0.035,
-                "conversion_rate": 0.03,
-            },
-            "finance": {
-                "email_open_rate": 0.20,
-                "email_click_rate": 0.032,
-                "social_engagement": 0.025,
-                "conversion_rate": 0.022,
-            },
-            "retail": {
-                "email_open_rate": 0.18,
-                "email_click_rate": 0.025,
-                "social_engagement": 0.055,
-                "conversion_rate": 0.035,
-            },
-        }
+            # Enhanced campaign types and strategies
+            self.campaign_strategies = {
+                "brand_awareness": {
+                    "primary_metrics": ["reach", "impressions", "brand_mention"],
+                    "recommended_channels": ["facebook", "instagram", "youtube"],
+                    "content_focus": ["storytelling", "brand_values", "visual_content"],
+                },
+                "lead_generation": {
+                    "primary_metrics": ["leads", "cost_per_lead", "conversion_rate"],
+                    "recommended_channels": ["linkedin", "email", "google_ads"],
+                    "content_focus": ["educational", "whitepapers", "webinars"],
+                },
+                "product_launch": {
+                    "primary_metrics": ["awareness", "engagement", "sign_ups"],
+                    "recommended_channels": ["twitter", "linkedin", "email", "youtube"],
+                    "content_focus": ["features", "benefits", "demos"],
+                },
+                "customer_retention": {
+                    "primary_metrics": ["engagement", "loyalty", "repeat_purchases"],
+                    "recommended_channels": ["email", "in_app", "social_media"],
+                    "content_focus": ["tips", "updates", "exclusive_content"],
+                },
+            }
 
-        # Initialize enhanced prompt templates
-        self.campaign_prompt = self._create_enhanced_campaign_prompt()
-        self.content_prompt = self._create_enhanced_content_prompt()
-        self.analysis_prompt = self._create_enhanced_analysis_prompt()
-        self.optimization_prompt = self._create_optimization_prompt()
-        self.audience_prompt = self._create_audience_analysis_prompt()
+            # Industry benchmarks (enhanced)
+            self.industry_benchmarks = {
+                "technology": {
+                    "email_open_rate": 0.22,
+                    "email_click_rate": 0.035,
+                    "social_engagement": 0.045,
+                    "conversion_rate": 0.025,
+                },
+                "healthcare": {
+                    "email_open_rate": 0.25,
+                    "email_click_rate": 0.038,
+                    "social_engagement": 0.035,
+                    "conversion_rate": 0.03,
+                },
+                "finance": {
+                    "email_open_rate": 0.20,
+                    "email_click_rate": 0.032,
+                    "social_engagement": 0.025,
+                    "conversion_rate": 0.022,
+                },
+                "retail": {
+                    "email_open_rate": 0.18,
+                    "email_click_rate": 0.025,
+                    "social_engagement": 0.055,
+                    "conversion_rate": 0.035,
+                },
+            }
 
-        # Create enhanced chains
-        self.campaign_chain = self._create_campaign_chain()
-        self.content_chain = self._create_content_chain()
-        self.analysis_chain = self._create_analysis_chain()
-        self.optimization_chain = self._create_optimization_chain()
-        self.audience_chain = self._create_audience_chain()
+            # Initialize enhanced prompt templates
+            self.campaign_prompt = self._create_enhanced_campaign_prompt()
+            self.content_prompt = self._create_enhanced_content_prompt()
+            self.analysis_prompt = self._create_enhanced_analysis_prompt()
+            self.optimization_prompt = self._create_optimization_prompt()
+            self.audience_prompt = self._create_audience_analysis_prompt()
+
+            # Create enhanced chains
+            self.campaign_chain = self._create_campaign_chain()
+            self.content_chain = self._create_content_chain()
+            self.analysis_chain = self._create_analysis_chain()
+            self.optimization_chain = self._create_optimization_chain()
+            self.audience_chain = self._create_audience_chain()
+
+            system_logger.info("Marketing Agent initialized successfully")
+        except Exception as e:
+            system_logger.error(
+                error=f"Error initializing Marketing Agent: {e}",
+                exc_info=True,
+                additional_info={"config": agent_config},
+            )
+            raise RuntimeError("Marketing Agent initialization failed") from e
 
     def get_marketing_knowledge(self, query: str) -> List[Dict]:
         """Get marketing knowledge from knowledge base"""
         try:
-            return search_agent_knowledge_base("marketing", query, limit=3)
+            results = search_agent_knowledge_base("marketing", query, limit=3)
+            system_logger.info(
+                f"Knowledge base query successful",
+                additional_info={"query": query, "results_count": len(results)},
+            )
+            return results
         except Exception as e:
-            print(f"Error searching marketing knowledge: {e}")
+            system_logger.error(
+                error=f"Error searching marketing knowledge: {e}",
+                exc_info=True,
+                additional_info={"query": query},
+            )
             return []
 
     def get_enhanced_campaign_context(
-        self, request: CampaignRequest, industry: str = None
+        self, request: CampaignRequest, industry: Optional[str] = None
     ) -> str:
         """Get enhanced context from knowledge base for campaign planning"""
         try:
@@ -222,7 +264,14 @@ class MarketingAgent:
 
             return enhanced_context
         except Exception as e:
-            print(f"Error getting enhanced campaign context: {e}")
+            system_logger.error(
+                error=f"Error getting enhanced campaign context: {e}",
+                exc_info=True,
+                additional_info={
+                    "campaign_type": request.campaign_type.value,
+                    "target_audience": request.target_audience,
+                },
+            )
             return ""
 
     def _create_enhanced_campaign_prompt(self) -> ChatPromptTemplate:
@@ -500,7 +549,7 @@ Provide detailed audience insights and targeting recommendations."""
         return self.audience_prompt | self.llm | StrOutputParser()
 
     def get_enhanced_audience_insights(
-        self, target_audience: str, industry: str = None
+        self, target_audience: str, industry: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get enhanced audience insights from database and knowledge base"""
         session = get_session()
@@ -581,6 +630,20 @@ Provide detailed audience insights and targeting recommendations."""
                 "channel_preferences": enhanced_insights.get("channel_preferences", {}),
                 "content_preferences": enhanced_insights.get("content_preferences", {}),
             }
+        except Exception as e:
+            system_logger.error(
+                error=f"Error getting audience insights: {e}",
+                exc_info=True,
+                additional_info={"target_audience": target_audience},
+            )
+            return {
+                "segments": [],
+                "knowledge_base_insights": [],
+                "industry_insights": [],
+                "behavioral_patterns": {},
+                "channel_preferences": {},
+                "content_preferences": {},
+            }
         finally:
             session.close()
 
@@ -633,7 +696,7 @@ Provide detailed audience insights and targeting recommendations."""
         }
 
     def get_enhanced_market_data(
-        self, campaign_type: CampaignType, industry: str = None
+        self, campaign_type: CampaignType, industry: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get enhanced market data with knowledge base insights"""
         try:
@@ -656,7 +719,9 @@ Provide detailed audience insights and targeting recommendations."""
             )
 
             # Enhanced market analysis
-            market_trends = self._analyze_market_trends(campaign_type, industry)
+            market_trends = self._analyze_market_trends(
+                campaign_type, industry if industry is not None else ""
+            )
             competitive_landscape = self._analyze_competitive_landscape(campaign_type)
 
             return {
@@ -666,16 +731,18 @@ Provide detailed audience insights and targeting recommendations."""
                 "market_trends": market_trends,
                 "competitive_landscape": competitive_landscape,
                 "growth_opportunities": self._identify_growth_opportunities(
-                    campaign_type, industry
+                    campaign_type, industry if industry is not None else ""
                 ),
-                "risk_factors": self._identify_risk_factors(campaign_type, industry),
+                "risk_factors": self._identify_risk_factors(
+                    campaign_type, industry if industry is not None else ""
+                ),
             }
         except Exception as e:
-            print(f"Error getting enhanced market data: {e}")
+            system_logger.error(f"Error getting enhanced market data: {e}")
             return {"benchmarks": self.industry_benchmarks["technology"]}
 
     def _analyze_market_trends(
-        self, campaign_type: CampaignType, industry: str = None
+        self, campaign_type: CampaignType, _industry: Optional[str] = None
     ) -> Dict[str, Any]:
         """Analyze current market trends"""
         # Simulate market trend analysis
@@ -730,7 +797,7 @@ Provide detailed audience insights and targeting recommendations."""
         }
 
     def _identify_growth_opportunities(
-        self, campaign_type: CampaignType, industry: str = None
+        self, campaign_type: CampaignType, _industry: Optional[str] = None
     ) -> List[str]:
         """Identify growth opportunities"""
         opportunities = [
@@ -753,7 +820,7 @@ Provide detailed audience insights and targeting recommendations."""
         return opportunities
 
     def _identify_risk_factors(
-        self, _campaign_type: CampaignType, industry: str = None
+        self, _campaign_type: CampaignType, industry: Optional[str] = None
     ) -> List[str]:
         """Identify potential risk factors"""
         risks = [
@@ -772,7 +839,7 @@ Provide detailed audience insights and targeting recommendations."""
         return risks
 
     def create_enhanced_campaign_strategy(
-        self, request: CampaignRequest, industry: str = None
+        self, request: CampaignRequest, industry: Optional[str] = None
     ) -> str:
         """Create a comprehensive campaign strategy with knowledge base insights"""
         try:
@@ -810,9 +877,24 @@ Priority Metrics: {self.campaign_strategies.get(request.campaign_type.value, {})
                 }
             )
 
+            system_logger.info(
+                "Campaign strategy created successfully",
+                additional_info={
+                    "campaign_type": request.campaign_type.value,
+                    "target_audience": request.target_audience,
+                },
+            )
             return strategy
         except Exception as e:
-            print(f"Error creating enhanced campaign strategy: {e}")
+            system_logger.error(
+                error=f"Error creating enhanced campaign strategy: {e}",
+                exc_info=True,
+                additional_info={
+                    "campaign_type": request.campaign_type.value,
+                    "target_audience": request.target_audience,
+                    "budget": request.budget,
+                },
+            )
             # Fallback to basic strategy
             return self._create_basic_strategy(request)
 
@@ -844,7 +926,7 @@ This strategy provides a solid foundation for achieving your campaign objectives
         target_audience: str,
         key_messages: List[str],
         brand_voice: str = "professional",
-        competitor_analysis: Dict = None,
+        competitor_analysis: Optional[List[Dict]] = None,
     ) -> ContentPiece:
         """Generate enhanced platform-optimized content with knowledge base insights"""
         try:
@@ -893,13 +975,21 @@ This strategy provides a solid foundation for achieving your campaign objectives
             # Generate content variations for A/B testing
             variations = self._generate_content_variations(parsed_content, platform)
 
+            system_logger.info(
+                "Content generated successfully",
+                additional_info={
+                    "platform": platform,
+                    "content_type": content_type.value,
+                    "estimated_reach": estimated_reach,
+                },
+            )
             return ContentPiece(
                 content_type=content_type,
                 platform=platform,
                 title=parsed_content.get("title", "Generated Content"),
-                content=parsed_content.get("content", content),
+                content=parsed_content.get("content", ""),
+                call_to_action=parsed_content.get("cta", DEFAULT_CALL_TO_ACTION),
                 hashtags=parsed_content.get("hashtags", []),
-                call_to_action=parsed_content.get("cta", "Learn more"),
                 estimated_reach=estimated_reach,
                 variations=variations,
                 optimization_score=self._calculate_content_score(
@@ -908,7 +998,16 @@ This strategy provides a solid foundation for achieving your campaign objectives
             )
 
         except Exception as e:
-            print(f"Error generating enhanced content: {e}")
+            system_logger.error(
+                error=e,
+                exc_info=True,
+                additional_info={
+                    "method": "generate_enhanced_content",
+                    "platform": platform,
+                    "content_type": content_type.value,
+                    "campaign_theme": campaign_theme,
+                },
+            )
             return self._generate_fallback_content(
                 platform, content_type, campaign_theme
             )
@@ -924,9 +1023,8 @@ This strategy provides a solid foundation for achieving your campaign objectives
         if title.startswith("Title:") or title.startswith("Headline:"):
             title = title.split(":", 1)[1].strip()
 
-        # Extract main content
+        cta = DEFAULT_CALL_TO_ACTION
         content_lines = []
-        cta = "Learn more"
         hashtags = []
 
         for line in lines[1:]:
@@ -1025,7 +1123,6 @@ This strategy provides a solid foundation for achieving your campaign objectives
 
         # CTA variations
         cta_variations = [
-            "Learn more",
             "Get started today",
             "Try it free",
             "Book a demo",
@@ -1087,7 +1184,12 @@ This strategy provides a solid foundation for achieving your campaign objectives
         self, platform: str, content_type: ContentType, campaign_theme: str
     ) -> ContentPiece:
         """Generate fallback content when enhanced generation fails"""
-        fallback_content = f"""
+
+        return ContentPiece(
+            content_type=content_type,
+            platform=platform,
+            title=f"Exciting {campaign_theme} Update",
+            content=f"""
 🚀 Exciting news about {campaign_theme}!
 
 We're thrilled to share something amazing with you. Our latest innovation is designed to transform your experience and deliver exceptional value.
@@ -1095,15 +1197,9 @@ We're thrilled to share something amazing with you. Our latest innovation is des
 Ready to learn more? Let's connect and explore the possibilities together.
 
 #Innovation #Technology #Growth
-"""
-
-        return ContentPiece(
-            content_type=content_type,
-            platform=platform,
-            title=f"Exciting {campaign_theme} Update",
-            content=fallback_content.strip(),
+""",
+            call_to_action=DEFAULT_CALL_TO_ACTION,
             hashtags=["#Innovation", "#Technology", "#Growth"],
-            call_to_action="Learn more",
             estimated_reach=1000,
             variations=[],
             optimization_score=0.6,
@@ -1112,13 +1208,29 @@ Ready to learn more? Let's connect and explore the possibilities together.
     def create_enhanced_campaign_plan(
         self,
         request: CampaignRequest,
-        industry: str = None,
+        industry: Optional[List[str]] = None,
         brand_voice: str = "professional",
     ) -> CampaignPlan:
         """Create a comprehensive campaign plan with enhanced features"""
         try:
+            system_logger.info(
+                "Creating enhanced campaign plan",
+                additional_info={
+                    "campaign_type": request.campaign_type.value,
+                    "target_audience": request.target_audience,
+                    "budget": request.budget,
+                    "duration_days": request.duration_days,
+                },
+            )
+
             # Generate enhanced strategy
-            strategy = self.create_enhanced_campaign_strategy(request, industry)
+            # Ensure industry is a string if a list is provided
+            industry_str = None
+            if isinstance(industry, list):
+                industry_str = industry[0] if industry else None
+            else:
+                industry_str = industry
+            strategy = self.create_enhanced_campaign_strategy(request, industry_str)
 
             # Generate enhanced content pieces
             content_pieces = []
@@ -1134,7 +1246,6 @@ Ready to learn more? Let's connect and explore the possibilities together.
                     )
                     content_pieces.append(content_piece)
 
-            # Create optimized schedule
             schedule = self._create_optimized_schedule(
                 content_pieces, request.duration_days
             )
@@ -1150,19 +1261,43 @@ Ready to learn more? Let's connect and explore the possibilities together.
             )
 
             # Enhanced performance estimation
+            # Ensure industry is a string if a list is provided
+            industry_str = None
+            if isinstance(industry, list):
+                industry_str = industry[0] if industry else None
+            else:
+                industry_str = industry
+            # Ensure industry_str is always a string (default to "technology" if None)
+            industry_str = industry_str if industry_str is not None else "technology"
             estimated_performance = self._calculate_enhanced_performance(
-                content_pieces, request, industry
+                content_pieces, request, industry_str
             )
 
             # Risk assessment and mitigation
-            risk_assessment = self._assess_campaign_risks(request, industry)
+            # Ensure industry is a string if a list is provided
+            industry_str = None
+            if isinstance(industry, list):
+                industry_str = industry[0] if industry else None
+            else:
+                industry_str = industry
+            # Ensure industry_str is always a string (default to "technology" if None)
+            industry_str = industry_str if industry_str is not None else "technology"
+            risk_assessment = self._assess_campaign_risks(request, industry_str)
 
             # Optimization roadmap
             optimization_roadmap = self._create_optimization_roadmap(
                 request.duration_days
             )
 
-            return CampaignPlan(
+            # Extract industry value into an independent statement
+            if isinstance(industry, list) and industry:
+                industry_value = industry[0]
+            elif isinstance(industry, str) or industry is None:
+                industry_value = industry
+            else:
+                industry_value = str(industry)
+
+            campaign_plan = CampaignPlan(
                 campaign_id=f"campaign_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 strategy=strategy,
                 content_pieces=content_pieces,
@@ -1172,12 +1307,29 @@ Ready to learn more? Let's connect and explore the possibilities together.
                 estimated_performance=estimated_performance,
                 risk_assessment=risk_assessment,
                 optimization_roadmap=optimization_roadmap,
-                industry=industry,
+                industry=industry_value,
                 brand_voice=brand_voice,
             )
 
+            system_logger.info(
+                "Campaign plan created successfully",
+                additional_info={
+                    "campaign_id": campaign_plan.campaign_id,
+                    "content_pieces": len(content_pieces),
+                    "schedule_items": len(schedule),
+                },
+            )
+            return campaign_plan
+
         except Exception as e:
-            print(f"Error creating enhanced campaign plan: {e}")
+            system_logger.error(
+                error=f"Error creating enhanced campaign plan: {e}",
+                exc_info=True,
+                additional_info={
+                    "campaign_type": request.campaign_type.value,
+                    "target_audience": request.target_audience,
+                },
+            )
             return self._create_basic_campaign_plan(request)
 
     def _create_optimized_schedule(
@@ -1294,7 +1446,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
         self,
         content_pieces: List[ContentPiece],
         request: CampaignRequest,
-        industry: str = None,
+        industry: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Calculate enhanced performance estimates"""
         total_reach = sum(content.estimated_reach for content in content_pieces)
@@ -1328,7 +1480,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
         }
 
     def _assess_campaign_risks(
-        self, request: CampaignRequest, industry: str = None
+        self, request: CampaignRequest, industry: Optional[str] = None
     ) -> Dict[str, Any]:
         """Assess campaign risks and mitigation strategies"""
         risks = self._identify_risk_factors(request.campaign_type, industry)
@@ -1469,12 +1621,16 @@ Ready to learn more? Let's connect and explore the possibilities together.
             campaign_data = {
                 "name": campaign.name,
                 "type": campaign.campaign_type,
-                "budget": float(campaign.budget),
+                "budget": float(getattr(campaign, "budget", 0)),
                 "start_date": (
-                    campaign.start_date.isoformat() if campaign.start_date else None
+                    campaign.start_date.isoformat()
+                    if campaign.start_date is not None
+                    else None
                 ),
                 "end_date": (
-                    campaign.end_date.isoformat() if campaign.end_date else None
+                    campaign.end_date.isoformat()
+                    if campaign.end_date is not None
+                    else None
                 ),
                 "status": campaign.status,
                 "target_audience": campaign.target_audience,
@@ -1507,10 +1663,21 @@ Ready to learn more? Let's connect and explore the possibilities together.
                 }
             )
 
+            system_logger.info(
+                "Campaign analysis completed",
+                additional_info={
+                    "campaign_id": campaign_id,
+                    "campaign_name": campaign.name,
+                },
+            )
             return analysis
 
         except Exception as e:
-            print(f"Error analyzing enhanced campaign performance: {e}")
+            system_logger.error(
+                error=f"Error analyzing campaign performance: {e}",
+                exc_info=True,
+                additional_info={"campaign_id": campaign_id},
+            )
             return f"Error analyzing campaign {campaign_id}. Please try again or contact support."
         finally:
             session.close()
@@ -1518,6 +1685,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
     def _analyze_performance_metrics(self, metrics: List) -> Dict[str, Any]:
         """Analyze performance metrics with trends"""
         if not metrics:
+            system_logger.warning("No metrics data available for analysis.")
             return {"error": "No metrics data available"}
 
         metrics_data = {}
@@ -1553,6 +1721,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
     def _analyze_channel_performance(self, posts: List) -> Dict[str, Any]:
         """Analyze channel-specific performance"""
         if not posts:
+            system_logger.warning("No posts data available for channel analysis.")
             return {"error": "No posts data available"}
 
         channel_performance = {}
@@ -1597,7 +1766,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
         }
 
     def optimize_campaign_enhanced(
-        self, campaign_id: int, optimization_goals: List[str] = None
+        self, campaign_id: int, optimization_goals: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Provide enhanced campaign optimization with AI-powered recommendations"""
         try:
@@ -1614,6 +1783,9 @@ Ready to learn more? Let's connect and explore the possibilities together.
             session.close()
 
             if not campaign:
+                system_logger.warning(
+                    f"Campaign {campaign_id} not found for optimization."
+                )
                 return {"error": "Campaign not found"}
 
             # Prepare optimization context
@@ -1636,7 +1808,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
                     "current_performance": json.dumps(current_performance, indent=2),
                     "optimization_goals": ", ".join(optimization_goals),
                     "available_budget": str(
-                        float(campaign.budget) * 0.25
+                        float(getattr(campaign, "budget", 0)) * 0.25
                     ),  # 25% remaining budget
                     "time_constraints": "2 weeks remaining",
                 }
@@ -1664,7 +1836,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error in enhanced campaign optimization: {e}")
+            system_logger.error(f"Error in enhanced campaign optimization: {e}")
             return {
                 "error": "Optimization analysis failed",
                 "fallback_recommendations": [
@@ -1782,6 +1954,9 @@ Ready to learn more? Let's connect and explore the possibilities together.
             )
 
             if not campaign:
+                system_logger.warning(
+                    f"Campaign {campaign_id} not found for dashboard."
+                )
                 return {"error": "Campaign not found"}
 
             # Get all related data
@@ -1814,7 +1989,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
                     "name": campaign.name,
                     "type": campaign.campaign_type,
                     "status": campaign.status,
-                    "budget": float(campaign.budget),
+                    "budget": float(getattr(campaign, "budget", 0)),
                     "duration": self._calculate_campaign_duration(campaign),
                     "target_audience": campaign.target_audience,
                 },
@@ -1830,7 +2005,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error generating campaign insights dashboard: {e}")
+            system_logger.error(f"Error generating campaign insights dashboard: {e}")
             return {"error": "Failed to generate dashboard"}
         finally:
             session.close()
@@ -2027,13 +2202,15 @@ Ready to learn more? Let's connect and explore the possibilities together.
         return next_steps
 
     def create_campaign_from_request(
-        self, request: CampaignRequest, industry: str = None
+        self, request: CampaignRequest, industry: Optional[str] = None
     ) -> Dict[str, Any]:
         """Create a complete campaign with database persistence"""
         session = get_session()
         try:
             # Create enhanced campaign plan
-            campaign_plan = self.create_enhanced_campaign_plan(request, industry)
+            campaign_plan = self.create_enhanced_campaign_plan(
+                request, [industry] if industry is not None else None
+            )
 
             # Save campaign to database
             campaign = MarketingCampaign(
@@ -2071,7 +2248,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
 
             session.commit()
 
-            return {
+            response = {
                 "campaign_id": campaign.id,
                 "campaign_plan": {
                     "strategy": (
@@ -2095,9 +2272,25 @@ Ready to learn more? Let's connect and explore the possibilities together.
                 ],
             }
 
+            system_logger.info(
+                "Campaign created and saved to database",
+                additional_info={
+                    "campaign_id": campaign.id,
+                    "content_pieces": len(campaign_plan.content_pieces),
+                },
+            )
+            return response
+
         except Exception as e:
             session.rollback()
-            print(f"Error creating campaign: {e}")
+            system_logger.error(
+                error=f"Error creating campaign: {e}",
+                exc_info=True,
+                additional_info={
+                    "campaign_type": request.campaign_type.value,
+                    "target_audience": request.target_audience,
+                },
+            )
             return {
                 "error": "Failed to create campaign",
                 "message": str(e),
@@ -2105,6 +2298,8 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
         finally:
             session.close()
+
+    # ... (API methods remain unchanged except for error handling)
 
     def create_marketing_campaign(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Create a marketing campaign (API compatibility method)"""
@@ -2133,7 +2328,11 @@ Ready to learn more? Let's connect and explore the possibilities together.
             )
 
         except Exception as e:
-            print(f"Error in create_marketing_campaign: {e}")
+            system_logger.error(
+                error=f"Error in create_marketing_campaign: {e}",
+                exc_info=True,
+                additional_info=request,
+            )
             return {
                 "error": "Failed to create marketing campaign",
                 "message": str(e),
@@ -2175,7 +2374,9 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error in generate_marketing_content: {e}")
+            system_logger.error(
+                f"Error in generating marketing content: {e}", exc_info=True
+            )
             return {
                 "error": "Failed to generate marketing content",
                 "message": str(e),
@@ -2204,7 +2405,11 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error in analyze_campaign_performance: {e}")
+            system_logger.error(
+                f"Error in analyzing campaign performance: {e}",
+                additional_info={"campaign_id": campaign_id},
+                exc_info=True,
+            )
             return {
                 "error": "Failed to analyze campaign performance",
                 "message": str(e),
@@ -2213,7 +2418,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
     def optimize_campaign(
-        self, campaign_id: int, optimization_goals: List[str] = None
+        self, campaign_id: int, optimization_goals: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Optimize campaign (API compatibility method)"""
         try:
@@ -2230,7 +2435,11 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error in optimize_campaign: {e}")
+            system_logger.error(
+                error=f"Error in optimize_campaign: {e}",
+                exc_info=True,
+                additional_info={"campaign_id": campaign_id},
+            )
             return {
                 "error": "Failed to optimize campaign",
                 "message": str(e),
@@ -2252,7 +2461,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error in get_campaign_insights: {e}")
+            system_logger.error(f"Error in get_campaign_insights: {e}")
             return {
                 "error": "Failed to get campaign insights",
                 "message": str(e),
@@ -2261,7 +2470,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
     def get_audience_analysis(
-        self, target_audience: str, industry: str = None
+        self, target_audience: str, industry: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get audience analysis (API compatibility method)"""
         try:
@@ -2279,7 +2488,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error in get_audience_analysis: {e}")
+            system_logger.error(f"Error in get_audience_analysis: {e}")
             return {
                 "error": "Failed to get audience analysis",
                 "message": str(e),
@@ -2288,7 +2497,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
     def get_market_intelligence(
-        self, campaign_type: str, industry: str = None
+        self, campaign_type: str, industry: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get market intelligence (API compatibility method)"""
         try:
@@ -2307,7 +2516,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error in get_market_intelligence: {e}")
+            system_logger.error(f"Error in get_market_intelligence: {e}")
             return {
                 "error": "Failed to get market intelligence",
                 "message": str(e),
@@ -2316,7 +2525,10 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
     def get_content_suggestions(
-        self, platform: str, industry: str = None, content_type: str = "social_media"
+        self,
+        platform: str,
+        industry: Optional[str] = None,
+        content_type: str = "social_media",
     ) -> Dict[str, Any]:
         """Get content suggestions (API compatibility method)"""
         try:
@@ -2356,7 +2568,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error in get_content_suggestions: {e}")
+            system_logger.error(f"Error in get_content_suggestions: {e}")
             return {
                 "error": "Failed to get content suggestions",
                 "message": str(e),
@@ -2365,7 +2577,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
     def get_campaign_templates(
-        self, campaign_type: str, industry: str = None
+        self, campaign_type: str, industry: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get campaign templates (API compatibility method)"""
         try:
@@ -2406,7 +2618,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             }
 
         except Exception as e:
-            print(f"Error in get_campaign_templates: {e}")
+            system_logger.error(f"Error in get_campaign_templates: {e}")
             return {
                 "error": "Failed to get campaign templates",
                 "message": str(e),
@@ -2417,6 +2629,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
 
 def test_enhanced_marketing_agent():
     """Comprehensive test of the enhanced marketing agent"""
+    system_logger.info("Starting Marketing Agent test suite")
     agent = MarketingAgent()
 
     print("=== Enhanced Marketing Agent Test ===\n")
@@ -2469,6 +2682,10 @@ def test_enhanced_marketing_agent():
     ]
 
     for i, test_case in enumerate(test_campaigns, 1):
+        system_logger.info(
+            f"Running test case {i}: {test_case['description']}",
+            additional_info=test_case,
+        )
         print(f"Test Case {i}: {test_case['description']}")
         print("=" * 60)
 
@@ -2510,8 +2727,10 @@ def test_enhanced_marketing_agent():
                 print(f"Status: {overview['status']}")
                 print(f"Budget: ${overview['budget']:,.2f}")
                 print(f"Duration: {overview['duration']} days")
-
         else:
+            system_logger.error(
+                f"Test case {i} failed: {result['error']}", additional_info=test_case
+            )
             print(f"❌ Campaign Creation Failed: {result['error']}")
 
         print("\n" + "=" * 80 + "\n")
@@ -2533,6 +2752,7 @@ def test_enhanced_marketing_agent():
     print(f"Audience segments: {len(audience_insights['segments'])}")
     print(f"Knowledge insights: {len(audience_insights['knowledge_base_insights'])}")
 
+    system_logger.info("Marketing Agent testing completed")
     print("\n✅ Enhanced Marketing Agent Testing Complete!")
 
 

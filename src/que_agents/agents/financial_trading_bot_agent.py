@@ -25,6 +25,7 @@ from src.que_agents.core.schemas import (
     PortfolioStatus,
     TradingDecision,
 )
+from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.knowledge_base.kb_manager import search_agent_knowledge_base
 
 # Load agent configuration
@@ -81,7 +82,7 @@ class FinancialTradingBotAgent:
         try:
             return search_agent_knowledge_base("financial_trading_bot", query, limit=3)
         except Exception as e:
-            print(f"Error searching trading knowledge: {e}")
+            system_logger.error(f"Error searching trading knowledge: {e}")
             return []
 
     def analyze_market_with_knowledge(self, symbol: str) -> str:
@@ -149,7 +150,7 @@ Volatility: {market_data.volatility:.2f}
             )
             return analysis
         except Exception as e:
-            print(f"Error in enhanced market analysis: {e}")
+            system_logger.error(f"Error in enhanced market analysis: {e}")
             return self.analyze_market(symbol)  # Fallback to basic analysis
 
     def make_enhanced_trading_decision(
@@ -213,7 +214,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             return decision
 
         except Exception as e:
-            print(f"Error making enhanced trading decision: {e}")
+            system_logger.error(f"Error making enhanced trading decision: {e}")
             # Fallback to basic decision making
             return self.make_trading_decision(symbol, strategy_type)
 
@@ -485,7 +486,7 @@ Volatility: {market_data.volatility:.2f}
             )
             return analysis
         except Exception as e:
-            print(f"Error analyzing market: {e}")
+            system_logger.error(f"Error analyzing market: {e}")
             return f"Market analysis for {symbol}: Current price ${market_data.current_price:.2f}, RSI {market_data.rsi:.1f}, trending {market_data.market_sentiment}."
 
     def make_trading_decision(
@@ -535,7 +536,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             return decision
 
         except Exception as e:
-            print(f"Error making trading decision: {e}")
+            system_logger.error(f"Error making trading decision: {e}")
             return TradingDecision(
                 action="hold",
                 symbol=symbol,
@@ -791,7 +792,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             return True
 
         except Exception as e:
-            print(f"Error executing trade: {e}")
+            system_logger.error(f"Error executing trade: {e}")
             session.rollback()
             return False
         finally:
@@ -844,7 +845,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
                 results["total_confidence"] += decision.confidence
 
             except Exception as e:
-                print(f"Error processing {symbol}: {e}")
+                system_logger.error(f"Error processing {symbol}: {e}")
                 results["decisions"].append(
                     {"symbol": symbol, "action": "error", "error": str(e)}
                 )
@@ -869,6 +870,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             )
 
             if not portfolio:
+                system_logger.error("Portfolio not found")
                 return {"error": "Portfolio not found"}
 
             # Get trade history

@@ -25,10 +25,13 @@ from src.que_agents.core.database import (
     get_session,
 )
 from src.que_agents.core.llm_factory import LLMFactory
+from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.knowledge_base.kb_manager import (
     search_agent_knowledge_base,
     search_knowledge_base,
 )
+
+system_logger.info("Personal Virtual Assistant Agent initialized...")
 
 
 @dataclass
@@ -121,7 +124,11 @@ class PersonalVirtualAssistantAgent:
                 "personal_virtual_assistant", query, limit=3
             )
         except Exception as e:
-            print(f"Error searching assistant knowledge: {e}")
+            system_logger.error(
+                f"Error searching assistant knowledge: {e}",
+                additional_info={"query": query},
+                exc_info=True,
+            )
             return []
 
     def get_enhanced_context(self, user_message: str, intent: str) -> str:
@@ -138,7 +145,11 @@ class PersonalVirtualAssistantAgent:
 
             return ""
         except Exception as e:
-            print(f"Error getting enhanced context: {e}")
+            system_logger.error(
+                f"Error getting enhanced context: {e}",
+                additional_info={"user_message": user_message, "intent": intent},
+                exc_info=True,
+            )
             return ""
 
     def _create_intent_prompt(self) -> ChatPromptTemplate:
@@ -335,17 +346,45 @@ Provide a helpful and friendly response that addresses the user's request."""
                 session.commit()
                 smart_devices = default_devices
 
+            # Extract preferences safely
+            preferences_value = getattr(user_prefs, "preferences", None)
+            if preferences_value is not None:
+                if isinstance(preferences_value, dict):
+                    preferences = preferences_value
+                else:
+                    try:
+                        preferences = json.loads(preferences_value)
+                    except Exception:
+                        preferences = {}
+            else:
+                preferences = {}
+
+            # Extract learned_behaviors safely
+            learned_behaviors_value = getattr(user_prefs, "learned_behaviors", None)
+            if learned_behaviors_value is not None:
+                if isinstance(learned_behaviors_value, dict):
+                    learned_behaviors = learned_behaviors_value
+                else:
+                    try:
+                        learned_behaviors = json.loads(learned_behaviors_value)
+                    except Exception:
+                        learned_behaviors = {}
+            else:
+                learned_behaviors = {}
+
             return UserContext(
                 user_id=user_id,
-                preferences=user_prefs.preferences or {},
-                learned_behaviors=user_prefs.learned_behaviors or {},
+                preferences=preferences,
+                learned_behaviors=learned_behaviors,
                 active_reminders=[
                     {
                         "id": r.id,
                         "title": r.title,
                         "description": r.description,
                         "reminder_time": (
-                            r.reminder_time.isoformat() if r.reminder_time else None
+                            r.reminder_time.isoformat()
+                            if r.reminder_time is not None
+                            else None
                         ),
                         "is_recurring": r.is_recurring,
                         "recurrence_pattern": r.recurrence_pattern,
@@ -384,7 +423,11 @@ Provide a helpful and friendly response that addresses the user's request."""
 
             return IntentResult(intent=intent, confidence=confidence, entities={})
         except Exception as e:
-            print(f"Error recognizing intent: {e}")
+            system_logger.error(
+                f"Error recognizing intent: {e}",
+                additional_info={"user_message": user_message},
+                exc_info=True,
+            )
             return IntentResult(intent="general_query", confidence=0.5, entities={})
 
     def _calculate_intent_confidence(self, user_message: str, intent: str) -> float:
@@ -448,11 +491,18 @@ Provide a helpful and friendly response that addresses the user's request."""
                 entities = json.loads(entities_str)
                 return entities if isinstance(entities, dict) else {}
             except json.JSONDecodeError:
+                system_logger.warning(
+                    f"Failed to parse entities as JSON: {entities_str}"
+                )
                 # Fallback to regex extraction
                 return self._extract_entities_fallback(user_message, intent)
 
         except Exception as e:
-            print(f"Error extracting entities: {e}")
+            system_logger.error(
+                f"Error extracting entities: {e}",
+                additional_info={"user_message": user_message},
+                exc_info=True,
+            )
             return self._extract_entities_fallback(user_message, intent)
 
     def _extract_entities_fallback(
@@ -612,7 +662,12 @@ Provide a helpful and friendly response that addresses the user's request."""
             )
 
         except Exception as e:
-            print(f"Error setting reminder: {e}")
+            session.rollback()
+            system_logger.error(
+                f"Error setting reminder: {e}",
+                additional_info={"entities": entities},
+                exc_info=True,
+            )
             return "I had trouble setting your reminder. Please try again.", []
         finally:
             session.close()
@@ -774,8 +829,8 @@ Provide a helpful and friendly response that addresses the user's request."""
         self,
         device: Dict[str, Any],
         action: str,
-        temperature: int = None,
-        value: str = None,
+        temperature: Optional[int] = None,
+        value: Optional[str] = None,
     ) -> tuple[bool, str]:
         """Enhanced device control with more actions and feedback"""
         if not device["is_online"]:
@@ -819,6 +874,16 @@ Provide a helpful and friendly response that addresses the user's request."""
                 )
 
         except Exception as e:
+            system_logger.error(
+                f"Error controlling device: {e}",
+                additional_info={
+                    "device": device,
+                    "action": action,
+                    "temperature": temperature,
+                    "value": value,
+                },
+                exc_info=True,
+            )
             return False, f"There was an error controlling the device: {str(e)}"
 
     def _get_device_actions(
@@ -869,7 +934,11 @@ Provide a helpful and friendly response that addresses the user's request."""
                 )
 
         except Exception as e:
-            print(f"Error handling enhanced general query: {e}")
+            system_logger.error(
+                f"Error handling enhanced general query: {e}",
+                additional_info={"user_message": user_message, "entities": _entities},
+                exc_info=True,
+            )
             return (
                 "I'm having trouble finding information about that right now. Is there something else I can help you with?",
                 [],
@@ -906,7 +975,7 @@ Try saying things like:
         return response, actions_taken
 
     def handle_productivity_tips(
-        self, entities: Dict[str, Any], user_context: UserContext
+        self, _entities: Dict[str, Any], _user_context: UserContext
     ) -> tuple[str, List[str]]:
         """Handle productivity tips requests"""
         productivity_knowledge = self.get_assistant_knowledge(
@@ -958,7 +1027,7 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
         return response, actions_taken
 
     def handle_cancel_reminder(
-        self, entities: Dict[str, Any], user_context: UserContext
+        self, _entities: Dict[str, Any], user_context: UserContext
     ) -> tuple[str, List[str]]:
         """Handle reminder cancellation"""
         session = get_session()
@@ -989,7 +1058,12 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
                 return "I couldn't find that reminder to cancel.", []
 
         except Exception as e:
-            print(f"Error cancelling reminder: {e}")
+            session.rollback()
+            system_logger.error(
+                f"Error cancelling reminder: {e}",
+                additional_info={"entities": _entities, "user_context": user_context},
+                exc_info=True,
+            )
             return "I had trouble cancelling the reminder. Please try again.", []
         finally:
             session.close()
@@ -1002,12 +1076,16 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
         return response, actions_taken
 
     def process_user_request(
-        self, user_id: str, user_message: str, session_id: str = None
+        self, user_id: str, user_message: str, session_id: Optional[str] = None
     ) -> AgentResponse:
         """Process a user request and generate a response"""
         # Get user context
         user_context = self.get_user_context(user_id)
         if not user_context:
+            system_logger.warning(
+                f"User context not found for user_id: {user_id}",
+                additional_info={"user_id": user_id, "session_id": session_id},
+            )
             return AgentResponse(
                 message="I'm having trouble accessing your information. Please try again.",
                 intent="error",
@@ -1118,7 +1196,18 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
             )
 
         except Exception as e:
-            print(f"Error processing request: {e}")
+            system_logger.error(
+                f"Error processing request: {e}",
+                additional_info={
+                    "user_id": user_id,
+                    "user_message": user_message,
+                    "intent": intent_result.intent,
+                    "entities": entities,
+                    "actions_taken": actions_taken,
+                    "session_id": session_id,
+                },
+                exc_info=True,
+            )
             return AgentResponse(
                 message="I'm sorry, I encountered an error while processing your request. Please try again.",
                 intent=intent_result.intent,
@@ -1189,7 +1278,7 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
         user_id: str,
         user_message: str,
         response: AgentResponse,
-        session_id: str = None,
+        session_id: Optional[str] = None,
     ):
         """Log the interaction to the database"""
         session = get_session()
@@ -1207,13 +1296,22 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
             session.add(interaction)
             session.commit()
         except Exception as e:
-            print(f"Error logging interaction: {e}")
+            system_logger.error(
+                f"Error logging interaction: {e}",
+                additional_info={
+                    "user_id": user_id,
+                    "user_message": user_message,
+                    "response": response,
+                    "session_id": session_id,
+                },
+                exc_info=True,
+            )
             session.rollback()
         finally:
             session.close()
 
     def handle_user_request(
-        self, user_id: str, user_message: str, session_id: str = None
+        self, user_id: str, user_message: str, session_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Main method to handle a user request"""
         # Process the message

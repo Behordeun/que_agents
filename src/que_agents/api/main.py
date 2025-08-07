@@ -6,8 +6,9 @@
 # @Description: This module implements the main API for the Agentic AI system
 
 import os
+import traceback
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -33,6 +34,9 @@ from src.que_agents.core.schemas import (
     TradingCycleResponse,
     TradingDecisionResponse,
 )
+from src.que_agents.error_trace.errorlogger import system_logger
+
+system_logger.info("Starting Agentic AI API...")
 
 # Load API configuration - fix the path
 config_path = os.path.join(
@@ -97,11 +101,26 @@ try:
     pva_agent = PersonalVirtualAssistantAgent()
     trading_bot_agent = FinancialTradingBotAgent()
 except Exception as e:
-    print(f"Warning: Could not initialize agents: {e}")
+    system_logger.error(
+        str(e),
+        additional_info={
+            "context": "Error initializing agents",
+            "message": "Error initializing agents. Please check your configuration and agent implementations.",
+        },
+        exc_info=True,
+    )
     customer_support_agent = None
     marketing_agent = None
     pva_agent = None
     trading_bot_agent = None
+
+# Constants
+MARKETING_AGENT_NOT_AVAILABLE = "Marketing agent not available"
+CREATE_MARKETING_CAMPAIGN_CONTEXT = "Create Marketing Campaign"
+
+
+# Authentication error constant
+INVALID_AUTH_TOKEN_MSG = "Invalid authentication token"
 
 
 # Authentication dependency
@@ -110,9 +129,17 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     expected_token = api_config["authentication"]["api_token"]
 
     if credentials.credentials != expected_token:
+        system_logger.error(
+            INVALID_AUTH_TOKEN_MSG,
+            additional_info={
+                "context": "Authentication",
+                "message": INVALID_AUTH_TOKEN_MSG,
+            },
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token",
+            detail=INVALID_AUTH_TOKEN_MSG,
         )
     return credentials.credentials
 
@@ -181,7 +208,15 @@ async def customer_support_chat(
             timestamp=datetime.now().isoformat(),
         )
     except Exception as e:
-        print(f"Error in customer support chat: {e}")
+        system_logger.error(
+            f"Error handling customer support chat: {e}",
+            additional_info={
+                "context": "Customer Support Chat",
+                "customer_id": request.customer_id,
+                "message": request.message,
+            },
+            exc_info=True,
+        )
         # Return fallback response
         return CustomerSupportResponse(
             response="I apologize, but I'm experiencing technical difficulties. Please contact our support team directly for immediate assistance.",
@@ -231,6 +266,14 @@ async def get_customer_context(customer_id: int, token: str = Depends(verify_tok
     }
 
     if customer_id not in mock_customers:
+        system_logger.error(
+            f"Customer {customer_id} not found in mock data",
+            additional_info={
+                "context": "Get Customer Context",
+                "customer_id": customer_id,
+            },
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Customer {customer_id} not found",
@@ -251,7 +294,7 @@ def create_marketing_campaign(
         if not marketing_agent:
             raise HTTPException(status_code=503, detail="Marketing agent not available")
 
-        # Convert Pydantic model to dict
+        # Convert Pydantic model to dict - this is the issue
         request_dict = {
             "campaign_type": request.campaign_type,
             "target_audience": request.target_audience,
@@ -259,7 +302,7 @@ def create_marketing_campaign(
             "duration_days": request.duration_days,
             "goals": request.goals,
             "channels": request.channels,
-            "content_requirements": request.content_requirements,
+            "content_requirements": request.content_requirements,  # These are enum values, not strings
             "industry": request.industry,
             "brand_voice": request.brand_voice,
         }
@@ -268,6 +311,13 @@ def create_marketing_campaign(
         return result
 
     except Exception as e:
+        system_logger.error(
+            f"Failed to create campaign: {str(e)}",
+            additional_info={
+                "context": CREATE_MARKETING_CAMPAIGN_CONTEXT,
+                "request": request.dict(),
+            },
+        )
         return {"error": f"Failed to create campaign: {str(e)}", "status": "failed"}
 
 
@@ -276,10 +326,9 @@ def generate_marketing_content(
     request: ContentGenerationRequest,
     _: HTTPAuthorizationCredentials = Depends(verify_token),
 ):
-    """Generate marketing content"""
     try:
         if not marketing_agent:
-            raise HTTPException(status_code=503, detail="Marketing agent not available")
+            raise HTTPException(status_code=503, detail=MARKETING_AGENT_NOT_AVAILABLE)
 
         # Convert Pydantic model to dict
         request_dict = {
@@ -297,6 +346,13 @@ def generate_marketing_content(
         return result
 
     except Exception as e:
+        system_logger.error(
+            f"Failed to generate content: {str(e)}",
+            additional_info={
+                "context": "Generate Marketing Content",
+                "request": request.dict(),
+            },
+        )
         return {
             "error": f"Failed to generate content: {str(e)}",
             "status": "failed",
@@ -311,12 +367,27 @@ def analyze_marketing_campaign(
     """Analyze marketing campaign performance"""
     try:
         if not marketing_agent:
-            raise HTTPException(status_code=503, detail="Marketing agent not available")
+            system_logger.error(
+                f"{MARKETING_AGENT_NOT_AVAILABLE}",
+                additional_info={
+                    "context": "Analyze Marketing Campaign",
+                    "campaign_id": campaign_id,
+                },
+            )
+            raise HTTPException(status_code=503, detail=MARKETING_AGENT_NOT_AVAILABLE)
 
         result = marketing_agent.analyze_campaign_performance(campaign_id)
         return result
 
     except Exception as e:
+        system_logger.error(
+            f"Failed to analyze campaign: {str(e)}",
+            additional_info={
+                "context": "Analyze Marketing Campaign",
+                "campaign_id": campaign_id,
+            },
+            exc_info=True,
+        )
         return {
             "error": f"Failed to analyze campaign: {str(e)}",
             "status": "failed",
@@ -327,18 +398,27 @@ def analyze_marketing_campaign(
 @app.post("/api/v1/marketing/campaign/{campaign_id}/optimize")
 def optimize_marketing_campaign(
     campaign_id: int,
-    optimization_goals: List[str] = None,
+    optimization_goals: Optional[List[str]] = None,
     _: HTTPAuthorizationCredentials = Depends(verify_token),
 ):
     """Optimize marketing campaign"""
     try:
         if not marketing_agent:
-            raise HTTPException(status_code=503, detail="Marketing agent not available")
+            raise HTTPException(status_code=503, detail=MARKETING_AGENT_NOT_AVAILABLE)
 
         result = marketing_agent.optimize_campaign(campaign_id, optimization_goals)
         return result
 
     except Exception as e:
+        system_logger.error(
+            f"Failed to optimize campaign: {str(e)}",
+            additional_info={
+                "context": "Optimize Marketing Campaign",
+                "campaign_id": campaign_id,
+                "optimization_goals": optimization_goals,
+            },
+            exc_info=True,
+        )
         return {
             "error": f"Failed to optimize campaign: {str(e)}",
             "status": "failed",
@@ -353,12 +433,18 @@ def get_marketing_campaign_insights(
     """Get marketing campaign insights"""
     try:
         if not marketing_agent:
-            raise HTTPException(status_code=503, detail="Marketing agent not available")
+            raise HTTPException(status_code=503, detail=MARKETING_AGENT_NOT_AVAILABLE)
 
         result = marketing_agent.get_campaign_insights(campaign_id)
         return result
 
     except Exception as e:
+        system_logger.error(
+            f"Failed to get campaign insights: {str(e)}",
+            additional_info={
+                "context": "GET MARKETING CAMPAIGN INSIGHTS",
+            },
+        )
         return {
             "error": f"Failed to get campaign insights: {str(e)}",
             "status": "failed",
@@ -369,18 +455,27 @@ def get_marketing_campaign_insights(
 @app.get("/api/v1/marketing/audience/analyze")
 def analyze_target_audience(
     target_audience: str,
-    industry: str = None,
+    industry: Optional[str] = None,
     _: HTTPAuthorizationCredentials = Depends(verify_token),
 ):
     """Analyze target audience"""
     try:
         if not marketing_agent:
-            raise HTTPException(status_code=503, detail="Marketing agent not available")
+            raise HTTPException(status_code=503, detail=MARKETING_AGENT_NOT_AVAILABLE)
 
         result = marketing_agent.get_audience_analysis(target_audience, industry)
         return result
 
     except Exception as e:
+        system_logger.error(
+            f"Failed to analyze audience: {str(e)}",
+            additional_info={
+                "context": "Analyze Target Audience",
+                "target_audience": target_audience,
+                "industry": industry,
+            },
+            exc_info=True,
+        )
         return {
             "error": f"Failed to analyze audience: {str(e)}",
             "status": "failed",
@@ -391,18 +486,27 @@ def analyze_target_audience(
 @app.get("/api/v1/marketing/market/intelligence")
 def get_market_intelligence(
     campaign_type: str,
-    industry: str = None,
+    industry: Optional[str] = None,
     _: HTTPAuthorizationCredentials = Depends(verify_token),
 ):
     """Get market intelligence"""
     try:
         if not marketing_agent:
-            raise HTTPException(status_code=503, detail="Marketing agent not available")
+            raise HTTPException(status_code=503, detail=MARKETING_AGENT_NOT_AVAILABLE)
 
         result = marketing_agent.get_market_intelligence(campaign_type, industry)
         return result
 
     except Exception as e:
+        system_logger.error(
+            f"Failed to get market intelligence: {str(e)}",
+            additional_info={
+                "context": "Get Market Intelligence",
+                "campaign_type": campaign_type,
+                "industry": industry,
+            },
+            exc_info=True,
+        )
         return {
             "error": f"Failed to get market intelligence: {str(e)}",
             "status": "failed",
@@ -413,14 +517,14 @@ def get_market_intelligence(
 @app.get("/api/v1/marketing/content/suggestions")
 def get_content_suggestions(
     platform: str,
-    industry: str = None,
+    industry: Optional[str] = None,
     content_type: str = "social_media",
     _: HTTPAuthorizationCredentials = Depends(verify_token),
 ):
     """Get content suggestions for platform"""
     try:
         if not marketing_agent:
-            raise HTTPException(status_code=503, detail="Marketing agent not available")
+            raise HTTPException(status_code=503, detail=MARKETING_AGENT_NOT_AVAILABLE)
 
         result = marketing_agent.get_content_suggestions(
             platform, industry, content_type
@@ -428,6 +532,16 @@ def get_content_suggestions(
         return result
 
     except Exception as e:
+        system_logger.error(
+            f"Failed to get content suggestions: {str(e)}",
+            additional_info={
+                "context": "Get Content Suggestions",
+                "platform": platform,
+                "industry": industry,
+                "content_type": content_type,
+            },
+            exc_info=True,
+        )
         return {
             "error": f"Failed to get content suggestions: {str(e)}",
             "status": "failed",
@@ -438,18 +552,27 @@ def get_content_suggestions(
 @app.get("/api/v1/marketing/templates")
 def get_campaign_templates(
     campaign_type: str,
-    industry: str = None,
+    industry: Optional[str] = None,
     _: HTTPAuthorizationCredentials = Depends(verify_token),
 ):
     """Get campaign templates"""
     try:
         if not marketing_agent:
-            raise HTTPException(status_code=503, detail="Marketing agent not available")
+            raise HTTPException(status_code=503, detail=MARKETING_AGENT_NOT_AVAILABLE)
 
         result = marketing_agent.get_campaign_templates(campaign_type, industry)
         return result
 
     except Exception as e:
+        system_logger.error(
+            f"Failed to get campaign templates: {str(e)}",
+            additional_info={
+                "context": "Get Campaign Templates",
+                "campaign_type": campaign_type,
+                "industry": industry,
+            },
+            exc_info=True,
+        )
         return {
             "error": f"Failed to get campaign templates: {str(e)}",
             "status": "failed",
@@ -493,6 +616,13 @@ def get_marketing_enums():
             ],
         }
     except Exception as e:
+        system_logger.error(
+            f"Failed to get enum values: {str(e)}",
+            additional_info={
+                "context": "Get Marketing Enums",
+            },
+            exc_info=True,
+        )
         return {
             "error": f"Failed to get enum values: {str(e)}",
             "campaign_types": ["brand_awareness", "lead_generation", "product_launch"],
@@ -525,7 +655,7 @@ async def pva_chat(request: PVARequest, token: str = Depends(verify_token)):
         result = pva_agent.handle_user_request(
             user_id=request.user_id,
             user_message=request.message,
-            session_id=request.session_id,
+            session_id=request.session_id if request.session_id is not None else "",
         )
 
         return PVAResponse(
@@ -538,8 +668,15 @@ async def pva_chat(request: PVARequest, token: str = Depends(verify_token)):
             timestamp=result["timestamp"],
         )
     except Exception as e:
-        print(f"Error in PVA chat: {e}")
-        import traceback
+        system_logger.error(
+            f"Error in PVA chat: {str(e)}",
+            additional_info={
+                "context": "PVA Chat",
+                "user_id": request.user_id,
+                "session_id": request.session_id,
+            },
+            exc_info=True,
+        )
 
         traceback.print_exc()
         return PVAResponse(
@@ -569,7 +706,14 @@ async def get_user_reminders(user_id: str, token: str = Depends(verify_token)):
         else:
             return {"reminders": [], "total": 0}
     except Exception as e:
-        print(f"Error getting reminders: {e}")
+        system_logger.error(
+            f"Error getting reminders: {str(e)}",
+            additional_info={
+                "context": "Get User Reminders",
+                "user_id": user_id,
+            },
+            exc_info=True,
+        )
         return {"reminders": [], "total": 0, "error": str(e)}
 
 
@@ -589,7 +733,14 @@ async def get_user_devices(user_id: str, token: str = Depends(verify_token)):
         else:
             return {"devices": [], "total": 0}
     except Exception as e:
-        print(f"Error getting devices: {e}")
+        system_logger.error(
+            f"Error getting devices: {str(e)}",
+            additional_info={
+                "context": "Get User Devices",
+                "user_id": user_id,
+            },
+            exc_info=True,
+        )
         return {"devices": [], "total": 0, "error": str(e)}
 
 
@@ -627,8 +778,15 @@ async def analyze_and_decide(
             expected_return=decision.expected_return,
         )
     except Exception as e:
-        print(f"Error in trading analysis: {e}")
-        import traceback
+        system_logger.error(
+            f"Error in trading analysis: {str(e)}",
+            additional_info={
+                "context": "Trading Analysis",
+                "symbol": request.symbol,
+                "strategy_type": request.strategy_type,
+            },
+            exc_info=True,
+        )
 
         traceback.print_exc()
         raise HTTPException(
@@ -664,7 +822,12 @@ async def run_trading_cycle(
             )
 
         # Call the actual agent
-        result = trading_bot_agent.run_trading_cycle(symbols=request.symbols)
+        symbols = (
+            request.symbols
+            if request.symbols is not None
+            else ["AAPL", "GOOGL", "MSFT"]
+        )
+        result = trading_bot_agent.run_trading_cycle(symbols=symbols)
 
         return TradingCycleResponse(
             timestamp=result["timestamp"],
@@ -675,8 +838,14 @@ async def run_trading_cycle(
             average_confidence=result["average_confidence"],
         )
     except Exception as e:
-        print(f"Error in trading cycle: {e}")
-        import traceback
+        system_logger.error(
+            f"Error in trading cycle: {str(e)}",
+            additional_info={
+                "context": "Trading Cycle",
+                "symbols": request.symbols,
+            },
+            exc_info=True,
+        )
 
         traceback.print_exc()
         raise HTTPException(
@@ -708,7 +877,13 @@ async def get_portfolio_status(token: str = Depends(verify_token)):
             "realized_pnl": portfolio_status.realized_pnl,
         }
     except Exception as e:
-        print(f"Error getting portfolio: {e}")
+        system_logger.error(
+            f"Error getting portfolio: {str(e)}",
+            additional_info={
+                "context": "Get Portfolio Status",
+            },
+            exc_info=True,
+        )
         return {"error": str(e)}
 
 
@@ -726,7 +901,13 @@ async def get_performance_report(token: str = Depends(verify_token)):
 
         return trading_bot_agent.get_performance_report()
     except Exception as e:
-        print(f"Error getting performance report: {e}")
+        system_logger.error(
+            f"Error getting performance report: {str(e)}",
+            additional_info={
+                "context": "Get Performance Report",
+            },
+            exc_info=True,
+        )
         return {"error": str(e)}
 
 
@@ -757,6 +938,14 @@ async def get_market_data(symbol: str, token: str = Depends(verify_token)):
             "market_sentiment": market_conditions.market_sentiment,
         }
     except Exception as e:
+        system_logger.error(
+            f"Error getting market data: {str(e)}",
+            additional_info={
+                "context": "Get Market Data",
+                "symbol": symbol,
+            },
+            exc_info=True,
+        )
         print(f"Error getting market data: {e}")
         return {"error": str(e)}
 
@@ -824,20 +1013,7 @@ async def debug_info():
             "personal_virtual_assistant": pva_agent is not None,
             "financial_trading_bot": trading_bot_agent is not None,
         },
-        "routes": [
-            (
-                getattr(route, "path", None)
-                or (
-                    route.url_path_for(route.endpoint.__name__)
-                    if hasattr(route, "endpoint")
-                    and hasattr(route.endpoint, "__name__")
-                    else str(route)
-                )
-                if hasattr(route, "endpoint")
-                else getattr(route, "path", str(route))
-            )
-            for route in app.routes
-        ],
+        "routes": [getattr(route, "path", str(route)) for route in app.routes],
     }
 
 

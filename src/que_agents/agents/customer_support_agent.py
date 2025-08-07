@@ -27,11 +27,15 @@ from src.que_agents.core.database import (
 )
 from src.que_agents.core.llm_factory import LLMFactory
 from src.que_agents.core.schemas import AgentResponse, CustomerContext
+from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.knowledge_base.kb_manager import (
-        search_agent_knowledge_base,
-        search_knowledge_base,
-    )
+    search_agent_knowledge_base,
+    search_knowledge_base,
+)
 
+system_logger.info(
+    "Customer Support Agent initialized", {"timestamp": datetime.now().isoformat()}
+)
 
 # Load agent configuration
 with open("configs/agent_config.yaml", "r") as f:
@@ -51,18 +55,23 @@ class CustomerFeedbackManager:
         try:
             if os.path.exists(self.csv_path):
                 self.feedback_data = pd.read_csv(self.csv_path)
-                # Convert date columns
                 self.feedback_data["Feedback Date"] = pd.to_datetime(
                     self.feedback_data["Feedback Date"]
                 )
                 self.feedback_data["Resolution Date"] = pd.to_datetime(
                     self.feedback_data["Resolution Date"], errors="coerce"
                 )
+                system_logger.info(
+                    f"Loaded customer feedback data from {self.csv_path}",
+                    {"row_count": len(self.feedback_data)},
+                )
             else:
-                print(f"Warning: Feedback CSV file not found at {self.csv_path}")
+                system_logger.warning(f"Feedback CSV file not found at {self.csv_path}")
                 self.feedback_data = pd.DataFrame()
         except Exception as e:
-            print(f"Error loading feedback data: {e}")
+            system_logger.error(
+                f"Error loading feedback data from {self.csv_path}: {e}", exc_info=True
+            )
             self.feedback_data = pd.DataFrame()
 
     def get_customer_feedback_history(self, customer_id: int) -> List[Dict]:
@@ -137,22 +146,20 @@ class CustomerFeedbackManager:
     def add_feedback_entry(self, feedback_data: Dict[str, Any]):
         """Add new feedback entry to CSV"""
         try:
-            # Create new row
             new_row = pd.DataFrame([feedback_data])
-
-            # Append to existing data
             if not self.feedback_data.empty:
                 self.feedback_data = pd.concat(
                     [self.feedback_data, new_row], ignore_index=True
                 )
             else:
                 self.feedback_data = new_row
-
-            # Save to CSV
             self.feedback_data.to_csv(self.csv_path, index=False)
-
+            system_logger.info(
+                "Added new feedback entry",
+                {"customer_id": feedback_data.get("Customer ID")},
+            )
         except Exception as e:
-            print(f"Error adding feedback entry: {e}")
+            system_logger.error(f"Error adding feedback entry: {e}", exc_info=True)
 
     def get_customer_satisfaction_trend(self, customer_id: int) -> Dict[str, Any]:
         """Get satisfaction trend for a specific customer"""
@@ -278,9 +285,15 @@ class CustomerSupportAgent:
     def get_support_knowledge(self, query: str) -> List[Dict]:
         """Get customer support knowledge from knowledge base"""
         try:
-            return search_agent_knowledge_base("customer_support", query, limit=3)
+            kb_results = search_agent_knowledge_base("customer_support", query, limit=3)
+            system_logger.info(
+                "Knowledge base queried", {"query": query, "results": len(kb_results)}
+            )
+            return kb_results
         except Exception as e:
-            print(f"Error searching support knowledge: {e}")
+            system_logger.error(
+                f"Error searching support knowledge: {e}", exc_info=True
+            )
             return []
 
     def get_enhanced_context(
@@ -341,13 +354,13 @@ class CustomerSupportAgent:
                     )
 
             if satisfaction_trend:
-                enhanced_context += f"\nCustomer Satisfaction Trend:\n"
+                enhanced_context += "\nCustomer Satisfaction Trend:\n"
                 enhanced_context += f"- Latest Rating: {satisfaction_trend.get('latest_rating', 'N/A')}/5\n"
                 enhanced_context += f"- Trend Direction: {satisfaction_trend.get('trend_direction', 'N/A')}\n"
                 enhanced_context += f"- Average Rating: {satisfaction_trend.get('average_rating', 0):.1f}/5\n"
 
             if similar_issues:
-                enhanced_context += f"\nSimilar Resolved Issues:\n"
+                enhanced_context += "\nSimilar Resolved Issues:\n"
                 for issue in similar_issues[:2]:  # Show top 2 similar issues
                     enhanced_context += (
                         f"- {issue.get('Feedback Text', '')[:100]}... "
@@ -356,7 +369,7 @@ class CustomerSupportAgent:
 
             return enhanced_context
         except Exception as e:
-            print(f"Error getting enhanced context: {e}")
+            system_logger.error(f"Error getting enhanced context: {e}", exc_info=True)
             return ""
 
     def _create_main_prompt_template(self) -> ChatPromptTemplate:
@@ -630,21 +643,27 @@ Respond with ONLY the category name from the list above."""
             sentiment = (
                 self.sentiment_chain.invoke({"message": message}).strip().lower()
             )
-
-            valid_sentiments = [
+            if sentiment in [
                 "very_positive",
                 "positive",
                 "neutral",
                 "negative",
                 "very_negative",
-            ]
-            if sentiment in valid_sentiments:
+            ]:
+                system_logger.info(
+                    "Sentiment analyzed using LLM", {"sentiment": sentiment}
+                )
                 return sentiment
             else:
-                # Fallback to keyword-based analysis
+                system_logger.warning(
+                    "LLM sentiment out of range, using fallback",
+                    {"sentiment": sentiment},
+                )
                 return self._fallback_sentiment_analysis(message)
         except Exception as e:
-            print(f"Error in enhanced sentiment analysis: {e}")
+            system_logger.error(
+                f"Error in enhanced sentiment analysis: {e}", exc_info=True
+            )
             return self._fallback_sentiment_analysis(message)
 
     def _fallback_sentiment_analysis(self, message: str) -> str:
@@ -712,7 +731,7 @@ Respond with ONLY the category name from the list above."""
             else:
                 return self._fallback_categorization(message)
         except Exception as e:
-            print(f"Error categorizing issue: {e}")
+            system_logger.error(f"Error categorizing issue: {e}", exc_info=True)
             return self._fallback_categorization(message)
 
     def _fallback_categorization(self, message: str) -> str:
@@ -799,7 +818,9 @@ Respond with ONLY the category name from the list above."""
                 return False, ""
 
         except Exception as e:
-            print(f"Error in enhanced escalation analysis: {e}")
+            system_logger.error(
+                f"Error in enhanced escalation analysis: {e}", exc_info=True
+            )
             return self._fallback_escalation_analysis(message, customer_context)
 
     def _fallback_escalation_analysis(
@@ -838,7 +859,7 @@ Respond with ONLY the category name from the list above."""
         return len(reasons) > 0, "; ".join(reasons) if reasons else ""
 
     def search_knowledge_base_enhanced(
-        self, query: str, category: str = None
+        self, query: str, category: Optional[str] = None
     ) -> List[Dict]:
         """Enhanced knowledge base search with category filtering"""
         try:
@@ -861,7 +882,7 @@ Respond with ONLY the category name from the list above."""
             return unique_results[:5]  # Return top 5 unique results
 
         except Exception as e:
-            print(f"Error in enhanced knowledge base search: {e}")
+            system_logger.error(f"Error searching knowledge base: {e}", exc_info=True)
             return []
 
     def get_feedback_insights(self, customer_id: int, category: str) -> str:
@@ -898,11 +919,11 @@ Respond with ONLY the category name from the list above."""
             return insights
 
         except Exception as e:
-            print(f"Error getting feedback insights: {e}")
+            system_logger.error(f"Error getting feedback insights: {e}", exc_info=True)
             return ""
 
     def process_customer_message(
-        self, customer_id: int, message: str, session_id: str = None
+        self, customer_id: int, message: str, session_id: Optional[str] = None
     ) -> AgentResponse:
         """Enhanced customer message processing with feedback integration"""
         if not session_id:
@@ -1000,7 +1021,9 @@ Recent Interaction Summary:
             )
 
         except Exception as e:
-            print(f"Error generating enhanced response: {e}")
+            system_logger.error(
+                f"Error generating enhanced response: {e}", exc_info=True
+            )
             return AgentResponse(
                 message="I sincerely apologize for the technical difficulty. To ensure you receive the best possible service, I'm immediately connecting you with one of our specialist agents who can provide hands-on assistance.",
                 confidence=0.0,
@@ -1179,7 +1202,7 @@ Recent Interaction Summary:
 
     def create_support_ticket(
         self, customer_id: int, message: str, category: str, priority: str = "medium"
-    ) -> int:
+    ) -> Optional[int]:
         """Create a support ticket for tracking"""
         session = get_session()
         try:
@@ -1194,13 +1217,23 @@ Recent Interaction Summary:
             )
             session.add(ticket)
             session.commit()
-            return ticket.id
+            system_logger.info(
+                "Support ticket created",
+                {
+                    "customer_id": customer_id,
+                    "ticket_id": ticket.id,
+                    "category": category,
+                    "priority": priority,
+                },
+            )
+            return int(ticket.id)
         except Exception as e:
-            print(f"Error creating support ticket: {e}")
+            system_logger.error(f"Error creating support ticket: {e}", exc_info=True)
             session.rollback()
             return None
         finally:
-            session.close()
+            if session is not None:
+                session.close()
 
     def log_interaction_enhanced(
         self,
@@ -1283,9 +1316,18 @@ Recent Interaction Summary:
             }
 
             self.feedback_manager.add_feedback_entry(feedback_entry)
-
+            system_logger.info(
+                "Interaction logged",
+                {
+                    "customer_id": customer_id,
+                    "ticket_id": ticket_id,
+                    "satisfaction": satisfaction,
+                },
+            )
         except Exception as e:
-            print(f"Error logging enhanced interaction: {e}")
+            system_logger.error(
+                f"Error logging enhanced interaction: {e}", exc_info=True
+            )
             session.rollback()
         finally:
             session.close()
@@ -1295,7 +1337,7 @@ Recent Interaction Summary:
         customer_id: int,
         message: str,
         create_ticket: bool = False,
-        session_id: str = None,
+        session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Enhanced main method to handle a customer request with feedback integration"""
         # Categorize the issue first
@@ -1351,6 +1393,7 @@ Recent Interaction Summary:
         """Get comprehensive customer insights with feedback data"""
         customer_context = self.get_customer_context(customer_id)
         if not customer_context:
+            system_logger.error(f"Customer {customer_id} not found", exc_info=True)
             return {"error": "Customer not found"}
 
         session = get_session()
@@ -1391,7 +1434,7 @@ Recent Interaction Summary:
             satisfaction_trend = self.feedback_manager.get_customer_satisfaction_trend(
                 customer_id
             )
-            feedback_trends = self.feedback_manager.get_feedback_trends(days=30)
+            _feedback_trends = self.feedback_manager.get_feedback_trends(days=30)
 
             # Calculate metrics
             avg_satisfaction = (
@@ -1456,7 +1499,7 @@ Recent Interaction Summary:
             }
 
         except Exception as e:
-            print(f"Error getting customer insights: {e}")
+            system_logger.error(f"Error getting customer insights: {e}", exc_info=True)
             return {"error": f"Failed to retrieve customer insights: {str(e)}"}
         finally:
             session.close()
@@ -1703,7 +1746,9 @@ Recent Interaction Summary:
             }
 
         except Exception as e:
-            print(f"Error getting agent performance metrics: {e}")
+            system_logger.error(
+                f"Error getting agent performance metrics: {e}", exc_info=True
+            )
             return {"error": f"Failed to retrieve performance metrics: {str(e)}"}
         finally:
             session.close()
@@ -1746,12 +1791,16 @@ Recent Interaction Summary:
         return recommendations
 
     def export_customer_insights_report(
-        self, customer_id: int, file_path: str = None
+        self, customer_id: int, file_path: Optional[str] = None
     ) -> str:
         """Export comprehensive customer insights to a file"""
         insights = self.get_customer_insights(customer_id)
 
         if "error" in insights:
+            system_logger.error(
+                f"Error generating report for customer {customer_id}: {insights['error']}",
+                exc_info=True,
+            )
             return f"Error generating report: {insights['error']}"
 
         if not file_path:
@@ -1836,6 +1885,7 @@ Recent Interaction Summary:
             return f"Customer insights report exported to: {file_path}"
 
         except Exception as e:
+            system_logger.error(f"Error exporting report: {e}", exc_info=True)
             return f"Error exporting report: {str(e)}"
 
     def clear_session_history(self, session_id: str = None):
@@ -1853,6 +1903,7 @@ Recent Interaction Summary:
     def get_session_summary(self, session_id: str) -> Dict[str, Any]:
         """Get summary of a conversation session"""
         if session_id not in self.store:
+            system_logger.error(f"Session {session_id} not found", exc_info=True)
             return {"error": "Session not found"}
 
         history = self.store[session_id]
@@ -1957,7 +2008,7 @@ Recent Interaction Summary:
             }
 
         except Exception as e:
-            print(f"Error getting feedback summary: {e}")
+            system_logger.error(f"Error getting feedback summary: {e}", exc_info=True)
             return {"error": f"Failed to retrieve feedback summary: {str(e)}"}
 
     def _generate_feedback_recommendations(
@@ -2008,6 +2059,9 @@ Recent Interaction Summary:
         """Process feedback data in bulk from a CSV file"""
         try:
             if not os.path.exists(feedback_file_path):
+                system_logger.error(
+                    f"Feedback file not found: {feedback_file_path}", exc_info=True
+                )
                 return {"error": f"File not found: {feedback_file_path}"}
 
             feedback_df = pd.read_csv(feedback_file_path)
@@ -2037,8 +2091,14 @@ Recent Interaction Summary:
                     processed_count += 1
 
                 except Exception as e:
+                    system_logger.error(
+                        f"Error processing row {index + 1}: {e}", exc_info=True
+                    )
                     errors.append(f"Row {index + 1}: {str(e)}")
-
+            system_logger.info(
+                "Bulk feedback processing complete",
+                {"file": feedback_file_path, "processed": processed_count},
+            )
             return {
                 "processed_count": processed_count,
                 "total_rows": len(feedback_df),
@@ -2052,9 +2112,10 @@ Recent Interaction Summary:
             }
 
         except Exception as e:
+            system_logger.error(f"Error processing bulk feedback: {e}", exc_info=True)
             return {"error": f"Failed to process bulk feedback: {str(e)}"}
 
-    def generate_daily_report(self, date: str = None) -> Dict[str, Any]:
+    def generate_daily_report(self, date: Optional[str] = None) -> Dict[str, Any]:
         """Generate daily performance report"""
         if not date:
             date = datetime.now().strftime("%Y-%m-%d")
@@ -2155,7 +2216,9 @@ Recent Interaction Summary:
             }
 
         except Exception as e:
-            print(f"Error generating daily report: {e}")
+            system_logger.error(
+                f"Error generating daily report for {date}: {e}", exc_info=True
+            )
             return {"error": f"Failed to generate daily report: {str(e)}"}
         finally:
             session.close()

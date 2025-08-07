@@ -10,7 +10,7 @@ import json
 import os
 import sqlite3
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import chromadb
 import yaml
@@ -71,9 +71,9 @@ class SimpleKnowledgeBase:
         title: str,
         content: str,
         source_type: str,
-        source_path: str = None,
-        category: str = None,
-        metadata: Dict = None,
+        source_path: Optional[str] = None,
+        category: Optional[str] = None,
+        metadata: Optional[Dict] = None,
     ):
         """Add a document to the knowledge base"""
         conn = sqlite3.connect(self.db_path)
@@ -144,12 +144,16 @@ class SimpleKnowledgeBase:
             try:
                 for meta_list in metadatas:
                     if meta_list and len(meta_list) > 0:
-                        # Check if the metadata has doc_id
-                        if isinstance(meta_list[0], dict) and "doc_id" in meta_list[0]:
+                        # Check if the metadata has doc_id and it's not None
+                        if (
+                            isinstance(meta_list[0], dict)
+                            and "doc_id" in meta_list[0]
+                            and meta_list[0]["doc_id"] is not None
+                        ):
                             doc_ids.append(int(meta_list[0]["doc_id"]))
                         else:
                             print(
-                                f"Warning: Missing doc_id in metadata: {meta_list[0]}"
+                                f"Warning: Missing or None doc_id in metadata: {meta_list[0]}"
                             )
             except (ValueError, KeyError, TypeError, IndexError) as e:
                 print(f"Error extracting doc_ids: {e}")
@@ -268,7 +272,7 @@ class AgentKnowledgeBase:
         structured_dir = agent_data_dir / "structured"
         if structured_dir.exists():
             files = loader.load_directory(
-                str(structured_dir), f"{self.agent_type}_structured"
+                str(structured_dir), [f"{self.agent_type}_structured"]
             )
             total_loaded += len(files)
             print(f"Loaded {len(files)} structured files for {self.agent_type}")
@@ -277,7 +281,7 @@ class AgentKnowledgeBase:
         semi_structured_dir = agent_data_dir / "semi_structured"
         if semi_structured_dir.exists():
             files = loader.load_directory(
-                str(semi_structured_dir), f"{self.agent_type}_semi_structured"
+                str(semi_structured_dir), [f"{self.agent_type}_semi_structured"]
             )
             total_loaded += len(files)
             print(f"Loaded {len(files)} semi-structured files for {self.agent_type}")
@@ -286,7 +290,7 @@ class AgentKnowledgeBase:
         unstructured_dir = agent_data_dir / "unstructured"
         if unstructured_dir.exists():
             files = loader.load_directory(
-                str(unstructured_dir), f"{self.agent_type}_unstructured"
+                str(unstructured_dir), [f"{self.agent_type}_unstructured"]
             )
             total_loaded += len(files)
             print(f"Loaded {len(files)} unstructured files for {self.agent_type}")
@@ -353,7 +357,7 @@ def search_agent_knowledge_base(
 
 
 def _get_agent_fallback_results(
-    agent_type: str, query: str, limit: int = 5
+    agent_type: str, query: str, _limit: int = 5
 ) -> List[Dict]:
     """Generate agent-specific fallback results"""
     if agent_type == "financial_trading_bot":
@@ -396,7 +400,7 @@ class DocumentLoader:
     def __init__(self, knowledge_base: SimpleKnowledgeBase):
         self.kb = knowledge_base
 
-    def load_markdown_file(self, file_path: str, category: str = None):
+    def load_markdown_file(self, file_path: str, category: Optional[str] = None):
         """Load a markdown file into the knowledge base"""
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -418,7 +422,7 @@ class DocumentLoader:
             metadata={"file_size": os.path.getsize(file_path)},
         )
 
-    def load_json_file(self, file_path: str, category: str = None):
+    def load_json_file(self, file_path: str, category: Optional[List[str]] = None):
         """Load a JSON file into the knowledge base"""
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -427,26 +431,32 @@ class DocumentLoader:
         content = json.dumps(data, indent=2)
         title = Path(file_path).stem
 
+        # Ensure category is a string or None
+        cat = (
+            category[0]
+            if isinstance(category, list) and category
+            else category if isinstance(category, str) else None
+        )
         return self.kb.add_document(
             title=title,
             content=content,
             source_type="json",
             source_path=file_path,
-            category=category,
+            category=cat,
             metadata={
                 "file_size": os.path.getsize(file_path),
                 "json_keys": list(data.keys()) if isinstance(data, dict) else [],
             },
         )
 
-    def load_csv_file(self, file_path: str, category: str = None):
+    def load_csv_file(self, file_path: str, category: Optional[str] = None):
         """Load a CSV file into the knowledge base"""
         content_lines = []
 
         with open(file_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             headers = reader.fieldnames
-            content_lines.append(f"CSV Headers: {', '.join(headers)}")
+            content_lines.append(f"CSV Headers: {', '.join(headers or [])}")
             content_lines.append("")
 
             # Add sample rows
@@ -471,7 +481,7 @@ class DocumentLoader:
             metadata={"file_size": os.path.getsize(file_path), "headers": headers},
         )
 
-    def load_directory(self, directory_path: str, category: str = None):
+    def load_directory(self, directory_path: str, category: Optional[List[str]] = None):
         """Load all supported files from a directory"""
         directory = Path(directory_path)
         loaded_files = []
@@ -479,14 +489,19 @@ class DocumentLoader:
         for file_path in directory.rglob("*"):
             if file_path.is_file():
                 try:
+                    cat = (
+                        category[0]
+                        if isinstance(category, list) and category
+                        else category if isinstance(category, str) else None
+                    )
                     if file_path.suffix.lower() == ".md":
-                        doc_id = self.load_markdown_file(str(file_path), category)
+                        doc_id = self.load_markdown_file(str(file_path), cat)
                         loaded_files.append((str(file_path), doc_id))
                     elif file_path.suffix.lower() == ".json":
                         doc_id = self.load_json_file(str(file_path), category)
                         loaded_files.append((str(file_path), doc_id))
                     elif file_path.suffix.lower() == ".csv":
-                        doc_id = self.load_csv_file(str(file_path), category)
+                        doc_id = self.load_csv_file(str(file_path), cat)
                         loaded_files.append((str(file_path), doc_id))
                 except Exception as e:
                     print(f"Error loading {file_path}: {e}")
@@ -501,24 +516,26 @@ def load_postgresql_knowledge_base():
 
     try:
         # Load knowledge base articles from PostgreSQL
-        articles = (
-            session.query(KnowledgeBase).filter(KnowledgeBase.is_active == True).all()
-        )
+        articles = session.query(KnowledgeBase).filter(KnowledgeBase.is_active).all()
 
         for article in articles:
             kb.add_document(
-                title=article.title,
-                content=article.content,
+                title=getattr(article, "title", ""),
+                content=getattr(article, "content", ""),
                 source_type="postgresql",
-                source_path=f"knowledge_base.id={article.id}",
-                category=article.category,
+                source_path=f"knowledge_base.id={getattr(article, 'id', '')}",
+                category=getattr(article, "category", None),
                 metadata={
-                    "tags": article.tags,
+                    "tags": getattr(article, "tags", None),
                     "created_at": (
-                        article.created_at.isoformat() if article.created_at else None
+                        article.created_at.isoformat()
+                        if getattr(article, "created_at", None)
+                        else None
                     ),
                     "updated_at": (
-                        article.updated_at.isoformat() if article.updated_at else None
+                        article.updated_at.isoformat()
+                        if getattr(article, "updated_at", None)
+                        else None
                     ),
                 },
             )
@@ -548,19 +565,19 @@ def initialize_knowledge_base():
 
     # Load unstructured documents
     unstructured_files = loader.load_directory(
-        str(data_dir / "unstructured"), "documentation"
+        str(data_dir / "unstructured"), ["documentation"]
     )
     print(f"Loaded {len(unstructured_files)} unstructured documents")
 
     # Load structured JSON files
     structured_files = loader.load_directory(
-        str(data_dir / "structured"), "configuration"
+        str(data_dir / "structured"), ["configuration"]
     )
     print(f"Loaded {len(structured_files)} structured documents")
 
     # Load semi-structured CSV files
     semi_structured_files = loader.load_directory(
-        str(data_dir / "semi_structured"), "data"
+        str(data_dir / "semi_structured"), ["data"]
     )
     print(f"Loaded {len(semi_structured_files)} semi-structured documents")
 
@@ -576,7 +593,7 @@ def initialize_knowledge_base():
 
 
 def search_knowledge_base(
-    query: str, category: str = None, limit: int = 5
+    query: str, category: Optional[str] = None, limit: int = 5
 ) -> List[Dict]:
     """Search the knowledge base for relevant documents with robust error handling"""
     try:
