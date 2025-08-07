@@ -7,7 +7,6 @@
 
 import json
 import re
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -25,6 +24,7 @@ from src.que_agents.core.database import (
     get_session,
 )
 from src.que_agents.core.llm_factory import LLMFactory
+from src.que_agents.core.schemas import AgentResponse, IntentResult, UserContext
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.knowledge_base.kb_manager import (
     search_agent_knowledge_base,
@@ -32,38 +32,6 @@ from src.que_agents.knowledge_base.kb_manager import (
 )
 
 system_logger.info("Personal Virtual Assistant Agent initialized...")
-
-
-@dataclass
-class UserContext:
-    """User context information"""
-
-    user_id: str
-    preferences: Dict[str, Any]
-    learned_behaviors: Dict[str, Any]
-    active_reminders: List[Dict]
-    smart_devices: List[Dict]
-
-
-@dataclass
-class IntentResult:
-    """Intent recognition result"""
-
-    intent: str
-    confidence: float
-    entities: Dict[str, Any]
-
-
-@dataclass
-class AgentResponse:
-    """Agent response structure"""
-
-    message: str
-    intent: str
-    entities: Dict[str, Any]
-    confidence: float
-    actions_taken: List[str]
-    suggestions: List[str]
 
 
 # Load agent configuration

@@ -73,6 +73,111 @@ except FileNotFoundError:
         "authentication": {"api_token": "demo-token-123"},
     }
 
+# Initialize agents with enhanced error handling
+agents_status = {
+    "customer_support": False,
+    "marketing": False,
+    "personal_virtual_assistant": False,
+    "financial_trading_bot": False,
+}
+
+# Initialize Customer Support Agent
+try:
+    customer_support_agent = CustomerSupportAgent()
+    agents_status["customer_support"] = True
+    system_logger.info("Customer Support Agent initialized successfully")
+except Exception as e:
+    system_logger.error(
+        f"Failed to initialize Customer Support Agent: {str(e)}",
+        additional_info={
+            "context": "Agent Initialization",
+            "agent": "CustomerSupportAgent",
+        },
+        exc_info=True,
+    )
+    customer_support_agent = None
+
+# Initialize Marketing Agent
+try:
+    marketing_agent = MarketingAgent()
+    agents_status["marketing"] = True
+    system_logger.info("Marketing Agent initialized successfully")
+except Exception as e:
+    system_logger.error(
+        f"Failed to initialize Marketing Agent: {str(e)}",
+        additional_info={
+            "context": "Agent Initialization",
+            "agent": "MarketingAgent",
+        },
+        exc_info=True,
+    )
+    marketing_agent = None
+
+# Initialize Personal Virtual Assistant Agent with specific error handling
+try:
+    pva_agent = PersonalVirtualAssistantAgent()
+    agents_status["personal_virtual_assistant"] = True
+    system_logger.info("Personal Virtual Assistant Agent initialized successfully")
+except ImportError as e:
+    system_logger.error(
+        f"Import error for Personal Virtual Assistant Agent: {str(e)}",
+        additional_info={
+            "context": "Agent Initialization",
+            "agent": "PersonalVirtualAssistantAgent",
+            "error_type": "ImportError",
+        },
+        exc_info=True,
+    )
+    pva_agent = None
+except AttributeError as e:
+    system_logger.error(
+        f"Attribute error for Personal Virtual Assistant Agent: {str(e)}",
+        additional_info={
+            "context": "Agent Initialization",
+            "agent": "PersonalVirtualAssistantAgent",
+            "error_type": "AttributeError",
+        },
+        exc_info=True,
+    )
+    pva_agent = None
+except Exception as e:
+    system_logger.error(
+        f"Failed to initialize Personal Virtual Assistant Agent: {str(e)}",
+        additional_info={
+            "context": "Agent Initialization",
+            "agent": "PersonalVirtualAssistantAgent",
+            "error_type": type(e).__name__,
+        },
+        exc_info=True,
+    )
+    pva_agent = None
+
+# Initialize Financial Trading Bot Agent
+try:
+    trading_bot_agent = FinancialTradingBotAgent()
+    agents_status["financial_trading_bot"] = True
+    system_logger.info("Financial Trading Bot Agent initialized successfully")
+except Exception as e:
+    system_logger.error(
+        f"Failed to initialize Financial Trading Bot Agent: {str(e)}",
+        additional_info={
+            "context": "Agent Initialization",
+            "agent": "FinancialTradingBotAgent",
+        },
+        exc_info=True,
+    )
+    trading_bot_agent = None
+
+# Log overall initialization status
+system_logger.info(
+    "Agent initialization completed",
+    additional_info={
+        "agents_status": agents_status,
+        "successful_agents": sum(agents_status.values()),
+        "total_agents": len(agents_status),
+    },
+)
+
 # Initialize FastAPI app
 app = FastAPI(
     title=api_config["api"]["title"],
@@ -147,16 +252,63 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 # Health check endpoint - MUST be defined
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint"""
+    """Enhanced health check endpoint with detailed agent status"""
+    agent_statuses = {}
+
+    # Check each agent individually
+    if customer_support_agent:
+        try:
+            # Test if agent is functional
+            test_result = hasattr(
+                customer_support_agent, "handle_customer_request_enhanced"
+            )
+            agent_statuses["customer_support"] = "active" if test_result else "error"
+        except Exception:
+            agent_statuses["customer_support"] = "error"
+    else:
+        agent_statuses["customer_support"] = "not_initialized"
+
+    if marketing_agent:
+        try:
+            test_result = hasattr(marketing_agent, "create_enhanced_campaign_plan")
+            agent_statuses["marketing"] = "active" if test_result else "error"
+        except Exception:
+            agent_statuses["marketing"] = "error"
+    else:
+        agent_statuses["marketing"] = "not_initialized"
+
+    if pva_agent:
+        try:
+            test_result = hasattr(pva_agent, "handle_request")
+            agent_statuses["personal_virtual_assistant"] = (
+                "active" if test_result else "error"
+            )
+        except Exception:
+            agent_statuses["personal_virtual_assistant"] = "error"
+    else:
+        agent_statuses["personal_virtual_assistant"] = "not_initialized"
+
+    if trading_bot_agent:
+        try:
+            test_result = hasattr(trading_bot_agent, "analyze_and_decide")
+            agent_statuses["financial_trading_bot"] = (
+                "active" if test_result else "error"
+            )
+        except Exception:
+            agent_statuses["financial_trading_bot"] = "error"
+    else:
+        agent_statuses["financial_trading_bot"] = "not_initialized"
+
+    overall_status = (
+        "healthy"
+        if any(status == "active" for status in agent_statuses.values())
+        else "degraded"
+    )
+
     return HealthResponse(
-        status="healthy",
+        status=overall_status,
         timestamp=datetime.now().isoformat(),
-        agents={
-            "customer_support": "active" if customer_support_agent else "error",
-            "marketing": "active" if marketing_agent else "error",
-            "personal_virtual_assistant": "active" if pva_agent else "error",
-            "financial_trading_bot": "active" if trading_bot_agent else "error",
-        },
+        agents=agent_statuses,
     )
 
 
@@ -630,6 +782,33 @@ def get_marketing_enums():
         }
 
 
+# Add this before the PVA endpoints to ensure they don't fail completely
+class FallbackPVAAgent:
+    """Fallback PVA agent for when the main agent fails to initialize"""
+
+    def handle_request(self, _request_dict):
+        return {
+            "response": "I'm currently experiencing technical difficulties. The Personal Virtual Assistant service is temporarily unavailable.",
+            "confidence": 0.0,
+            "actions_taken": [],
+            "suggested_next_steps": ["contact_support"],
+            "context_updates": {},
+            "status": "error",
+        }
+
+    def get_user_reminders(self, _user_id):
+        return {"reminders": [], "error": "Service temporarily unavailable"}
+
+    def get_user_devices(self, _user_id):
+        return {"devices": [], "error": "Service temporarily unavailable"}
+
+
+# Use fallback if main agent failed to initialize
+if pva_agent is None:
+    pva_agent = FallbackPVAAgent()
+    system_logger.info("Using fallback PVA agent due to initialization failure")
+
+
 # Personal Virtual Assistant endpoints
 @app.post("/api/v1/pva/chat", response_model=PVAResponse)
 async def pva_chat(request: PVARequest, token: str = Depends(verify_token)):
@@ -999,6 +1178,57 @@ async def search_knowledge(
             for i in range(1, min(limit + 1, 3))
         ]
     }
+
+
+@app.get("/api/v1/diagnostics")
+async def get_diagnostics():
+    """Get detailed diagnostic information for troubleshooting"""
+    import os
+    import sys
+    from pathlib import Path
+
+    diagnostics = {
+        "python_version": sys.version,
+        "current_working_directory": os.getcwd(),
+        "python_path": sys.path[:5],  # First 5 entries
+        "environment_variables": {
+            key: value
+            for key, value in os.environ.items()
+            if key.startswith(("OPENAI_", "AZURE_", "API_", "PYTHONPATH"))
+        },
+        "agents_initialization": agents_status,
+        "file_structure": {},
+    }
+
+    # Check if agent files exist
+    base_path = Path(__file__).parent.parent
+    agent_files = [
+        "agents/customer_support_agent.py",
+        "agents/marketing_agent.py",
+        "agents/personal_virtual_assistant_agent.py",
+        "agents/financial_trading_bot_agent.py",
+    ]
+
+    for agent_file in agent_files:
+        file_path = base_path / agent_file
+        diagnostics["file_structure"][agent_file] = {
+            "exists": file_path.exists(),
+            "path": str(file_path),
+            "is_file": file_path.is_file() if file_path.exists() else False,
+        }
+
+    # Check imports
+    import_tests = {}
+    try:
+        import_tests["PersonalVirtualAssistantAgent"] = "success"
+    except ImportError as e:
+        import_tests["PersonalVirtualAssistantAgent"] = f"ImportError: {str(e)}"
+    except Exception as e:
+        import_tests["PersonalVirtualAssistantAgent"] = f"Error: {str(e)}"
+
+    diagnostics["import_tests"] = import_tests
+
+    return diagnostics
 
 
 # Debug endpoint

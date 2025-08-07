@@ -574,3 +574,23 @@ class SystemHealth:
     active_sessions: int
     error_rate: float = 0.0
     uptime: Optional[str] = None
+
+
+@dataclass
+class UserContext:
+    """User context information"""
+
+    user_id: str
+    preferences: Dict[str, Any]
+    learned_behaviors: Dict[str, Any]
+    active_reminders: List[Dict]
+    smart_devices: List[Dict]
+
+
+@dataclass
+class IntentResult:
+    """Intent recognition result"""
+
+    intent: str
+    confidence: float
+    entities: Dict[str, Any]
