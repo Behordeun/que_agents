@@ -37,8 +37,8 @@ class Customer(Base):
     phone = Column(String(50))
     company = Column(String(255))
     tier = Column(String(50), default="standard")  # standard, premium, enterprise
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     # Relationships
     interactions = relationship("CustomerInteraction", back_populates="customer")
@@ -56,7 +56,7 @@ class CustomerInteraction(Base):
     sentiment = Column(String(20))  # positive, negative, neutral
     satisfaction_score = Column(Float)  # 1-5 rating
     agent_id = Column(String(100))  # AI agent identifier
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
 
     # Relationships
     customer = relationship("Customer", back_populates="interactions")
@@ -74,8 +74,8 @@ class SupportTicket(Base):
     status = Column(String(50), default="open")  # open, in_progress, resolved, closed
     assigned_to = Column(String(100))  # agent identifier
     resolution = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     resolved_at = Column(DateTime)
 
     # Relationships
@@ -91,8 +91,8 @@ class KnowledgeBase(Base):
     category = Column(String(100))
     tags = Column(JSON)  # Array of tags for better searchability
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 # Marketing Agent Models
@@ -108,8 +108,8 @@ class MarketingCampaign(Base):
     end_date = Column(Date)
     status = Column(String, default="active")
     strategy = Column(Text)  # Add this field if it doesn't exist
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     # Relationships
     posts = relationship("MarketingPost", back_populates="campaign")
@@ -132,8 +132,8 @@ class MarketingPost(Base):
     published_time = Column(DateTime)
     status = Column(String, default="draft")
     engagement_metrics = Column(JSON)  # Store engagement data
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     # Relationships
     campaign = relationship("MarketingCampaign", back_populates="posts")
@@ -148,8 +148,8 @@ class AudienceSegment(Base):
     characteristics = Column(
         JSON
     )  # Store characteristics including estimated_size as JSON
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 class CampaignMetrics(Base):
@@ -179,8 +179,8 @@ class UserPreferences(Base):
     user_id = Column(String(100), nullable=False, unique=True)  # User identifier
     preferences = Column(JSON)  # User preferences (location, interests, etc.)
     learned_behaviors = Column(JSON)  # AI-learned user patterns
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     # Relationships
     reminders = relationship("Reminder", back_populates="user")
@@ -199,7 +199,7 @@ class Reminder(Base):
     is_recurring = Column(Boolean, default=False)
     recurrence_pattern = Column(String(100))  # daily, weekly, monthly, etc.
     status = Column(String(50), default="active")  # active, completed, cancelled
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
     completed_at = Column(DateTime)
 
     # Relationships
@@ -219,8 +219,8 @@ class SmartDevice(Base):
     current_state = Column(JSON)  # Current device state (on/off, temperature, etc.)
     capabilities = Column(JSON)  # What the device can do
     is_online = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 class PVAInteraction(Base):
@@ -234,7 +234,7 @@ class PVAInteraction(Base):
     entities_extracted = Column(JSON)  # Extracted entities from user message
     confidence_score = Column(Float)
     session_id = Column(String(100))  # For conversation tracking
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
 
 
 # Financial Trading Bot Agent Models
@@ -250,8 +250,8 @@ class TradingStrategy(Base):
     parameters = Column(JSON)  # Strategy-specific parameters
     risk_parameters = Column(JSON)  # Risk management settings
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     # Relationships
     trades = relationship("TradeLog", back_populates="strategy")
@@ -270,7 +270,7 @@ class TradeLog(Base):
     fees = Column(Float, default=0.0)
     market_conditions = Column(JSON)  # Market data at time of trade
     confidence_score = Column(Float)  # AI confidence in the trade
-    executed_at = Column(DateTime, default=datetime.utcnow)
+    executed_at = Column(DateTime, default=datetime.now)
 
     # Relationships
     strategy = relationship("TradingStrategy", back_populates="trades")
@@ -285,8 +285,8 @@ class Portfolio(Base):
     total_value = Column(Float, default=10000.0)  # Current total portfolio value
     holdings = Column(JSON)  # Current stock/crypto holdings
     performance_metrics = Column(JSON)  # ROI, Sharpe ratio, etc.
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 class MarketData(Base):
@@ -298,7 +298,7 @@ class MarketData(Base):
     volume = Column(Float)
     market_cap = Column(Float)
     change_24h = Column(Float)  # 24-hour price change percentage
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.now)
     data_source = Column(String(100))  # API source
     additional_metrics = Column(JSON)  # RSI, MACD, etc.
 
@@ -313,7 +313,7 @@ class TradingSignal(Base):
     strategy_source = Column(String(100))  # Which strategy generated the signal
     market_conditions = Column(JSON)  # Market data used for signal
     reasoning = Column(Text)  # AI reasoning for the signal
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
     expires_at = Column(DateTime)  # When signal becomes invalid
 
 

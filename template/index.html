@@ -254,7 +254,7 @@
     <div class="container">
         <div class="header">
             <h1>🤖 Agentic AI Demo</h1>
-            <p>Customer Support & Marketing Agents with LangChain, PostgreSQL & FastAPI</p>
+            <p>Customer Support, Marketing, Personal Virtualization & Financial Trading Agents with LangChain, PostgreSQL & FastAPI</p>
         </div>
 
         <div class="tabs">
@@ -484,12 +484,11 @@
     <script>
         // Smart environment detection
         function getApiBase() {
-            // Check if we're on localhost or a local IP
             const hostname = window.location.hostname;
             if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
+                // Always use port 8000 for backend API
                 return 'http://localhost:8000';
             }
-            // Otherwise use ngrok for remote access
             return 'https://fe69745cefee.ngrok-free.app';
         }
 
@@ -532,7 +531,7 @@
             }
         }
 
-        // Customer Support Agent Functions
+        // Fixed customer support function
         async function sendCustomerSupportMessage() {
             const customerId = document.getElementById('customer-id').value;
             const message = document.getElementById('customer-message').value;
@@ -548,11 +547,13 @@
             responseDiv.innerHTML = '';
 
             try {
+                // Use the correct endpoint
                 const data = await apiCall('/api/v1/customer-support/chat', 'POST', {
                     customer_id: parseInt(customerId),
                     message: message,
                     session_id: `session-${customerId}-${Date.now()}`
                 });
+                
                 responseDiv.innerHTML = `
                     <div class="response-content">
                         <p><strong>Response:</strong> ${data.response}</p>
@@ -746,6 +747,7 @@
         }
 
         // Create campaign function
+        // Fixed marketing campaign function
         async function createCampaign() {
             const campaignType = document.getElementById('campaign-type').value;
             const targetAudience = document.getElementById('target-audience').value;
@@ -759,36 +761,22 @@
             responseDiv.innerHTML = '';
 
             try {
-                // Properly format the request data
                 const requestData = {
                     campaign_type: campaignType,
                     target_audience: targetAudience,
                     budget: parseFloat(budget),
                     duration_days: parseInt(duration),
-                    goals: ["increase_awareness", "generate_leads"], // Default goals
-                    channels: ["social_media", "email"], // Default channels
-                    content_requirements: ["social_media", "email"], // Default content types
-                    industry: "technology", // Default industry
+                    goals: ["increase_awareness", "generate_leads"],
+                    channels: ["social_media", "email"],
+                    content_requirements: ["social_media", "email"],
+                    industry: "technology",
                     brand_voice: "professional"
                 };
 
-                console.log('Sending request:', requestData); // Debug log
+                console.log('Sending request:', requestData);
 
-                const response = await fetch('/api/v1/marketing/campaign/create', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer demo-token-123'
-                    },
-                    body: JSON.stringify(requestData) // Properly serialize to JSON
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
+                // Use the correct API endpoint
+                const data = await apiCall('/api/v1/marketing/campaign/create', 'POST', requestData);
                 
                 responseDiv.innerHTML = `
                     <div class="response-content">
@@ -802,9 +790,9 @@
                         </div>
                         
                         ${data.campaign_plan ? (() => {
-                            const estimatedPerformance = data.campaign_plan.estimated_performance || {};
-                            const estimatedReach = estimatedPerformance.total_reach ? estimatedPerformance.total_reach.toLocaleString() : 'TBD';
-                            const estimatedROI = (typeof estimatedPerformance.estimated_roi === 'number')
+                            const estimatedPerformance = data.campaign_plan.estimated_performance;
+                            const estimatedReach = estimatedPerformance?.total_reach?.toLocaleString() || 'TBD';
+                            const estimatedROI = (typeof estimatedPerformance?.estimated_roi === 'number')
                                 ? (estimatedPerformance.estimated_roi * 100).toFixed(1) + '%'
                                 : 'TBD';
                             return `
@@ -817,7 +805,7 @@
                                 <li>Estimated ROI: ${estimatedROI}</li>
                             </ul>
                         </div>
-                        `;
+                            `;
                         })() : ''}
                         
                         ${data.next_steps ? `
@@ -1186,7 +1174,7 @@
         }
 
 
-        // Fixed API Call Utility Function
+        // Fixed API Call Function - ensure proper endpoint construction
         async function apiCall(endpoint, method = 'GET', data = null) {
             const options = {
                 method: method,
@@ -1203,14 +1191,19 @@
             }
 
             try {
-                console.log(`Making ${method} request to: ${API_BASE}${endpoint}`);
-                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                // Ensure endpoint starts with /
+                const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+                const fullUrl = `${API_BASE}${cleanEndpoint}`;
+                
+                console.log(`Making ${method} request to: ${fullUrl}`);
+                const response = await fetch(fullUrl, options);
                 
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     const text = await response.text();
+                    console.error('Non-JSON response:', text);
                     if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
-                        throw new Error('Server returned HTML instead of JSON. Check if API server is running correctly.');
+                        throw new Error(`Server returned HTML instead of JSON. The endpoint ${cleanEndpoint} may not exist.`);
                     }
                     throw new Error(`Server returned ${contentType}. Expected JSON.`);
                 }

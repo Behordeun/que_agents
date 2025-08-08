@@ -919,6 +919,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
         self, symbol: str, results: Dict[str, Any], portfolio: Any
     ):
         """Helper to process each symbol in trading cycle to reduce cognitive complexity"""
+        decision = None  # Ensure decision is always defined
         try:
             # Make trading decision (use enhanced version if knowledge base is available)
             try:
@@ -954,7 +955,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             system_logger.error(
                 f"Error processing {symbol}: {e}",
                 additional_info={
-                    "decision": decision.__dict__ if "decision" in locals() else None,
+                    "decision": decision.__dict__ if decision is not None else None,
                     "portfolio": (
                         portfolio.__dict__ if portfolio is not None else None
                     ),
