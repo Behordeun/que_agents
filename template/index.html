@@ -744,13 +744,14 @@
                 loadingDiv.style.display = 'none';
             }
         }
-        
-        // Marketing Agent Functions
+
+        // Create campaign function
         async function createCampaign() {
             const campaignType = document.getElementById('campaign-type').value;
             const targetAudience = document.getElementById('target-audience').value;
             const budget = document.getElementById('budget').value;
             const duration = document.getElementById('duration').value;
+            
             const loadingDiv = document.getElementById('marketing-loading');
             const responseDiv = document.getElementById('marketing-response');
 
@@ -758,34 +759,98 @@
             responseDiv.innerHTML = '';
 
             try {
-                const data = await apiCall('/api/v1/marketing/campaign/create', 'POST', {
+                // Properly format the request data
+                const requestData = {
                     campaign_type: campaignType,
                     target_audience: targetAudience,
                     budget: parseFloat(budget),
-                    duration_days: parseInt(duration)
+                    duration_days: parseInt(duration),
+                    goals: ["increase_awareness", "generate_leads"], // Default goals
+                    channels: ["social_media", "email"], // Default channels
+                    content_requirements: ["social_media", "email"], // Default content types
+                    industry: "technology", // Default industry
+                    brand_voice: "professional"
+                };
+
+                console.log('Sending request:', requestData); // Debug log
+
+                const response = await fetch('/api/v1/marketing/campaign/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer demo-token-123'
+                    },
+                    body: JSON.stringify(requestData) // Properly serialize to JSON
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
                 responseDiv.innerHTML = `
                     <div class="response-content">
-                        <h3>Campaign Created</h3>
-                        <p><strong>Campaign ID:</strong> ${data.campaign_id}</p>
-                        <p><strong>Campaign Type:</strong> ${data.campaign_type}</p>
-                        <p><strong>Status:</strong> ${data.status}</p>
-                        <p><strong>Start Date:</strong> ${data.start_date}</p>
-                        <p><strong>End Date:</strong> ${data.end_date}</p>
-                        <p><strong>Budget:</strong> $${data.budget.toLocaleString()}</p>
-                        <p><strong>Campaign Summary:</strong> ${data.campaign_summary}</p>
+                        <h3>✅ Campaign Created Successfully!</h3>
+                        <div class="campaign-details">
+                            <p><strong>Campaign ID:</strong> ${data.campaign_id}</p>
+                            <p><strong>Type:</strong> ${campaignType}</p>
+                            <p><strong>Target Audience:</strong> ${targetAudience}</p>
+                            <p><strong>Budget:</strong> $${parseFloat(budget).toLocaleString()}</p>
+                            <p><strong>Duration:</strong> ${duration} days</p>
+                        </div>
+                        
+                        ${data.campaign_plan ? (() => {
+                            const estimatedPerformance = data.campaign_plan.estimated_performance || {};
+                            const estimatedReach = estimatedPerformance.total_reach ? estimatedPerformance.total_reach.toLocaleString() : 'TBD';
+                            const estimatedROI = (typeof estimatedPerformance.estimated_roi === 'number')
+                                ? (estimatedPerformance.estimated_roi * 100).toFixed(1) + '%'
+                                : 'TBD';
+                            return `
+                        <div class="campaign-plan">
+                            <h4>Campaign Plan Summary:</h4>
+                            <p><strong>Content Pieces:</strong> ${data.campaign_plan.content_pieces_count || 'Multiple'}</p>
+                            <p><strong>Estimated Performance:</strong></p>
+                            <ul>
+                                <li>Estimated Reach: ${estimatedReach}</li>
+                                <li>Estimated ROI: ${estimatedROI}</li>
+                            </ul>
+                        </div>
+                        `;
+                        })() : ''}
+                        
+                        ${data.next_steps ? `
+                        <div class="next-steps">
+                            <h4>Next Steps:</h4>
+                            <ul>
+                                ${data.next_steps.map(step => `<li>${step}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="timestamp">
+                            <small>Created at: ${new Date(data.timestamp).toLocaleString()}</small>
+                        </div>
                     </div>
                 `;
+
             } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                console.error('Campaign creation error:', error);
+                responseDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Campaign Creation Failed</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>Please check your input and try again.</p>
+                    </div>
+                `;
             } finally {
                 loadingDiv.style.display = 'none';
             }
         }
 
+        // Generate content function
         async function generateContent() {
-            const campaignType = document.getElementById('campaign-type').value;
-            const targetAudience = document.getElementById('target-audience').value;
             const loadingDiv = document.getElementById('marketing-loading');
             const responseDiv = document.getElementById('marketing-response');
 
@@ -793,23 +858,61 @@
             responseDiv.innerHTML = '';
 
             try {
-                const data = await apiCall('/api/v1/marketing/content/generate', 'POST', {
-                    campaign_type: campaignType,
-                    target_audience: targetAudience
+                const requestData = {
+                    platform: "social_media",
+                    content_type: "social_media", 
+                    campaign_theme: "product_launch",
+                    target_audience: document.getElementById('target-audience').value || "general audience",
+                    key_messages: ["innovative", "engaging", "valuable"],
+                    brand_voice: "professional"
+                };
+
+                console.log('Generating content with:', requestData);
+
+                const response = await fetch('/api/v1/marketing/content/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer demo-token-123'
+                    },
+                    body: JSON.stringify(requestData)
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
                 responseDiv.innerHTML = `
                     <div class="response-content">
-                        <h3>Generated Content</h3>
-                        <h4>Email Subject:</h4>
-                        <p>${data.email_subject}</p>
-                        <h4>Email Body:</h4>
-                        <p>${data.email_body}</p>
-                        <h4>Social Media Post:</h4>
-                        <p>${data.social_media_post}</p>
+                        <h3>✨ Content Generated Successfully!</h3>
+                        <div class="generated-content">
+                            <h4>${data.content.title}</h4>
+                            <div class="content-body">
+                                <p>${data.content.content}</p>
+                            </div>
+                            <div class="content-meta">
+                                <p><strong>Call to Action:</strong> ${data.content.call_to_action}</p>
+                                <p><strong>Hashtags:</strong> ${data.content.hashtags.join(' ')}</p>
+                                <p><strong>Platform:</strong> ${data.content.platform}</p>
+                                <p><strong>Estimated Reach:</strong> ${data.content.estimated_reach.toLocaleString()}</p>
+                                <p><strong>Optimization Score:</strong> ${(data.content.optimization_score * 100).toFixed(1)}%</p>
+                            </div>
+                        </div>
                     </div>
                 `;
+
             } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                console.error('Content generation error:', error);
+                responseDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Content Generation Failed</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>Please try again.</p>
+                    </div>
+                `;
             } finally {
                 loadingDiv.style.display = 'none';
             }

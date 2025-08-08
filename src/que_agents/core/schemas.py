@@ -36,7 +36,17 @@ class MarketingCampaignRequest(BaseModel):
     channels: List[str]
     content_requirements: List[str]
     industry: Optional[str] = None
-    brand_voice: str = "professional"
+    brand_voice: Optional[str] = "professional"
+
+
+class MarketingCampaignResponse(BaseModel):
+    success: bool
+    campaign_id: Optional[int] = None
+    message: str
+    campaign_plan: Optional[dict] = None
+    schedule: Optional[List[dict]] = None
+    next_steps: Optional[List[str]] = None
+    timestamp: str
 
 
 class ContentGenerationRequest(BaseModel):

@@ -102,18 +102,28 @@ class AgentManager:
             self._setup_customer_support_fallback()
 
     def _initialize_marketing_agent(self):
-        """Initialize Marketing Agent"""
+        """Initialize Marketing Agent with enhanced error handling"""
         try:
             from src.que_agents.agents.marketing_agent import MarketingAgent
 
-            self.agents["marketing"] = MarketingAgent()
-            self.agent_status["marketing"] = True
-            system_logger.info("Marketing Agent initialized successfully")
+            # Test if agent can be instantiated
+            test_agent = MarketingAgent()
+
+            # Test basic functionality
+            if hasattr(test_agent, "create_marketing_campaign") and callable(
+                test_agent.create_marketing_campaign
+            ):
+                self.agents["marketing"] = test_agent
+                self.agent_status["marketing"] = True
+                system_logger.info("Marketing Agent initialized successfully")
+            else:
+                raise AttributeError("Agent missing required methods")
+
         except Exception as e:
             system_logger.error(
                 f"Failed to initialize Marketing Agent: {str(e)}",
                 additional_info={
-                    "context": AGENT_INITIALIZATION,
+                    "context": "Agent Initialization",
                     "agent": "MarketingAgent",
                     "error_type": type(e).__name__,
                 },
@@ -732,11 +742,14 @@ async def customer_support_chat(
             raise HTTPException(status_code=503, detail=CUSTOMER_SUPPORT_UNAVAILABLE)
 
         # Ensure customer_id is an integer
-        customer_id = int(request.customer_id) if isinstance(request.customer_id, str) else request.customer_id
+        customer_id = (
+            int(request.customer_id)
+            if isinstance(request.customer_id, str)
+            else request.customer_id
+        )
 
         result = agent.handle_customer_request_enhanced(
-            customer_id=customer_id, 
-            message=request.message
+            customer_id=customer_id, message=request.message
         )
 
         return CustomerSupportResponse(
@@ -771,7 +784,7 @@ async def customer_support_chat(
             f"Error handling customer support chat: {e}",
             additional_info={
                 "context": "Customer Support Chat",
-                "customer_id": getattr(request, 'customer_id', 'unknown'),
+                "customer_id": getattr(request, "customer_id", "unknown"),
                 "error_type": type(e).__name__,
             },
             exc_info=True,
@@ -789,27 +802,18 @@ async def customer_support_chat(
 
 
 @app.get("/api/v1/customer-support/customer/{customer_id}")
-async def get_customer_context(
-    customer_id: int, 
-    token: str = Depends(verify_token)
-):
+async def get_customer_context(customer_id: int, token: str = Depends(verify_token)):
     """Get enhanced customer context and information"""
     try:
         agent = agent_manager.get_agent("customer_support")
         if not agent:
-            raise HTTPException(
-                status_code=503, 
-                detail=CUSTOMER_SUPPORT_UNAVAILABLE
-            )
+            raise HTTPException(status_code=503, detail=CUSTOMER_SUPPORT_UNAVAILABLE)
 
         # Get comprehensive customer insights instead of basic context
         customer_insights = agent.get_customer_insights(customer_id)
-        
+
         if "error" in customer_insights:
-            raise HTTPException(
-                status_code=404,
-                detail=customer_insights["error"]
-            )
+            raise HTTPException(status_code=404, detail=customer_insights["error"])
 
         # Safely extract data with fallbacks
         customer_context = customer_insights.get("customer_context", {})
@@ -819,7 +823,9 @@ async def get_customer_context(
         risk_indicators = customer_insights.get("risk_indicators", {})
 
         # Safe extraction with defaults
-        recent_interactions_data = interaction_stats.get("interaction_stats", {}).get("recent_interactions", [])
+        recent_interactions_data = interaction_stats.get("interaction_stats", {}).get(
+            "recent_interactions", []
+        )
         if not recent_interactions_data and "recent_interactions" in customer_context:
             # Fallback to customer_context if available
             recent_interactions_data = customer_context.get("recent_interactions", [])
@@ -827,65 +833,74 @@ async def get_customer_context(
         return {
             "customer_id": customer_context.get("customer_id", customer_id),
             "customer_name": customer_context.get("name", f"Customer {customer_id}"),
-            "email": customer_context.get("email", f"customer{customer_id}@example.com"),
+            "email": customer_context.get(
+                "email", f"customer{customer_id}@example.com"
+            ),
             "support_tier": customer_context.get("tier", "standard").title(),
             "company": customer_context.get("company", "Unknown Company"),
             "satisfaction_score": customer_context.get("satisfaction_score", 3.5),
-            
             # Enhanced interaction data with fallbacks
             "recent_interactions": [
                 {
                     "timestamp": interaction.get("date", datetime.now().isoformat()),
-                    "message": interaction.get("message", "No message available")[:100] + ("..." if len(interaction.get("message", "")) > 100 else ""),
+                    "message": interaction.get("message", "No message available")[:100]
+                    + ("..." if len(interaction.get("message", "")) > 100 else ""),
                     "sentiment": interaction.get("sentiment", "neutral").title(),
                     "satisfaction": interaction.get("satisfaction", 0),
-                    "type": interaction.get("type", "chat")
+                    "type": interaction.get("type", "chat"),
                 }
                 for interaction in recent_interactions_data
-                if interaction.get("message") and interaction.get("message") != "No message"
-            ][:5],  # Limit to 5 most recent
-            
+                if interaction.get("message")
+                and interaction.get("message") != "No message"
+            ][
+                :5
+            ],  # Limit to 5 most recent
             # Support metrics with safe defaults
             "support_metrics": {
                 "total_interactions": interaction_stats.get("total_interactions", 0),
-                "average_satisfaction": round(interaction_stats.get("average_satisfaction", 3.5), 2),
+                "average_satisfaction": round(
+                    interaction_stats.get("average_satisfaction", 3.5), 2
+                ),
                 "open_tickets": support_tickets.get("open_tickets", 0),
-                "total_tickets": support_tickets.get("total_tickets", 0)
+                "total_tickets": support_tickets.get("total_tickets", 0),
             },
-            
             # Recent tickets with safe extraction
             "open_tickets": [
                 {
                     "ticket_id": ticket.get("id", "N/A"),
                     "title": ticket.get("title", "No title"),
-                    "category": ticket.get("category", "general").replace("_", " ").title(),
+                    "category": ticket.get("category", "general")
+                    .replace("_", " ")
+                    .title(),
                     "priority": ticket.get("priority", "medium").title(),
                     "status": ticket.get("status", "open").title(),
-                    "created_at": ticket.get("created_at", datetime.now().isoformat())
+                    "created_at": ticket.get("created_at", datetime.now().isoformat()),
                 }
                 for ticket in support_tickets.get("recent_tickets", [])
             ][:3],
-            
             # Risk assessment with safe defaults
             "risk_assessment": {
                 "risk_level": risk_indicators.get("risk_level", "low").title(),
                 "risk_score": round(risk_indicators.get("risk_score", 0.1), 2),
-                "risk_factors": risk_indicators.get("risk_factors", [])
+                "risk_factors": risk_indicators.get("risk_factors", []),
             },
-            
             # Feedback insights with safe defaults
             "feedback_summary": {
                 "feedback_count": feedback_insights.get("feedback_count", 0),
-                "satisfaction_trend": feedback_insights.get("satisfaction_trend", {}).get("trend_direction", "stable"),
-                "latest_rating": feedback_insights.get("satisfaction_trend", {}).get("latest_rating")
+                "satisfaction_trend": feedback_insights.get(
+                    "satisfaction_trend", {}
+                ).get("trend_direction", "stable"),
+                "latest_rating": feedback_insights.get("satisfaction_trend", {}).get(
+                    "latest_rating"
+                ),
             },
-            
             # Recommendations with safe defaults
-            "recommendations": customer_insights.get("recommendations", ["Continue providing excellent service"])[:3],
-            
+            "recommendations": customer_insights.get(
+                "recommendations", ["Continue providing excellent service"]
+            )[:3],
             # Metadata
             "last_updated": datetime.now().isoformat(),
-            "data_sources": ["database", "feedback_csv", "interaction_history"]
+            "data_sources": ["database", "feedback_csv", "interaction_history"],
         }
 
     except HTTPException:
@@ -913,23 +928,23 @@ async def get_customer_context(
                 "total_interactions": 0,
                 "average_satisfaction": 3.5,
                 "open_tickets": 0,
-                "total_tickets": 0
+                "total_tickets": 0,
             },
             "open_tickets": [],
             "risk_assessment": {
                 "risk_level": "Low",
                 "risk_score": 0.1,
-                "risk_factors": []
+                "risk_factors": [],
             },
             "feedback_summary": {
                 "feedback_count": 0,
                 "satisfaction_trend": "stable",
-                "latest_rating": None
+                "latest_rating": None,
             },
             "recommendations": ["No specific recommendations at this time"],
             "last_updated": datetime.now().isoformat(),
             "data_sources": ["fallback_data"],
-            "note": "Using fallback data due to data retrieval issues"
+            "note": "Using fallback data due to data retrieval issues",
         }
     except Exception as e:
         system_logger.error(
@@ -942,14 +957,12 @@ async def get_customer_context(
         )
         raise HTTPException(
             status_code=500,
-            detail="Error retrieving customer context: Please try again or contact support"
+            detail="Error retrieving customer context: Please try again or contact support",
         )
 
+
 @app.get("/api/v1/customer-support/debug/{customer_id}")
-async def debug_customer_context(
-    customer_id: int, 
-    token: str = Depends(verify_token)
-):
+async def debug_customer_context(customer_id: int, token: str = Depends(verify_token)):
     """Debug customer context issues"""
     try:
         agent = agent_manager.get_agent("customer_support")
@@ -958,32 +971,44 @@ async def debug_customer_context(
 
         # Get raw customer context
         customer_context = agent.get_customer_context(customer_id)
-        
+
         # Get customer insights step by step
         debug_info = {
             "customer_id": customer_id,
             "customer_context_exists": customer_context is not None,
             "customer_context_type": str(type(customer_context)),
-            "customer_context_attributes": dir(customer_context) if customer_context else [],
+            "customer_context_attributes": (
+                dir(customer_context) if customer_context else []
+            ),
         }
 
         if customer_context:
             debug_info["customer_context_data"] = {
-                "customer_id": getattr(customer_context, 'customer_id', 'MISSING'),
-                "name": getattr(customer_context, 'name', 'MISSING'),
-                "email": getattr(customer_context, 'email', 'MISSING'),
-                "tier": getattr(customer_context, 'tier', 'MISSING'),
-                "company": getattr(customer_context, 'company', 'MISSING'),
-                "satisfaction_score": getattr(customer_context, 'satisfaction_score', 'MISSING'),
-                "recent_interactions_count": len(getattr(customer_context, 'recent_interactions', [])),
-                "open_tickets_count": len(getattr(customer_context, 'open_tickets', [])),
+                "customer_id": getattr(customer_context, "customer_id", "MISSING"),
+                "name": getattr(customer_context, "name", "MISSING"),
+                "email": getattr(customer_context, "email", "MISSING"),
+                "tier": getattr(customer_context, "tier", "MISSING"),
+                "company": getattr(customer_context, "company", "MISSING"),
+                "satisfaction_score": getattr(
+                    customer_context, "satisfaction_score", "MISSING"
+                ),
+                "recent_interactions_count": len(
+                    getattr(customer_context, "recent_interactions", [])
+                ),
+                "open_tickets_count": len(
+                    getattr(customer_context, "open_tickets", [])
+                ),
             }
 
         # Test customer insights
         try:
             customer_insights = agent.get_customer_insights(customer_id)
             debug_info["customer_insights_success"] = True
-            debug_info["customer_insights_keys"] = list(customer_insights.keys()) if isinstance(customer_insights, dict) else "NOT_DICT"
+            debug_info["customer_insights_keys"] = (
+                list(customer_insights.keys())
+                if isinstance(customer_insights, dict)
+                else "NOT_DICT"
+            )
             debug_info["customer_insights_has_error"] = "error" in customer_insights
         except Exception as insights_error:
             debug_info["customer_insights_success"] = False
@@ -993,6 +1018,7 @@ async def debug_customer_context(
 
     except Exception as e:
         return {"debug_error": str(e), "error_type": type(e).__name__}
+
 
 # Add customer insights endpoint as well
 @app.get("/api/v1/customer-support/customer/{customer_id}/insights")
@@ -1151,17 +1177,35 @@ async def generate_marketing_content(request: dict, token: str = Depends(verify_
         if not agent:
             raise HTTPException(status_code=503, detail="Marketing agent not available")
 
-        # Generate content based on request
-        return {
-            "email_subject": f"Exclusive Offer for {request.get('target_audience', 'Valued Customers')}",
-            "email_body": f"We're excited to announce our latest {request.get('campaign_type', 'promotion')} designed specifically for {request.get('target_audience', 'you')}. Don't miss out on this opportunity!",
-            "social_media_post": f"🚀 New {request.get('campaign_type', 'campaign')} alert! Perfect for {request.get('target_audience', 'professionals')}. Check it out! #Innovation #Growth",
-            "status": "generated",
+        # Generate content using the agent
+        content_request = {
+            "platform": request.get("platform", "social_media"),
+            "content_type": request.get("content_type", "social_media"),
+            "campaign_theme": request.get("campaign_theme", "marketing"),
+            "target_audience": request.get("target_audience", "general audience"),
+            "key_messages": request.get("key_messages", ["engaging content"]),
+            "brand_voice": request.get("brand_voice", "professional"),
         }
 
+        result = agent.generate_marketing_content(content_request)
+
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+
+        return {
+            "success": True,
+            "content": result,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
-        system_logger.error(f"Error generating content: {str(e)}")
-        return {"error": str(e), "status": "failed"}
+        system_logger.error(f"Error generating marketing content: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate marketing content. Please try again.",
+        )
 
 
 # Add trading endpoints
@@ -1296,9 +1340,8 @@ async def get_market_data(symbol: str, token: str = Depends(verify_token)):
 
 # Marketing endpoints
 @app.post("/api/v1/marketing/campaign/create")
-def create_marketing_campaign(
-    request: MarketingCampaignRequest,
-    _: HTTPAuthorizationCredentials = Depends(verify_token),
+async def create_marketing_campaign(
+    request: MarketingCampaignRequest, token: str = Depends(verify_token)
 ):
     """Create a new marketing campaign"""
     try:
@@ -1306,8 +1349,8 @@ def create_marketing_campaign(
         if not agent:
             raise HTTPException(status_code=503, detail="Marketing agent not available")
 
-        # Convert Pydantic model to dict
-        request_dict = {
+        # Convert request to the format expected by the agent
+        campaign_request = {
             "campaign_type": request.campaign_type,
             "target_audience": request.target_audience,
             "budget": request.budget,
@@ -1315,23 +1358,42 @@ def create_marketing_campaign(
             "goals": request.goals,
             "channels": request.channels,
             "content_requirements": request.content_requirements,
-            "industry": request.industry,
-            "brand_voice": request.brand_voice,
+            "industry": getattr(request, "industry", None),
+            "brand_voice": getattr(request, "brand_voice", "professional"),
         }
 
-        result = agent.create_marketing_campaign(request_dict)
-        return result
+        # Create the campaign using the agent
+        result = agent.create_marketing_campaign(campaign_request)
 
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+
+        return {
+            "success": True,
+            "campaign_id": result.get("campaign_id"),
+            "message": "Campaign created successfully",
+            "campaign_plan": result.get("campaign_plan", {}),
+            "schedule": result.get("schedule", []),
+            "next_steps": result.get("next_steps", []),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         system_logger.error(
-            f"Failed to create campaign: {str(e)}",
+            f"Error creating marketing campaign: {str(e)}",
             additional_info={
                 "context": "Create Marketing Campaign",
-                "request": request.dict(),
+                "campaign_type": getattr(request, "campaign_type", "unknown"),
+                "target_audience": getattr(request, "target_audience", "unknown"),
             },
             exc_info=True,
         )
-        return {"error": f"Failed to create campaign: {str(e)}", "status": "failed"}
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create marketing campaign. Please try again.",
+        )
 
 
 # Personal Virtual Assistant endpoints
