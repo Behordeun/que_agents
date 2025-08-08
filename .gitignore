@@ -20,3 +20,4 @@ chroma_db
 migrations
 *.ini
 scripts
+MARKETING_AGENT_FIXES.md
