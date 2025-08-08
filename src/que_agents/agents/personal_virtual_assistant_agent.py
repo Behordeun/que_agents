@@ -46,7 +46,7 @@ class PersonalVirtualAssistantAgent:
 
     def __init__(self):
         # Try different config key names
-        config_key = "personal_virtual_assistant_agent"
+        config_key = "personal_virtual_assistant"
         if config_key not in agent_config:
             config_key = "personal_virtual_assistant"
 

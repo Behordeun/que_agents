@@ -156,7 +156,7 @@ class AgentManager:
             return
 
         # Check if the agent config exists
-        agent_config_key = "personal_virtual_assistant_agent"
+        agent_config_key = "personal_virtual_assistant"
         if config is None or agent_config_key not in config:
             system_logger.warning(
                 f"Configuration key '{agent_config_key}' not found in agent_config.yaml"
