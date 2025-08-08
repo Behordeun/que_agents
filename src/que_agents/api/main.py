@@ -24,7 +24,6 @@ from src.que_agents.core.schemas import (
     CustomerSupportRequest,
     CustomerSupportResponse,
     HealthResponse,
-    MarketingCampaignRequest,
     PVARequest,
     PVAResponse,
     TradingAnalysisRequest,
@@ -1342,77 +1341,123 @@ async def get_market_data(symbol: str, token: str = Depends(verify_token)):
 # Marketing endpoints
 @app.post("/api/v1/marketing/campaign/create")
 async def create_marketing_campaign(
-    request: MarketingCampaignRequest, token: str = Depends(verify_token)
+    request: dict,  # Use dict instead of Pydantic model to handle any input
+    token: str = Depends(verify_token),
 ):
-    """Create a new marketing campaign"""
+    """Create a new marketing campaign with comprehensive error handling"""
     try:
+        system_logger.info(
+            "Marketing campaign creation request received",
+            additional_info={
+                "campaign_type": request.get("campaign_type"),
+                "target_audience": request.get("target_audience"),
+                "budget": request.get("budget"),
+            },
+        )
+
+        # Validate required fields
+        required_fields = [
+            "campaign_type",
+            "target_audience",
+            "budget",
+            "duration_days",
+        ]
+        missing_fields = [field for field in required_fields if field not in request]
+
+        if missing_fields:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required fields: {', '.join(missing_fields)}",
+            )
+
+        # Get marketing agent
         agent = agent_manager.get_agent("marketing")
         if not agent:
-            system_logger.warning("Marketing agent not. available")
-            raise HTTPException(status_code=503, detail="Marketing agent not available")
+            raise HTTPException(
+                status_code=503,
+                detail="Marketing agent temporarily unavailable. Please try again.",
+            )
 
-        # Convert request to the format expected by the agent
-        campaign_request = {
-            "campaign_type": request.campaign_type,
-            "target_audience": request.target_audience,
-            "budget": request.budget,
-            "duration_days": request.duration_days,
-            "goals": request.goals,
-            "channels": request.channels,
-            "content_requirements": request.content_requirements,
-            "industry": getattr(request, "industry", None),
-            "brand_voice": getattr(request, "brand_voice", "professional"),
+        # Ensure proper data types and defaults
+        campaign_data = {
+            "campaign_type": str(request["campaign_type"]),
+            "target_audience": str(request["target_audience"]),
+            "budget": float(request["budget"]),
+            "duration_days": int(request["duration_days"]),
+            "goals": request.get("goals", ["increase_awareness", "generate_leads"]),
+            "channels": request.get("channels", ["social_media", "email"]),
+            "content_requirements": request.get(
+                "content_requirements", ["social_media", "email"]
+            ),
+            "industry": request.get("industry", "general"),
+            "brand_voice": request.get("brand_voice", "professional"),
         }
 
-        # Create the campaign using the agent
-        result = agent.create_marketing_campaign(campaign_request)
+        # Create the campaign
+        result = agent.create_marketing_campaign(campaign_data)
 
+        # Handle different response scenarios
         if "error" in result:
-            system_logger.warning(
-                "Error creating marketing campaign",
-                additional_info={
-                    "context": CREATE_MARKETING_CAMPAIGN,
-                    "campaign_type": getattr(request, "campaign_type", "unknown"),
-                    "target_audience": getattr(request, "target_audience", "unknown"),
-                },
-            )
-            raise HTTPException(status_code=400, detail=result["error"])
+            if "technical issues" in result.get("message", "").lower():
+                return {
+                    "success": False,
+                    "error": "technical_issue",
+                    "message": "Campaign creation experienced technical difficulties but generated fallback plan",
+                    "campaign_data": result,
+                    "timestamp": datetime.now().isoformat(),
+                    "retry_recommended": True,
+                }
+            else:
+                raise HTTPException(status_code=400, detail=result["message"])
 
-        return {
+        # Successful campaign creation
+        response_data = {
             "success": True,
             "campaign_id": result.get("campaign_id"),
             "message": "Campaign created successfully",
             "campaign_plan": result.get("campaign_plan", {}),
             "schedule": result.get("schedule", []),
+            "content_pieces": result.get("content_pieces", []),
             "next_steps": result.get("next_steps", []),
+            "optimization_roadmap": result.get("optimization_roadmap", []),
+            "metadata": result.get("metadata", {}),
             "timestamp": datetime.now().isoformat(),
+            "status": result.get("status", "created"),
         }
 
-    except HTTPException as e:
-        # Re-raise HTTP exceptions to maintain status codes
-        system_logger.error(
-            f"HTTP Exception in create_marketing_campaign: {str(e)}",
+        system_logger.info(
+            "Marketing campaign created successfully",
             additional_info={
-                "context": CREATE_MARKETING_CAMPAIGN,
-                "campaign_type": getattr(request, "campaign_type", "unknown"),
-                "target_audience": getattr(request, "target_audience", "unknown"),
+                "campaign_id": result.get("campaign_id"),
+                "campaign_type": campaign_data["campaign_type"],
+                "status": result.get("status"),
+                "method": result.get("metadata", {}).get("creation_method", "standard"),
             },
-            exc_info=True,
         )
-        raise
+
+        return response_data
+
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except ValueError as ve:
+        system_logger.error(f"Validation error in campaign creation: {ve}")
+        raise HTTPException(status_code=400, detail=f"Invalid input data: {str(ve)}")
     except Exception as e:
         system_logger.error(
-            f"Error creating marketing campaign: {str(e)}",
+            f"Unexpected error in marketing campaign creation: {str(e)}",
             additional_info={
-                "context": CREATE_MARKETING_CAMPAIGN,
-                "campaign_type": getattr(request, "campaign_type", "unknown"),
-                "target_audience": getattr(request, "target_audience", "unknown"),
+                "context": "Create Marketing Campaign",
+                "campaign_type": request.get("campaign_type"),
+                "target_audience": request.get("target_audience"),
+                "error_type": type(e).__name__,
             },
             exc_info=True,
         )
+
+        # Return user-friendly error response
         raise HTTPException(
             status_code=500,
-            detail="Failed to create marketing campaign. Please try again.",
+            detail="Campaign creation service temporarily unavailable. Please try again in a few minutes.",
         )
 
 

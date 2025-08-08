@@ -119,17 +119,21 @@ class MarketingCampaign(Base):
 class MarketingPost(Base):
     __tablename__ = "marketing_posts"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
     campaign_id = Column(Integer, ForeignKey("marketing_campaigns.id"), nullable=False)
-    platform = Column(
-        String(50), nullable=False
-    )  # facebook, twitter, instagram, linkedin
-    content = Column(Text, nullable=False)
-    media_urls = Column(JSON)  # Array of media file URLs
+    platform = Column(String, nullable=False)
+    content_type = Column(String)  # Add this field
+    title = Column(String)
+    content = Column(Text)
+    hashtags = Column(JSON)  # Store as JSON array
+    call_to_action = Column(String)
+    estimated_reach = Column(Integer)
     scheduled_time = Column(DateTime)
     published_time = Column(DateTime)
-    status = Column(String(50), default="draft")  # draft, scheduled, published, failed
+    status = Column(String, default="draft")
+    engagement_metrics = Column(JSON)  # Store engagement data
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     campaign = relationship("MarketingCampaign", back_populates="posts")

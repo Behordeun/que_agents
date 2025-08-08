@@ -17,3 +17,6 @@ chroma_db
 .pytest_cache
 .idea
 *.bak
+migrations
+*.ini
+scripts

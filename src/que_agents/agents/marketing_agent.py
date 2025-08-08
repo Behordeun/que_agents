@@ -36,6 +36,7 @@ system_logger.info("Initializing Marketing Agent ...")
 
 
 DEFAULT_CALL_TO_ACTION = "Learn more"
+RETRY_CAMPAIGN_CREATION = "Retry campaign creation"
 
 # Load agent configuration
 try:
@@ -919,21 +920,28 @@ Provide detailed audience insights and targeting recommendations."""
             audience_data = self.get_enhanced_audience_insights(
                 request.target_audience, industry
             )
+
+            # Fix: Handle campaign_type properly - it should be enum not string
+            campaign_type_value = (
+                request.campaign_type.value
+                if hasattr(request.campaign_type, "value")
+                else str(request.campaign_type)
+            )
             market_data = self.get_enhanced_market_data(request.campaign_type, industry)
             enhanced_context = self.get_enhanced_campaign_context(request, industry)
 
             # Prepare comprehensive context
             campaign_request_str = f"""
-Campaign Type: {request.campaign_type.value}
-Target Audience: {request.target_audience}
-Industry: {industry or 'General'}
-Budget: ${request.budget:,.2f}
-Duration: {request.duration_days} days
-Goals: {', '.join(request.goals)}
-Channels: {', '.join(request.channels)}
-Content Requirements: {', '.join([ct.value for ct in request.content_requirements])}
-Priority Metrics: {self.campaign_strategies.get(request.campaign_type.value, {}).get('primary_metrics', [])}
-"""
+    Campaign Type: {campaign_type_value}
+    Target Audience: {request.target_audience}
+    Industry: {industry or 'General'}
+    Budget: ${request.budget:,.2f}
+    Duration: {request.duration_days} days
+    Goals: {', '.join(request.goals)}
+    Channels: {', '.join(request.channels)}
+    Content Requirements: {', '.join([ct.value if hasattr(ct, 'value') else str(ct) for ct in request.content_requirements])}
+    Priority Metrics: {self.campaign_strategies.get(campaign_type_value, {}).get('primary_metrics', [])}
+    """
 
             # Generate enhanced strategy
             strategy = self.campaign_chain.invoke(
@@ -952,7 +960,7 @@ Priority Metrics: {self.campaign_strategies.get(request.campaign_type.value, {})
             system_logger.info(
                 "Campaign strategy created successfully",
                 additional_info={
-                    "campaign_type": request.campaign_type.value,
+                    "campaign_type": campaign_type_value,
                     "target_audience": request.target_audience,
                 },
             )
@@ -962,7 +970,11 @@ Priority Metrics: {self.campaign_strategies.get(request.campaign_type.value, {})
                 error=f"Error creating enhanced campaign strategy: {e}",
                 exc_info=True,
                 additional_info={
-                    "campaign_type": request.campaign_type.value,
+                    "campaign_type": (
+                        campaign_type_value
+                        if "campaign_type_value" in locals()
+                        else "unknown"
+                    ),
                     "target_audience": request.target_audience,
                     "budget": request.budget,
                 },
@@ -1285,10 +1297,16 @@ Ready to learn more? Let's connect and explore the possibilities together.
     ) -> CampaignPlan:
         """Create a comprehensive campaign plan with enhanced features"""
         try:
+            # Handle campaign_type safely
+            campaign_type_str = (
+                request.campaign_type.value
+                if hasattr(request.campaign_type, "value")
+                else str(request.campaign_type)
+            )
             system_logger.info(
                 "Creating enhanced campaign plan",
                 additional_info={
-                    "campaign_type": request.campaign_type.value,
+                    "campaign_type": campaign_type_str,
                     "target_audience": request.target_audience,
                     "budget": request.budget,
                     "duration_days": request.duration_days,
@@ -1349,11 +1367,17 @@ Ready to learn more? Let's connect and explore the possibilities together.
             return campaign_plan
 
         except Exception as e:
+            # Handle campaign_type safely for error logging
+            campaign_type_str = (
+                request.campaign_type.value
+                if hasattr(request.campaign_type, "value")
+                else str(request.campaign_type)
+            )
             system_logger.error(
                 error=f"Error creating enhanced campaign plan: {e}",
                 exc_info=True,
                 additional_info={
-                    "campaign_type": request.campaign_type.value,
+                    "campaign_type": campaign_type_str,
                     "target_audience": request.target_audience,
                 },
             )
@@ -2378,69 +2402,221 @@ Ready to learn more? Let's connect and explore the possibilities together.
 
         return next_steps
 
+    def _check_and_fix_database_schema(self, session) -> bool:
+        """Check and fix database schema issues"""
+        try:
+            from sqlalchemy import inspect, text
+
+            engine = session.get_bind()
+            inspector = inspect(engine)
+
+            # Check if marketing_posts table exists and has required columns
+            if inspector.has_table("marketing_posts"):
+                columns = inspector.get_columns("marketing_posts")
+                column_names = [col["name"] for col in columns]
+
+                # Add missing columns if needed
+                if "title" not in column_names:
+                    try:
+                        session.execute(
+                            text(
+                                "ALTER TABLE marketing_posts ADD COLUMN title VARCHAR(255)"
+                            )
+                        )
+                        session.commit()
+                        system_logger.info(
+                            "Added missing 'title' column to marketing_posts"
+                        )
+                    except Exception as e:
+                        system_logger.warning(f"Could not add title column: {e}")
+                        session.rollback()
+
+                if "content_type" not in column_names:
+                    try:
+                        session.execute(
+                            text(
+                                "ALTER TABLE marketing_posts ADD COLUMN content_type VARCHAR(100)"
+                            )
+                        )
+                        session.commit()
+                        system_logger.info(
+                            "Added missing 'content_type' column to marketing_posts"
+                        )
+                    except Exception as e:
+                        system_logger.warning(f"Could not add content_type column: {e}")
+                        session.rollback()
+
+                return True
+            return False
+        except Exception as e:
+            system_logger.error(f"Error checking database schema: {e}")
+            return False
+
     def create_campaign_from_request(
         self, request: CampaignRequest, industry: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Create a complete campaign with database persistence"""
+        """Create a complete campaign with database persistence - Fixed content_type issue"""
         session = get_session()
         try:
+            # Try to fix database schema issues
+            self._check_and_fix_database_schema(session)
             # Create enhanced campaign plan
             campaign_plan = self.create_enhanced_campaign_plan(
                 request, [industry] if industry is not None else None
             )
 
-            # Save campaign to database - fix the invalid 'strategy' parameter
-            campaign = MarketingCampaign(
-                name=f"{request.campaign_type.value.replace('_', ' ').title()} Campaign",
-                campaign_type=request.campaign_type.value,
-                target_audience=request.target_audience,
-                budget=request.budget,
-                start_date=datetime.now().date(),
-                end_date=(
+            # Save campaign to database with proper data types
+            campaign_data = {
+                "name": f"{request.campaign_type.value.replace('_', ' ').title()} Campaign",
+                "campaign_type": request.campaign_type.value,
+                "target_audience": str(request.target_audience),  # Ensure it's a string
+                "budget": float(request.budget),
+                "start_date": datetime.now().date(),
+                "end_date": (
                     datetime.now() + timedelta(days=request.duration_days)
                 ).date(),
-                status="active",
-                # Remove 'strategy' parameter if it doesn't exist in the model
-                # strategy=campaign_plan.strategy,  # Comment this out
-                created_at=datetime.now(),
-            )
+                "status": "active",
+                "created_at": datetime.now(),
+                "updated_at": datetime.now(),
+            }
 
+            # Add strategy if available and limit length
+            if hasattr(campaign_plan, "strategy") and campaign_plan.strategy:
+                # Ensure strategy is not too long for database
+                strategy_text = campaign_plan.strategy
+                if len(strategy_text) > 10000:  # Limit to 10KB
+                    strategy_text = strategy_text[:10000] + "... [truncated]"
+                campaign_data["strategy"] = strategy_text
+
+            # Create campaign with proper data types
+            campaign = MarketingCampaign(**campaign_data)
             session.add(campaign)
             session.commit()
 
-            # Save content pieces as posts
-            for i, content in enumerate(campaign_plan.content_pieces):
-                post = MarketingPost(
-                    campaign_id=campaign.id,
-                    platform=content.platform,
-                    content_type=content.content_type.value,
-                    title=content.title,
-                    content=content.content,
-                    hashtags=content.hashtags,
-                    call_to_action=content.call_to_action,
-                    estimated_reach=content.estimated_reach,
-                    scheduled_time=datetime.now() + timedelta(hours=i),
-                    status="scheduled",
-                )
-                session.add(post)
+            # Save content pieces as posts with safe database handling
+            content_pieces_saved = 0
+            try:
+                for i, content in enumerate(campaign_plan.content_pieces):
+                    # Create post data with all available fields
+                    post_data = {
+                        "campaign_id": campaign.id,
+                        "platform": str(content.platform),
+                        "content": str(content.content),
+                        "call_to_action": (
+                            str(content.call_to_action)[:255]
+                            if content.call_to_action
+                            else "Learn more"
+                        ),
+                        "estimated_reach": int(content.estimated_reach),
+                        "scheduled_time": datetime.now() + timedelta(hours=i * 2),
+                        "status": "scheduled",
+                    }
 
-            session.commit()
+                    # Add title if available
+                    if hasattr(content, "title") and content.title:
+                        post_data["title"] = str(content.title)[:255]
 
+                    # Add content_type if available
+                    if hasattr(content, "content_type") and content.content_type:
+                        content_type_value = (
+                            content.content_type.value
+                            if hasattr(content.content_type, "value")
+                            else str(content.content_type)
+                        )
+                        post_data["content_type"] = content_type_value
+
+                    # Safely handle hashtags
+                    try:
+                        if isinstance(content.hashtags, list):
+                            post_data["hashtags"] = json.dumps(content.hashtags)
+                        else:
+                            post_data["hashtags"] = json.dumps([])
+                    except Exception:
+                        post_data["hashtags"] = json.dumps([])
+
+                    # Try to create the post
+                    try:
+                        post = MarketingPost(**post_data)
+                        session.add(post)
+                        session.flush()  # Test if this works
+                        content_pieces_saved += 1
+                    except Exception as post_error:
+                        # If it fails, try with minimal data
+                        system_logger.warning(
+                            f"Failed to save full post data, trying minimal: {post_error}"
+                        )
+                        session.rollback()
+
+                        minimal_post_data = {
+                            "campaign_id": campaign.id,
+                            "platform": str(content.platform),
+                            "content": str(content.content)[:1000],
+                            "status": "scheduled",
+                        }
+
+                        try:
+                            minimal_post = MarketingPost(**minimal_post_data)
+                            session.add(minimal_post)
+                            session.flush()
+                            content_pieces_saved += 1
+                        except Exception as minimal_error:
+                            system_logger.error(
+                                f"Failed to save even minimal post: {minimal_error}"
+                            )
+                            session.rollback()
+
+                if content_pieces_saved > 0:
+                    session.commit()
+                    system_logger.info(f"Saved {content_pieces_saved} content pieces")
+
+            except Exception as posts_error:
+                system_logger.error(f"Error saving content posts: {posts_error}")
+                session.rollback()
+
+                # Re-add the campaign if rollback affected it
+                try:
+                    if not session.get(MarketingCampaign, campaign.id):
+                        session.add(campaign)
+                        session.commit()
+                except Exception as campaign_restore_error:
+                    system_logger.error(
+                        f"Error restoring campaign: {campaign_restore_error}"
+                    )
+
+            # Build response with safe data extraction
             response = {
                 "campaign_id": campaign.id,
                 "campaign_plan": {
                     "strategy": (
-                        campaign_plan.strategy[:500] + "..."
-                        if len(campaign_plan.strategy) > 500
-                        else campaign_plan.strategy
+                        getattr(
+                            campaign_plan,
+                            "strategy",
+                            "Campaign strategy created successfully",
+                        )[:500]
+                        + "..."
+                        if hasattr(campaign_plan, "strategy")
+                        and len(getattr(campaign_plan, "strategy", "")) > 500
+                        else getattr(
+                            campaign_plan,
+                            "strategy",
+                            "Campaign strategy created successfully",
+                        )
                     ),
-                    "content_pieces_count": len(campaign_plan.content_pieces),
-                    "budget_allocation": campaign_plan.budget_allocation,
-                    "success_metrics": campaign_plan.success_metrics,
-                    "estimated_performance": campaign_plan.estimated_performance,
+                    "content_pieces_count": len(
+                        getattr(campaign_plan, "content_pieces", [])
+                    ),
+                    "budget_allocation": getattr(
+                        campaign_plan, "budget_allocation", {}
+                    ),
+                    "success_metrics": getattr(campaign_plan, "success_metrics", []),
+                    "estimated_performance": getattr(
+                        campaign_plan, "estimated_performance", {}
+                    ),
                 },
-                "schedule": campaign_plan.schedule,
-                "optimization_roadmap": campaign_plan.optimization_roadmap,
+                "schedule": getattr(campaign_plan, "schedule", []),
+                "optimization_roadmap": getattr(
+                    campaign_plan, "optimization_roadmap", []
+                ),
                 "status": "created_successfully",
                 "next_steps": [
                     "Review and approve content pieces",
@@ -2448,13 +2624,22 @@ Ready to learn more? Let's connect and explore the possibilities together.
                     "Begin campaign execution",
                     "Monitor initial performance",
                 ],
+                "database_info": {
+                    "campaign_saved": True,
+                    "content_pieces_saved": content_pieces_saved,
+                    "total_content_pieces": len(
+                        getattr(campaign_plan, "content_pieces", [])
+                    ),
+                    "save_success_rate": f"{content_pieces_saved}/{len(getattr(campaign_plan, 'content_pieces', []))}",
+                },
             }
 
             system_logger.info(
                 "Campaign created and saved to database",
                 additional_info={
                     "campaign_id": campaign.id,
-                    "content_pieces": len(campaign_plan.content_pieces),
+                    "content_pieces": content_pieces_saved,
+                    "target_audience": campaign.target_audience,
                 },
             )
             return response
@@ -2467,12 +2652,44 @@ Ready to learn more? Let's connect and explore the possibilities together.
                 additional_info={
                     "campaign_type": request.campaign_type.value,
                     "target_audience": request.target_audience,
+                    "error_type": type(e).__name__,
                 },
             )
+
+            # Return comprehensive fallback response
             return {
-                "error": "Failed to create campaign",
+                "error": "Failed to create campaign in database",
                 "message": str(e),
-                "fallback_plan": self._create_basic_campaign_plan(request).__dict__,
+                "campaign_id": None,
+                "campaign_plan": {
+                    "strategy": f"Basic {request.campaign_type.value.replace('_', ' ')} campaign targeting {request.target_audience}",
+                    "content_pieces_count": len(request.channels),
+                    "budget_allocation": {
+                        channel: request.budget / len(request.channels)
+                        for channel in request.channels
+                    },
+                    "success_metrics": ["reach", "engagement", "conversions"],
+                    "estimated_performance": {
+                        "total_reach": 10000,
+                        "estimated_roi": 2.0,
+                        "confidence_interval": "±20%",
+                    },
+                },
+                "schedule": [
+                    {"day": i + 1, "platform": channel, "action": "content_posting"}
+                    for i, channel in enumerate(request.channels)
+                ],
+                "optimization_roadmap": [
+                    "Monitor initial performance",
+                    "Optimize underperforming content",
+                    "Scale successful elements",
+                ],
+                "status": "failed_to_save_to_database",
+                "next_steps": [
+                    "Check database connection",
+                    RETRY_CAMPAIGN_CREATION,
+                    "Contact support if issue persists",
+                ],
             }
         finally:
             session.close()
@@ -2548,14 +2765,14 @@ Ready to learn more? Let's connect and explore the possibilities together.
                 "schedule": [],
                 "optimization_roadmap": [
                     "Resolve technical issues",
-                    "Retry campaign creation",
+                    RETRY_CAMPAIGN_CREATION,
                 ],
                 "status": "creation_failed",
                 "next_steps": [
                     "Check system status",
                     "Verify database connectivity",
                     "Contact support if issue persists",
-                    "Retry campaign creation",
+                    RETRY_CAMPAIGN_CREATION,
                 ],
                 "technical_details": {
                     "error_type": type(e).__name__,
