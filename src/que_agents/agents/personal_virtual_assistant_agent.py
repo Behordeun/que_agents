@@ -33,6 +33,8 @@ from src.que_agents.knowledge_base.kb_manager import (
 
 system_logger.info("Personal Virtual Assistant Agent initialized...")
 
+TURN_ON = "turn on"
+TURN_OFF = "turn off"
 
 # Load agent configuration
 with open("configs/agent_config.yaml", "r") as f:
@@ -43,12 +45,17 @@ class PersonalVirtualAssistantAgent:
     """Personal Virtual Assistant Agent using LangChain"""
 
     def __init__(self):
-        config = agent_config["personal_virtual_assistant_agent"]
+        # Try different config key names
+        config_key = "personal_virtual_assistant_agent"
+        if config_key not in agent_config:
+            config_key = "personal_virtual_assistant"
+
+        config = agent_config[config_key]
         self.llm = LLMFactory.get_llm(
             agent_type="personal_virtual_assistant",
             model_name=config["model_name"],
             temperature=config["temperature"],
-            max_tokens=600,
+            max_tokens=config.get("max_tokens", 600),
         )
 
         # Memory for conversation history
@@ -172,7 +179,7 @@ Intent: {intent}
 Extract entities as a JSON object. Only include entities that are clearly present in the message. Use null for missing entities.
 
 Example format:
-{{"location": "New York", "datetime": "tomorrow 3pm", "device_name": "living room lights", "device_action": "turn on"}}"""
+{{"location": "New York", "datetime": "tomorrow 3pm", "device_name": "living room lights", "device_action": TURN_ON}}"""
 
         return ChatPromptTemplate.from_messages(
             [
@@ -243,7 +250,6 @@ Provide a helpful and friendly response that addresses the user's request."""
         """Retrieve user context from database"""
         session = get_session()
         try:
-            # Get user preferences
             user_prefs = (
                 session.query(UserPreferences)
                 .filter(UserPreferences.user_id == user_id)
@@ -251,94 +257,25 @@ Provide a helpful and friendly response that addresses the user's request."""
             )
 
             if not user_prefs:
-                # Create default user preferences
-                user_prefs = UserPreferences(
-                    user_id=user_id,
-                    preferences={
-                        "location": "New York",
-                        "timezone": "UTC",
-                        "temperature_unit": "fahrenheit",
-                        "preferred_language": "english",
-                    },
-                    learned_behaviors={},
-                )
-                session.add(user_prefs)
-                session.commit()
+                user_prefs = self._create_default_user_preferences(session, user_id)
 
-            # Get active reminders
             active_reminders = (
                 session.query(Reminder)
                 .filter(Reminder.user_id == user_id, Reminder.status == "active")
                 .all()
             )
 
-            # Get smart devices
             smart_devices = (
                 session.query(SmartDevice).filter(SmartDevice.user_id == user_id).all()
             )
 
-            # If no devices exist, create some default ones for demo
             if not smart_devices:
-                default_devices = [
-                    SmartDevice(
-                        user_id=user_id,
-                        device_name="Living Room Lights",
-                        device_type="light",
-                        location="living room",
-                        current_state={"power": "off", "brightness": 50},
-                        capabilities=["power", "brightness", "color"],
-                        is_online=True,
-                    ),
-                    SmartDevice(
-                        user_id=user_id,
-                        device_name="Thermostat",
-                        device_type="thermostat",
-                        location="main",
-                        current_state={"temperature": 72, "mode": "auto"},
-                        capabilities=["temperature", "mode"],
-                        is_online=True,
-                    ),
-                    SmartDevice(
-                        user_id=user_id,
-                        device_name="Bedroom Lights",
-                        device_type="light",
-                        location="bedroom",
-                        current_state={"power": "off", "brightness": 30},
-                        capabilities=["power", "brightness"],
-                        is_online=True,
-                    ),
-                ]
+                smart_devices = self._create_default_smart_devices(session, user_id)
 
-                for device in default_devices:
-                    session.add(device)
-                session.commit()
-                smart_devices = default_devices
-
-            # Extract preferences safely
-            preferences_value = getattr(user_prefs, "preferences", None)
-            if preferences_value is not None:
-                if isinstance(preferences_value, dict):
-                    preferences = preferences_value
-                else:
-                    try:
-                        preferences = json.loads(preferences_value)
-                    except Exception:
-                        preferences = {}
-            else:
-                preferences = {}
-
-            # Extract learned_behaviors safely
-            learned_behaviors_value = getattr(user_prefs, "learned_behaviors", None)
-            if learned_behaviors_value is not None:
-                if isinstance(learned_behaviors_value, dict):
-                    learned_behaviors = learned_behaviors_value
-                else:
-                    try:
-                        learned_behaviors = json.loads(learned_behaviors_value)
-                    except Exception:
-                        learned_behaviors = {}
-            else:
-                learned_behaviors = {}
+            preferences = self._extract_json_field(user_prefs, "preferences")
+            learned_behaviors = self._extract_json_field(
+                user_prefs, "learned_behaviors"
+            )
 
             return UserContext(
                 user_id=user_id,
@@ -374,6 +311,73 @@ Provide a helpful and friendly response that addresses the user's request."""
             )
         finally:
             session.close()
+
+    def _create_default_user_preferences(
+        self, session, user_id: str
+    ) -> UserPreferences:
+        """Create and persist default user preferences"""
+        user_prefs = UserPreferences(
+            user_id=user_id,
+            preferences={
+                "location": "New York",
+                "timezone": "UTC",
+                "temperature_unit": "fahrenheit",
+                "preferred_language": "english",
+            },
+            learned_behaviors={},
+        )
+        session.add(user_prefs)
+        session.commit()
+        return user_prefs
+
+    def _create_default_smart_devices(self, session, user_id: str) -> List[SmartDevice]:
+        """Create and persist default smart devices for the user"""
+        default_devices = [
+            SmartDevice(
+                user_id=user_id,
+                device_name="Living Room Lights",
+                device_type="light",
+                location="living room",
+                current_state={"power": "off", "brightness": 50},
+                capabilities=["power", "brightness", "color"],
+                is_online=True,
+            ),
+            SmartDevice(
+                user_id=user_id,
+                device_name="Thermostat",
+                device_type="thermostat",
+                location="main",
+                current_state={"temperature": 72, "mode": "auto"},
+                capabilities=["temperature", "mode"],
+                is_online=True,
+            ),
+            SmartDevice(
+                user_id=user_id,
+                device_name="Bedroom Lights",
+                device_type="light",
+                location="bedroom",
+                current_state={"power": "off", "brightness": 30},
+                capabilities=["power", "brightness"],
+                is_online=True,
+            ),
+        ]
+        for device in default_devices:
+            session.add(device)
+        session.commit()
+        return default_devices
+
+    def _extract_json_field(self, obj, field: str) -> dict:
+        """Safely extract a JSON/dict field from an object"""
+        value = getattr(obj, field, None)
+        if value is not None:
+            if isinstance(value, dict):
+                return value
+            else:
+                try:
+                    return json.loads(value)
+                except Exception:
+                    return {}
+        return {}
 
     def recognize_intent(self, user_message: str) -> IntentResult:
         """Recognize user intent from message"""
@@ -426,8 +430,8 @@ Provide a helpful and friendly response that addresses the user's request."""
                 "my schedule",
             ],
             "device_control": [
-                "turn on",
-                "turn off",
+                TURN_ON,
+                TURN_OFF,
                 "lights",
                 "thermostat",
                 "dim",
@@ -477,69 +481,75 @@ Provide a helpful and friendly response that addresses the user's request."""
         self, user_message: str, intent: str
     ) -> Dict[str, Any]:
         """Fallback entity extraction using regex"""
-        entities = {}
-
         if intent == "weather":
-            # Extract location
-            location_patterns = [
-                r"weather in ([A-Za-z\s]+)",
-                r"weather for ([A-Za-z\s]+)",
-                r"in ([A-Za-z\s,]+)",
-                r"at ([A-Za-z\s,]+)",
-            ]
-            for pattern in location_patterns:
-                match = re.search(pattern, user_message, re.IGNORECASE)
-                if match:
-                    entities["location"] = match.group(1).strip()
-                    break
-
+            return self._extract_weather_entities(user_message)
         elif intent == "set_reminder":
-            # Extract reminder title and time
-            entities["reminder_title"] = (
-                user_message.replace("remind me to", "")
-                .replace("set a reminder", "")
-                .strip()
-            )
-
-            # Enhanced time extraction
-            time_patterns = [
-                r"at (\d{1,2}:\d{2}(?:\s*[ap]m)?)",
-                r"(\d{1,2}:\d{2}(?:\s*[ap]m)?)",
-                r"(tomorrow|today|next week|next month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)",
-                r"in (\d+) (minutes?|hours?|days?)",
-            ]
-            for pattern in time_patterns:
-                match = re.search(pattern, user_message, re.IGNORECASE)
-                if match:
-                    entities["datetime"] = match.group(1)
-                    break
-
+            return self._extract_set_reminder_entities(user_message)
         elif intent == "device_control":
-            # Enhanced device and action extraction
-            device_patterns = [
-                r"turn (on|off) (?:the )?([A-Za-z\s]+?)(?:\s|$)",
-                r"(turn on|turn off|dim|brighten|set) (?:the )?([A-Za-z\s]+?)(?:\s|$)",
-                r"set (?:the )?([A-Za-z\s]+) to (\d+)",
-                r"(dim|brighten) (?:the )?([A-Za-z\s]+)",
-            ]
-            for pattern in device_patterns:
-                match = re.search(pattern, user_message, re.IGNORECASE)
-                if match:
-                    if "set" in pattern and len(match.groups()) >= 2:
-                        entities["device_name"] = match.group(1)
-                        entities["device_action"] = "set"
-                        if len(match.groups()) >= 3:
-                            entities["value"] = match.group(2)
-                    else:
-                        entities["device_action"] = match.group(1)
-                        entities["device_name"] = match.group(2)
-                    break
+            return self._extract_device_control_entities(user_message)
+        return {}
 
-            # Extract temperature for thermostat
-            temp_match = re.search(r"(\d+)\s*degrees?", user_message, re.IGNORECASE)
-            if temp_match:
-                entities["temperature"] = int(temp_match.group(1))
+    def _extract_weather_entities(self, user_message: str) -> Dict[str, Any]:
+        """Extract weather-related entities"""
+        entities = {}
+        location_patterns = [
+            r"weather in ([A-Za-z\s]+)",
+            r"weather for ([A-Za-z\s]+)",
+            r"in ([A-Za-z\s,]+)",
+            r"at ([A-Za-z\s,]+)",
+        ]
+        for pattern in location_patterns:
+            match = re.search(pattern, user_message, re.IGNORECASE)
+            if match:
+                entities["location"] = match.group(1).strip()
+                break
+        return entities
 
+    def _extract_set_reminder_entities(self, user_message: str) -> Dict[str, Any]:
+        """Extract set reminder-related entities"""
+        entities = {}
+        entities["reminder_title"] = (
+            user_message.replace("remind me to", "")
+            .replace("set a reminder", "")
+            .strip()
+        )
+        time_patterns = [
+            r"at (\d{1,2}:\d{2}(?:\s*[ap]m)?)",
+            r"(\d{1,2}:\d{2}(?:\s*[ap]m)?)",
+            r"(tomorrow|today|next week|next month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)",
+            r"in (\d+) (minutes?|hours?|days?)",
+        ]
+        for pattern in time_patterns:
+            match = re.search(pattern, user_message, re.IGNORECASE)
+            if match:
+                entities["datetime"] = match.group(1)
+                break
+        return entities
+
+    def _extract_device_control_entities(self, user_message: str) -> Dict[str, Any]:
+        """Extract device control-related entities"""
+        entities = {}
+        device_patterns = [
+            r"turn (on|off) (?:the )?([A-Za-z\s]+?)(?:\s|$)",
+            r"(turn on|turn off|dim|brighten|set) (?:the )?([A-Za-z\s]+?)(?:\s|$)",
+            r"set (?:the )?([A-Za-z\s]+) to (\d+)",
+            r"(dim|brighten) (?:the )?([A-Za-z\s]+)",
+        ]
+        for pattern in device_patterns:
+            match = re.search(pattern, user_message, re.IGNORECASE)
+            if match:
+                if "set" in pattern and len(match.groups()) >= 2:
+                    entities["device_name"] = match.group(1)
+                    entities["device_action"] = "set"
+                    if len(match.groups()) >= 3:
+                        entities["value"] = match.group(2)
+                else:
+                    entities["device_action"] = match.group(1)
+                    entities["device_name"] = match.group(2)
+                break
+        temp_match = re.search(r"(\d+)\s*degrees?", user_message, re.IGNORECASE)
+        if temp_match:
+            entities["temperature"] = int(temp_match.group(1))
         return entities
 
     def handle_weather_request(
@@ -641,45 +651,63 @@ Provide a helpful and friendly response that addresses the user's request."""
             session.close()
 
     def _parse_datetime(self, datetime_str: str) -> Optional[datetime]:
-        """Enhanced datetime parsing"""
+        """Enhanced datetime parsing with reduced cognitive complexity"""
         if not datetime_str:
             return None
 
         now = datetime.now()
         datetime_str = datetime_str.lower().strip()
 
-        # Handle relative days
-        if "tomorrow" in datetime_str:
-            base_date = now + timedelta(days=1)
-        elif "today" in datetime_str:
+        base_date = self._parse_relative_day(datetime_str, now)
+        if base_date is None:
+            base_date = self._parse_weekday(datetime_str, now)
+        if base_date is None:
             base_date = now
-        elif "next week" in datetime_str:
-            base_date = now + timedelta(days=7)
-        elif "next month" in datetime_str:
-            base_date = now + timedelta(days=30)
-        else:
-            # Handle specific days of week
-            weekdays = {
-                "monday": 0,
-                "tuesday": 1,
-                "wednesday": 2,
-                "thursday": 3,
-                "friday": 4,
-                "saturday": 5,
-                "sunday": 6,
-            }
 
-            for day_name, day_num in weekdays.items():
-                if day_name in datetime_str:
-                    days_ahead = day_num - now.weekday()
-                    if days_ahead <= 0:  # Target day already happened this week
-                        days_ahead += 7
-                    base_date = now + timedelta(days=days_ahead)
-                    break
-            else:
-                base_date = now
+        time_result = self._extract_time(datetime_str, base_date)
+        if time_result:
+            return time_result
 
-        # Extract time
+        relative_result = self._extract_relative_time(datetime_str, now)
+        if relative_result:
+            return relative_result
+
+        return None
+
+    def _parse_relative_day(
+        self, datetime_str: str, now: datetime
+    ) -> Optional[datetime]:
+        if "tomorrow" in datetime_str:
+            return now + timedelta(days=1)
+        if "today" in datetime_str:
+            return now
+        if "next week" in datetime_str:
+            return now + timedelta(days=7)
+        if "next month" in datetime_str:
+            return now + timedelta(days=30)
+        return None
+
+    def _parse_weekday(self, datetime_str: str, now: datetime) -> Optional[datetime]:
+        weekdays = {
+            "monday": 0,
+            "tuesday": 1,
+            "wednesday": 2,
+            "thursday": 3,
+            "friday": 4,
+            "saturday": 5,
+            "sunday": 6,
+        }
+        for day_name, day_num in weekdays.items():
+            if day_name in datetime_str:
+                days_ahead = day_num - now.weekday()
+                if days_ahead <= 0:
+                    days_ahead += 7
+                return now + timedelta(days=days_ahead)
+        return None
+
+    def _extract_time(
+        self, datetime_str: str, base_date: datetime
+    ) -> Optional[datetime]:
         time_match = re.search(
             r"(\d{1,2}):?(\d{2})?\s*(am|pm)?", datetime_str, re.IGNORECASE
         )
@@ -687,26 +715,25 @@ Provide a helpful and friendly response that addresses the user's request."""
             hour = int(time_match.group(1))
             minute = int(time_match.group(2)) if time_match.group(2) else 0
             am_pm = time_match.group(3)
-
             if am_pm:
                 if am_pm.lower() == "pm" and hour != 12:
                     hour += 12
                 elif am_pm.lower() == "am" and hour == 12:
                     hour = 0
-
             return base_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        return None
 
-        # Handle relative time (in X minutes/hours)
+    def _extract_relative_time(
+        self, datetime_str: str, now: datetime
+    ) -> Optional[datetime]:
         relative_match = re.search(r"in (\d+) (minutes?|hours?)", datetime_str)
         if relative_match:
             amount = int(relative_match.group(1))
             unit = relative_match.group(2)
-
             if "minute" in unit:
                 return now + timedelta(minutes=amount)
             elif "hour" in unit:
                 return now + timedelta(hours=amount)
-
         return None
 
     def handle_list_reminders(self, user_context: UserContext) -> tuple[str, List[str]]:
@@ -812,10 +839,10 @@ Provide a helpful and friendly response that addresses the user's request."""
         capabilities = device.get("capabilities", [])
 
         try:
-            if action in ["turn on", "on"]:
+            if action in [TURN_ON, "on"]:
                 return True, f"I've turned on the {device_name}."
 
-            elif action in ["turn off", "off"]:
+            elif action in [TURN_OFF, "off"]:
                 return True, f"I've turned off the {device_name}."
 
             elif action == "dim" and "brightness" in capabilities:
@@ -858,7 +885,7 @@ Provide a helpful and friendly response that addresses the user's request."""
         self, device_type: str, capabilities: List[str]
     ) -> List[str]:
         """Get available actions for a device type"""
-        actions = ["turn on", "turn off"]
+        actions = [TURN_ON, TURN_OFF]
 
         if "brightness" in capabilities:
             actions.extend(["dim", "brighten", "set brightness"])
@@ -1116,7 +1143,7 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
                     user_message, entities
                 )
             elif intent_result.intent == "greeting":
-                additional_info = f"Hello! I'm your personal assistant. I can help you with weather, reminders, device control, and more. What can I do for you today?"
+                additional_info = "Hello! I'm your personal assistant. I can help you with weather, reminders, device control, and more. What can I do for you today?"
                 actions_taken = ["Greeted user"]
             elif intent_result.intent == "goodbye":
                 additional_info = (

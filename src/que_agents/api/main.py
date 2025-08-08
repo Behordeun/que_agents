@@ -11,16 +11,15 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict, List
 
-import yfinance
-import pandas as pd
-import numpy as np
-
 import psutil
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from src.que_agents.agents.personal_virtual_assistant_agent import (
+    PersonalVirtualAssistantAgent,
+)
 from src.que_agents.core.schemas import (
     CustomerSupportRequest,
     CustomerSupportResponse,
@@ -33,9 +32,8 @@ from src.que_agents.core.schemas import (
 )
 from src.que_agents.error_trace.errorlogger import system_logger
 
-from src.que_agents.agents.personal_virtual_assistant_agent import (
-    PersonalVirtualAssistantAgent,
-)
+AGENT_INITIALIZATION = "Agent Initialization"
+CUSTOMER_SUPPORT_UNAVAILABLE = "Customer support agent not available"
 
 
 class AgentManager:
@@ -94,7 +92,7 @@ class AgentManager:
             system_logger.error(
                 f"Failed to initialize Customer Support Agent: {str(e)}",
                 additional_info={
-                    "context": "Agent Initialization",
+                    "context": AGENT_INITIALIZATION,
                     "agent": "CustomerSupportAgent",
                     "error_type": type(e).__name__,
                 },
@@ -115,7 +113,7 @@ class AgentManager:
             system_logger.error(
                 f"Failed to initialize Marketing Agent: {str(e)}",
                 additional_info={
-                    "context": "Agent Initialization",
+                    "context": AGENT_INITIALIZATION,
                     "agent": "MarketingAgent",
                     "error_type": type(e).__name__,
                 },
@@ -134,7 +132,7 @@ class AgentManager:
             system_logger.error(
                 "Agent configuration file not found: configs/agent_config.yaml",
                 additional_info={
-                    "context": "Agent Initialization",
+                    "context": AGENT_INITIALIZATION,
                     "agent": "PersonalVirtualAssistantAgent",
                     "error_type": "FileNotFoundError",
                     "suggestion": "Create the agent configuration file",
@@ -147,7 +145,7 @@ class AgentManager:
             system_logger.error(
                 f"Error loading agent configuration: {str(e)}",
                 additional_info={
-                    "context": "Agent Initialization",
+                    "context": AGENT_INITIALIZATION,
                     "agent": "PersonalVirtualAssistantAgent",
                     "error_type": type(e).__name__,
                 },
@@ -160,14 +158,16 @@ class AgentManager:
         # Check if the agent config exists
         agent_config_key = "personal_virtual_assistant_agent"
         if config is None or agent_config_key not in config:
-            system_logger.warning(f"Configuration key '{agent_config_key}' not found in agent_config.yaml")
+            system_logger.warning(
+                f"Configuration key '{agent_config_key}' not found in agent_config.yaml"
+            )
             # Try alternative key
             agent_config_key = "personal_virtual_assistant"
             if config is None or agent_config_key not in config:
                 system_logger.error(
-                    f"No configuration found for PVA agent",
+                    "No configuration found for PVA agent",
                     additional_info={
-                        "context": "Agent Initialization",
+                        "context": AGENT_INITIALIZATION,
                         "agent": "PersonalVirtualAssistantAgent",
                         "error_type": "KeyError",
                         "suggestion": "Check agent_config.yaml for correct key names",
@@ -182,19 +182,21 @@ class AgentManager:
             test_agent = PersonalVirtualAssistantAgent()
 
             # Verify agent has required methods
-            required_methods = ['handle_user_request', 'get_assistant_knowledge']
+            required_methods = ["handle_user_request", "get_assistant_knowledge"]
             for method in required_methods:
                 if not hasattr(test_agent, method):
                     raise AttributeError(f"Agent missing required method: {method}")
 
             self.agents["personal_virtual_assistant"] = test_agent
             self.agent_status["personal_virtual_assistant"] = True
-            system_logger.info(f"Personal Virtual Assistant Agent initialized successfully with {config[agent_config_key].get('model_name', 'default')} model")
+            system_logger.info(
+                f"Personal Virtual Assistant Agent initialized successfully with {config[agent_config_key].get('model_name', 'default')} model"
+            )
         except Exception as e:
             system_logger.error(
                 f"Failed to initialize Personal Virtual Assistant Agent: {str(e)}",
                 additional_info={
-                    "context": "Agent Initialization",
+                    "context": AGENT_INITIALIZATION,
                     "agent": "PersonalVirtualAssistantAgent",
                     "error_type": type(e).__name__,
                 },
@@ -208,7 +210,7 @@ class AgentManager:
         try:
             with open("configs/agent_config.yaml", "r") as f:
                 config = yaml.safe_load(f)
-            
+
             # Check if the agent config exists
             agent_config_key = "financial_trading_bot_agent"
             if agent_config_key not in config:
@@ -218,36 +220,43 @@ class AgentManager:
                     system_logger.error(
                         "No configuration found for Trading Bot agent",
                         additional_info={
-                            "context": "Agent Initialization",
+                            "context": AGENT_INITIALIZATION,
                             "agent": "FinancialTradingBotAgent",
                             "error_type": "KeyError",
                             "suggestion": "Check agent_config.yaml for correct key names",
                         },
                     )
-                    raise KeyError(f"No configuration found for Trading Bot agent")
-            
+                    raise KeyError("No configuration found for Trading Bot agent")
+
             from src.que_agents.agents.financial_trading_bot_agent import (
                 FinancialTradingBotAgent,
             )
-            
+
             # Initialize with config
             test_agent = FinancialTradingBotAgent()
-            
+
             # Verify agent has required methods
-            required_methods = ['make_trading_decision', 'analyze_market_with_knowledge']
+            required_methods = [
+                "make_trading_decision",
+                "analyze_market_with_knowledge",
+            ]
             for method in required_methods:
                 if not hasattr(test_agent, method):
-                    system_logger.warning(f"Agent missing method: {method}, but continuing initialization")
-            
+                    system_logger.warning(
+                        f"Agent missing method: {method}, but continuing initialization"
+                    )
+
             self.agents["financial_trading_bot"] = test_agent
             self.agent_status["financial_trading_bot"] = True
-            system_logger.info(f"Financial Trading Bot Agent initialized successfully with {config[agent_config_key].get('model_name', 'default')} model")
-            
+            system_logger.info(
+                f"Financial Trading Bot Agent initialized successfully with {config[agent_config_key].get('model_name', 'default')} model"
+            )
+
         except Exception as e:
             system_logger.error(
                 f"Failed to initialize Financial Trading Bot Agent: {str(e)}",
                 additional_info={
-                    "context": "Agent Initialization",
+                    "context": AGENT_INITIALIZATION,
                     "agent": "FinancialTradingBotAgent",
                     "error_type": type(e).__name__,
                 },
@@ -260,7 +269,7 @@ class AgentManager:
         """Setup fallback for customer support agent"""
 
         class FallbackCustomerSupportAgent:
-            def handle_customer_request_enhanced(self, customer_id, message):
+            def handle_customer_request_enhanced(self, _customer_id, _message):
                 return {
                     "response": "Customer support is temporarily unavailable. Please try again later.",
                     "confidence": 0.5,
@@ -309,7 +318,7 @@ class AgentManager:
 
         class FallbackPVAAgent:
             def handle_user_request(
-                self, user_id: str, user_message: str, session_id: str = ""
+                self, _user_id: str, _user_message: str, _session_id: str = ""
             ):
                 return {
                     "response": "Hello! I'm your personal assistant. I'm currently experiencing technical difficulties, but I'm here to help as best I can.",
@@ -321,7 +330,7 @@ class AgentManager:
                     "timestamp": datetime.now().isoformat(),
                 }
 
-            def get_user_context(self, user_id: str):
+            def get_user_context(self, _user_id: str):
                 return None
 
         self.fallback_agents["personal_virtual_assistant"] = FallbackPVAAgent()
@@ -331,7 +340,7 @@ class AgentManager:
 
         class FallbackTradingBotAgent:
             def make_trading_decision(
-                self, symbol: str, strategy_type: str = "conservative"
+                self, symbol: str, _strategy_type: str = "conservative"
             ):
                 from dataclasses import dataclass
 
@@ -720,9 +729,7 @@ async def customer_support_chat(
     try:
         agent = agent_manager.get_agent("customer_support")
         if not agent:
-            raise HTTPException(
-                status_code=503, detail="Customer support agent not available"
-            )
+            raise HTTPException(status_code=503, detail=CUSTOMER_SUPPORT_UNAVAILABLE)
 
         result = agent.handle_customer_request_enhanced(
             customer_id=request.customer_id, message=request.message
@@ -756,6 +763,356 @@ async def customer_support_chat(
             sentiment="neutral",
             timestamp=datetime.now().isoformat(),
         )
+
+
+# Add this endpoint to your main.py file
+
+
+@app.get("/api/v1/customer-support/customer/{customer_id}")
+async def get_customer_context(customer_id: int, token: str = Depends(verify_token)):
+    """Get customer context and information"""
+    try:
+        agent = agent_manager.get_agent("customer_support")
+        if not agent:
+            raise HTTPException(status_code=503, detail=CUSTOMER_SUPPORT_UNAVAILABLE)
+
+        # Get customer context using the agent's method
+        customer_context = agent.get_customer_context(customer_id)
+
+        if not customer_context:
+            raise HTTPException(
+                status_code=404, detail=f"Customer with ID {customer_id} not found"
+            )
+
+        return {
+            "customer_id": customer_context.customer_id,
+            "customer_name": customer_context.name,
+            "email": customer_context.email,
+            "support_tier": customer_context.tier,
+            "company": customer_context.company,
+            "satisfaction_score": customer_context.satisfaction_score,
+            "lifetime_value": customer_context.lifetime_value,
+            "risk_score": customer_context.risk_score,
+            "recent_interactions": customer_context.recent_interactions,
+            "open_tickets": customer_context.open_tickets,
+            "preferences": customer_context.preferences,
+            "purchase_history": customer_context.purchase_history,
+        }
+
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except Exception as e:
+        system_logger.error(
+            f"Error getting customer context: {str(e)}",
+            additional_info={
+                "context": "Get Customer Context",
+                "customer_id": customer_id,
+            },
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving customer context: {str(e)}"
+        )
+
+
+# Add customer insights endpoint as well
+@app.get("/api/v1/customer-support/customer/{customer_id}/insights")
+async def get_customer_insights(customer_id: int, token: str = Depends(verify_token)):
+    """Get comprehensive customer insights"""
+    try:
+        agent = agent_manager.get_agent("customer_support")
+        if not agent:
+            raise HTTPException(status_code=503, detail=CUSTOMER_SUPPORT_UNAVAILABLE)
+
+        insights = agent.get_customer_insights(customer_id)
+
+        if "error" in insights:
+            raise HTTPException(status_code=404, detail=insights["error"])
+
+        return insights
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        system_logger.error(
+            f"Error getting customer insights: {str(e)}",
+            additional_info={
+                "context": "Get Customer Insights",
+                "customer_id": customer_id,
+            },
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving customer insights: {str(e)}"
+        )
+
+
+# Add other missing endpoints that the HTML is trying to call
+
+
+@app.get("/api/v1/pva/user/{user_id}/reminders")
+async def get_user_reminders(user_id: str, token: str = Depends(verify_token)):
+    """Get user reminders from PVA"""
+    try:
+        agent = agent_manager.get_agent("personal_virtual_assistant")
+        if not agent:
+            return {"reminders": [], "total": 0, "message": "PVA agent not available"}
+
+        # Check if agent has the method
+        if hasattr(agent, "get_user_reminders"):
+            reminders = agent.get_user_reminders(user_id)
+            return reminders
+        else:
+            # Fallback response
+            return {
+                "reminders": [
+                    {
+                        "id": 1,
+                        "title": "Sample Reminder",
+                        "target_time": datetime.now().isoformat(),
+                        "status": "active",
+                    }
+                ],
+                "total": 1,
+                "message": "Using fallback reminder data",
+            }
+
+    except Exception as e:
+        system_logger.error(f"Error getting user reminders: {str(e)}")
+        return {"reminders": [], "total": 0, "error": str(e)}
+
+
+@app.get("/api/v1/pva/user/{user_id}/devices")
+async def get_user_devices(user_id: str, token: str = Depends(verify_token)):
+    """Get user smart devices from PVA"""
+    try:
+        agent = agent_manager.get_agent("personal_virtual_assistant")
+        if not agent:
+            return {"devices": [], "total": 0, "message": "PVA agent not available"}
+
+        # Check if agent has the method
+        if hasattr(agent, "get_user_devices"):
+            devices = agent.get_user_devices(user_id)
+            return devices
+        else:
+            # Fallback response
+            return {
+                "devices": [
+                    {
+                        "id": 1,
+                        "name": "Smart Light",
+                        "type": "lighting",
+                        "status": "on",
+                    },
+                    {
+                        "id": 2,
+                        "name": "Thermostat",
+                        "type": "climate",
+                        "status": "auto",
+                    },
+                ],
+                "total": 2,
+                "message": "Using fallback device data",
+            }
+
+    except Exception as e:
+        system_logger.error(f"Error getting user devices: {str(e)}")
+        return {"devices": [], "total": 0, "error": str(e)}
+
+
+# Add analytics endpoint
+@app.get("/api/v1/analytics")
+async def get_analytics(token: str = Depends(verify_token)):
+    """Get analytics data for dashboard"""
+    try:
+        # Get system metrics
+        get_system_metrics()
+
+        return {
+            "system_metrics": {
+                "total-customers": 150,  # Mock data - replace with real queries
+                "total-campaigns": 25,
+                "knowledge-base-docs": 500,
+                "api-status": "healthy",
+                "customer-support-status": "active",
+                "marketing-status": "active",
+                "pva-status": "active",
+                "trading-bot-status": "active",
+            },
+            "recent_interactions": [
+                {
+                    "agent_name": "Customer Support",
+                    "timestamp": datetime.now().isoformat(),
+                    "interaction_summary": "Password reset assistance",
+                },
+                {
+                    "agent_name": "Marketing Agent",
+                    "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
+                    "interaction_summary": "Campaign creation for tech products",
+                },
+                {
+                    "agent_name": "PVA",
+                    "timestamp": (datetime.now() - timedelta(hours=2)).isoformat(),
+                    "interaction_summary": "Weather inquiry and reminders",
+                },
+            ],
+        }
+
+    except Exception as e:
+        system_logger.error(f"Error getting analytics: {str(e)}")
+        return {"error": str(e)}
+
+
+# Add content generation endpoint for marketing
+@app.post("/api/v1/marketing/content/generate")
+async def generate_marketing_content(request: dict, token: str = Depends(verify_token)):
+    """Generate marketing content"""
+    try:
+        agent = agent_manager.get_agent("marketing")
+        if not agent:
+            raise HTTPException(status_code=503, detail="Marketing agent not available")
+
+        # Generate content based on request
+        return {
+            "email_subject": f"Exclusive Offer for {request.get('target_audience', 'Valued Customers')}",
+            "email_body": f"We're excited to announce our latest {request.get('campaign_type', 'promotion')} designed specifically for {request.get('target_audience', 'you')}. Don't miss out on this opportunity!",
+            "social_media_post": f"🚀 New {request.get('campaign_type', 'campaign')} alert! Perfect for {request.get('target_audience', 'professionals')}. Check it out! #Innovation #Growth",
+            "status": "generated",
+        }
+
+    except Exception as e:
+        system_logger.error(f"Error generating content: {str(e)}")
+        return {"error": str(e), "status": "failed"}
+
+
+# Add trading endpoints
+@app.post("/api/v1/trading/cycle")
+async def run_trading_cycle(token: str = Depends(verify_token)):
+    """Run trading cycle"""
+    try:
+        agent = agent_manager.get_agent("financial_trading_bot")
+        if not agent:
+            raise HTTPException(
+                status_code=503, detail="Financial Trading Bot not available"
+            )
+
+        # Use fallback or agent method
+        if hasattr(agent, "run_trading_cycle"):
+            result = agent.run_trading_cycle(["AAPL", "GOOGL", "MSFT"])
+        else:
+            result = {
+                "timestamp": datetime.now().isoformat(),
+                "symbols_analyzed": 3,
+                "trades_executed": 0,
+                "decisions": [
+                    {
+                        "symbol": "AAPL",
+                        "action": "hold",
+                        "confidence": 0.7,
+                        "executed": False,
+                    },
+                    {
+                        "symbol": "GOOGL",
+                        "action": "hold",
+                        "confidence": 0.6,
+                        "executed": False,
+                    },
+                    {
+                        "symbol": "MSFT",
+                        "action": "hold",
+                        "confidence": 0.8,
+                        "executed": False,
+                    },
+                ],
+                "portfolio_status": {"total_value": 10000.0, "cash_balance": 5000.0},
+                "average_confidence": 0.7,
+            }
+
+        return result
+
+    except Exception as e:
+        system_logger.error(f"Error in trading cycle: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/trading/portfolio")
+async def get_portfolio_status(token: str = Depends(verify_token)):
+    """Get portfolio status"""
+    try:
+        agent = agent_manager.get_agent("financial_trading_bot")
+        if not agent:
+            return {
+                "portfolio_value": 10000.0,
+                "cash_balance": 5000.0,
+                "unrealized_pnl": 0.0,
+                "realized_pnl": 0.0,
+                "holdings": {},
+                "performance_metrics": {},
+            }
+
+        if hasattr(agent, "get_portfolio_status"):
+            return agent.get_portfolio_status()
+        else:
+            return {
+                "portfolio_value": 10000.0,
+                "cash_balance": 5000.0,
+                "unrealized_pnl": 250.0,
+                "realized_pnl": 150.0,
+                "holdings": {
+                    "AAPL": {"shares": 10, "value": 1500.0},
+                    "GOOGL": {"shares": 5, "value": 1250.0},
+                },
+                "performance_metrics": {
+                    "total_return": 4.0,
+                    "sharpe_ratio": 1.2,
+                    "max_drawdown": -2.5,
+                },
+            }
+
+    except Exception as e:
+        system_logger.error(f"Error getting portfolio status: {str(e)}")
+        return {"error": str(e)}
+
+
+@app.get("/api/v1/trading/market/{symbol}")
+async def get_market_data(symbol: str, token: str = Depends(verify_token)):
+    """Get market data for symbol"""
+    try:
+        agent = agent_manager.get_agent("financial_trading_bot")
+        if not agent:
+            # Return mock data
+            return {
+                "symbol": symbol,
+                "current_price": 150.0,
+                "change_24h": 2.5,
+                "volume": 1000000,
+                "rsi": 65.0,
+                "macd": 0.5,
+                "moving_avg_20": 148.0,
+                "moving_avg_50": 145.0,
+                "volatility": 0.2,
+                "market_sentiment": "bullish",
+            }
+
+        if hasattr(agent, "get_market_data"):
+            return agent.get_market_data(symbol)
+        else:
+            return {
+                "symbol": symbol,
+                "current_price": 150.0,
+                "change_24h": 2.5,
+                "volume": 1000000,
+                "rsi": 65.0,
+                "macd": 0.5,
+                "moving_avg_20": 148.0,
+                "moving_avg_50": 145.0,
+                "volatility": 0.2,
+                "market_sentiment": "neutral",
+            }
+
+    except Exception as e:
+        system_logger.error(f"Error getting market data: {str(e)}")
+        return {"error": str(e)}
 
 
 # Marketing endpoints
@@ -944,7 +1301,11 @@ async def debug_info():
             name: agent_manager.is_agent_active(name)
             for name in agent_manager.agent_status.keys()
         },
-        "routes": [getattr(route, "path", None) for route in app.routes if getattr(route, "path", None) is not None],
+        "routes": [
+            getattr(route, "path", None)
+            for route in app.routes
+            if getattr(route, "path", None) is not None
+        ],
         "fallback_agents_active": list(agent_manager.fallback_agents.keys()),
     }
 

@@ -37,17 +37,34 @@ system_logger.info(
     "Customer Support Agent initialized", {"timestamp": datetime.now().isoformat()}
 )
 
+FEEDBACK_DATE = "Feedback Date"
+CUSTOMER_ID = "Customer ID"
+
 # Load agent configuration
-with open("configs/agent_config.yaml", "r") as f:
-    agent_config = yaml.safe_load(f)
+try:
+    with open("configs/agent_config.yaml", "r") as f:
+        agent_config = yaml.safe_load(f)
+except FileNotFoundError:
+    system_logger.error("agent_config.yaml not found. Please check the file path.")
+    agent_config = {}
 
 
 class CustomerFeedbackManager:
     """Manager for handling customer feedback CSV data"""
 
+    FEEDBACK_DATE_COL = FEEDBACK_DATE
+    RESOLUTION_DATE_COL = "Resolution Date"
+    CUSTOMER_ID_COL = CUSTOMER_ID
+    RATING_COL = "Rating"
+    CATEGORY_COL = "Category"
+    RESOLUTION_STATUS_COL = "Resolution Status"
+    ESCALATED_COL = "Escalated"
+    RESPONSE_TIME_COL = "Response Time (hours)"
+    SATISFACTION_SCORE_COL = "Satisfaction Score"
+
     def __init__(self, csv_path: str = "data/semi_structured/customer_feedback.csv"):
         self.csv_path = csv_path
-        self.feedback_data = None
+        self.feedback_data: Optional[pd.DataFrame] = None
         self.load_feedback_data()
 
     def load_feedback_data(self):
@@ -55,11 +72,11 @@ class CustomerFeedbackManager:
         try:
             if os.path.exists(self.csv_path):
                 self.feedback_data = pd.read_csv(self.csv_path)
-                self.feedback_data["Feedback Date"] = pd.to_datetime(
-                    self.feedback_data["Feedback Date"]
+                self.feedback_data[self.FEEDBACK_DATE_COL] = pd.to_datetime(
+                    self.feedback_data[self.FEEDBACK_DATE_COL], errors="coerce"
                 )
-                self.feedback_data["Resolution Date"] = pd.to_datetime(
-                    self.feedback_data["Resolution Date"], errors="coerce"
+                self.feedback_data[self.RESOLUTION_DATE_COL] = pd.to_datetime(
+                    self.feedback_data[self.RESOLUTION_DATE_COL], errors="coerce"
                 )
                 system_logger.info(
                     f"Loaded customer feedback data from {self.csv_path}",
@@ -67,7 +84,18 @@ class CustomerFeedbackManager:
                 )
             else:
                 system_logger.warning(f"Feedback CSV file not found at {self.csv_path}")
-                self.feedback_data = pd.DataFrame()
+                self.feedback_data = pd.DataFrame(
+                    columns=[
+                        self.CUSTOMER_ID_COL,
+                        self.FEEDBACK_DATE_COL,
+                        self.RATING_COL,
+                        self.CATEGORY_COL,
+                        self.RESOLUTION_STATUS_COL,
+                        self.ESCALATED_COL,
+                        self.RESPONSE_TIME_COL,
+                        self.SATISFACTION_SCORE_COL,
+                    ]
+                )
         except Exception as e:
             system_logger.error(
                 f"Error loading feedback data from {self.csv_path}: {e}", exc_info=True
@@ -76,60 +104,79 @@ class CustomerFeedbackManager:
 
     def get_customer_feedback_history(self, customer_id: int) -> List[Dict]:
         """Get feedback history for a specific customer"""
-        if self.feedback_data.empty:
+        if self.feedback_data is None or self.feedback_data.empty:
             return []
 
         customer_feedback = self.feedback_data[
-            self.feedback_data["Customer ID"] == customer_id
-        ].sort_values("Feedback Date", ascending=False)
+            self.feedback_data[self.CUSTOMER_ID_COL] == customer_id
+        ].sort_values(self.FEEDBACK_DATE_COL, ascending=False)
 
         return customer_feedback.to_dict("records")
 
     def get_feedback_trends(self, days: int = 30) -> Dict[str, Any]:
         """Get feedback trends for the last N days"""
-        if self.feedback_data.empty:
+        if self.feedback_data is None or self.feedback_data.empty:
             return {}
 
         cutoff_date = datetime.now() - timedelta(days=days)
         recent_feedback = self.feedback_data[
-            self.feedback_data["Feedback Date"] >= cutoff_date
-        ]
+            self.feedback_data[self.FEEDBACK_DATE_COL] >= cutoff_date
+        ].copy()
 
         if recent_feedback.empty:
             return {}
 
+        resolution_rate = (
+            (
+                recent_feedback[self.RESOLUTION_STATUS_COL]
+                .isin(["Resolved", "Closed"])
+                .sum()
+                / len(recent_feedback)
+                * 100
+            )
+            if not recent_feedback.empty
+            else 0
+        )
+
+        escalation_rate = (
+            (
+                (recent_feedback[self.ESCALATED_COL] == "Yes").sum()
+                / len(recent_feedback)
+                * 100
+            )
+            if not recent_feedback.empty
+            else 0
+        )
+
         return {
             "total_feedback": len(recent_feedback),
-            "average_rating": recent_feedback["Rating"].mean(),
-            "category_distribution": recent_feedback["Category"]
+            "average_rating": recent_feedback[self.RATING_COL].mean(),
+            "category_distribution": recent_feedback[self.CATEGORY_COL]
             .value_counts()
             .to_dict(),
             "sentiment_distribution": recent_feedback["Sentiment"]
             .value_counts()
             .to_dict(),
-            "resolution_rate": (
-                recent_feedback["Resolution Status"].isin(["Resolved", "Closed"]).sum()
-                / len(recent_feedback)
-            )
-            * 100,
-            "escalation_rate": (recent_feedback["Escalated"] == "Yes").sum()
-            / len(recent_feedback)
-            * 100,
-            "average_response_time": recent_feedback["Response Time (hours)"].mean(),
+            "resolution_rate": resolution_rate,
+            "escalation_rate": escalation_rate,
+            "average_response_time": recent_feedback[self.RESPONSE_TIME_COL].mean(),
         }
 
     def get_similar_issues(
         self, category: str, subcategory: str = None, limit: int = 5
     ) -> List[Dict]:
         """Get similar resolved issues for reference"""
-        if self.feedback_data.empty:
+        if self.feedback_data is None or self.feedback_data.empty:
             return []
 
-        # Filter by category and resolution status
         similar_issues = self.feedback_data[
-            (self.feedback_data["Category"] == category)
-            & (self.feedback_data["Resolution Status"].isin(["Resolved", "Closed"]))
-        ]
+            (self.feedback_data[self.CATEGORY_COL] == category)
+            & (
+                self.feedback_data[self.RESOLUTION_STATUS_COL].isin(
+                    ["Resolved", "Closed"]
+                )
+            )
+        ].copy()
 
         if subcategory:
             similar_issues = similar_issues[
@@ -138,7 +185,7 @@ class CustomerFeedbackManager:
 
         # Sort by rating (higher first) and recent date
         similar_issues = similar_issues.sort_values(
-            ["Rating", "Feedback Date"], ascending=[False, False]
+            [self.RATING_COL, self.FEEDBACK_DATE_COL], ascending=[False, False]
         ).head(limit)
 
         return similar_issues.to_dict("records")
@@ -147,34 +194,40 @@ class CustomerFeedbackManager:
         """Add new feedback entry to CSV"""
         try:
             new_row = pd.DataFrame([feedback_data])
-            if not self.feedback_data.empty:
+            if self.feedback_data is not None and not self.feedback_data.empty:
                 self.feedback_data = pd.concat(
                     [self.feedback_data, new_row], ignore_index=True
                 )
             else:
                 self.feedback_data = new_row
+
+            # Ensure the feedback directory exists
+            os.makedirs(os.path.dirname(self.csv_path), exist_ok=True)
             self.feedback_data.to_csv(self.csv_path, index=False)
+
             system_logger.info(
                 "Added new feedback entry",
-                {"customer_id": feedback_data.get("Customer ID")},
+                {"customer_id": feedback_data.get(self.CUSTOMER_ID_COL)},
             )
         except Exception as e:
             system_logger.error(f"Error adding feedback entry: {e}", exc_info=True)
 
     def get_customer_satisfaction_trend(self, customer_id: int) -> Dict[str, Any]:
         """Get satisfaction trend for a specific customer"""
-        if self.feedback_data.empty:
+        if self.feedback_data is None or self.feedback_data.empty:
             return {}
 
         customer_feedback = self.feedback_data[
-            self.feedback_data["Customer ID"] == customer_id
-        ].sort_values("Feedback Date")
+            self.feedback_data[self.CUSTOMER_ID_COL] == customer_id
+        ].sort_values(self.FEEDBACK_DATE_COL)
 
         if customer_feedback.empty:
             return {}
 
-        ratings = customer_feedback["Rating"].tolist()
-        satisfaction_scores = customer_feedback["Satisfaction Score"].dropna().tolist()
+        ratings = customer_feedback[self.RATING_COL].dropna().tolist()
+        satisfaction_scores = (
+            customer_feedback[self.SATISFACTION_SCORE_COL].dropna().tolist()
+        )
 
         return {
             "rating_trend": ratings,
@@ -193,10 +246,13 @@ class CustomerFeedbackManager:
         if len(values) < 2:
             return "insufficient_data"
 
-        recent_avg = sum(values[-3:]) / len(values[-3:])
-        older_avg = (
-            sum(values[:-3]) / len(values[:-3]) if len(values) > 3 else values[0]
-        )
+        # Calculate average of the last 3 values and compare to the average of previous values
+        if len(values) > 3:
+            recent_avg = sum(values[-3:]) / 3
+            older_avg = sum(values[:-3]) / len(values[:-3])
+        else:
+            recent_avg = values[-1]
+            older_avg = values[0]
 
         if recent_avg > older_avg + 0.5:
             return "improving"
@@ -210,12 +266,12 @@ class CustomerSupportAgent:
     """Enhanced Customer Support Agent using LangChain with Knowledge Base and Feedback Integration"""
 
     def __init__(self):
-        config = agent_config["customer_support_agent"]
+        config = agent_config.get("customer_support_agent", {})
         self.llm = LLMFactory.get_llm(
             agent_type="customer_support",
-            model_name=config["model_name"],
-            temperature=config["temperature"],
-            max_tokens=500,
+            model_name=config.get("model_name", "gpt-4"),
+            temperature=config.get("temperature", 0.1),
+            max_tokens=config.get("max_tokens", 500),
         )
 
         # Initialize feedback manager
@@ -353,7 +409,10 @@ class CustomerSupportAgent:
                         f"({feedback.get('Category', 'N/A')}) - {feedback.get('Resolution Status', 'N/A')}\n"
                     )
 
-            if satisfaction_trend:
+            if (
+                satisfaction_trend
+                and satisfaction_trend.get("latest_rating") is not None
+            ):
                 enhanced_context += "\nCustomer Satisfaction Trend:\n"
                 enhanced_context += f"- Latest Rating: {satisfaction_trend.get('latest_rating', 'N/A')}/5\n"
                 enhanced_context += f"- Trend Direction: {satisfaction_trend.get('trend_direction', 'N/A')}\n"
@@ -551,7 +610,9 @@ Respond with ONLY the category name from the list above."""
                 session.query(Customer).filter(Customer.id == customer_id).first()
             )
             if not customer:
-                # Create a default customer for testing
+                system_logger.warning(
+                    f"Customer with ID {customer_id} not found. Creating a default entry."
+                )
                 customer = Customer(
                     id=customer_id,
                     name=f"Customer {customer_id}",
@@ -630,11 +691,11 @@ Respond with ONLY the category name from the list above."""
                 purchase_history=[],
                 preferences={},
                 satisfaction_score=avg_satisfaction,
-                lifetime_value=1000.0,  # Default value
-                risk_score=0.1,  # Default low risk
+                lifetime_value=1000.0,  # Default value, should be calculated
+                risk_score=0.1,  # Default low risk, should be calculated
             )
         finally:
-            if session is not None:
+            if session:
                 session.close()
 
     def analyze_sentiment_enhanced(self, message: str) -> str:
@@ -907,14 +968,21 @@ Respond with ONLY the category name from the list above."""
 
             if similar_issues:
                 insights += f"Similar Issues Resolved: {len(similar_issues)} cases with avg rating "
-                avg_rating = sum(
-                    issue.get("Rating", 0) for issue in similar_issues
-                ) / len(similar_issues)
+                avg_rating = (
+                    sum(issue.get("Rating", 0) for issue in similar_issues)
+                    / len(similar_issues)
+                    if similar_issues
+                    else 0
+                )
                 insights += f"{avg_rating:.1f}/5\n"
 
             if feedback_trends:
-                insights += f"Category Trends: {feedback_trends.get('category_distribution', {}).get(category, 0)} "
-                insights += f"recent {category} issues, {feedback_trends.get('resolution_rate', 0):.1f}% resolution rate\n"
+                category_issues_count = feedback_trends.get(
+                    "category_distribution", {}
+                ).get(category, 0)
+                resolution_rate = feedback_trends.get("resolution_rate", 0)
+                insights += f"Category Trends: {category_issues_count} "
+                insights += f"recent {category} issues, {resolution_rate:.1f}% resolution rate\n"
 
             return insights
 
@@ -1067,8 +1135,9 @@ Recent Interaction Summary:
         satisfaction_trend = self.feedback_manager.get_customer_satisfaction_trend(
             customer_id
         )
-        if satisfaction_trend:
-            latest_rating = satisfaction_trend.get("latest_rating", 3.0)
+        satisfaction_factor = 0.0
+        if satisfaction_trend and satisfaction_trend.get("latest_rating"):
+            latest_rating = satisfaction_trend["latest_rating"]
             satisfaction_factor = (latest_rating - 3.0) * 0.1
 
             # Boost confidence if trend is improving
@@ -1076,8 +1145,6 @@ Recent Interaction Summary:
                 satisfaction_factor += 0.05
             elif satisfaction_trend.get("trend_direction") == "declining":
                 satisfaction_factor -= 0.05
-        else:
-            satisfaction_factor = 0.0
 
         confidence = (
             base_confidence
@@ -1232,7 +1299,7 @@ Recent Interaction Summary:
             session.rollback()
             return None
         finally:
-            if session is not None:
+            if session:
                 session.close()
 
     def log_interaction_enhanced(
@@ -1241,7 +1308,7 @@ Recent Interaction Summary:
         message: str,
         response: AgentResponse,
         category: str,
-        ticket_id: int = None,
+        ticket_id: Optional[int] = None,
     ):
         """Enhanced interaction logging with feedback data update"""
         session = get_session()
@@ -1284,10 +1351,13 @@ Recent Interaction Summary:
             session.commit()
 
             # Also add to feedback CSV for future reference
+            customer_context = self.get_customer_context(customer_id)
+            customer_tier = customer_context.tier if customer_context else "unknown"
+
             feedback_entry = {
-                "Customer ID": customer_id,
-                "Feedback Date": datetime.now().strftime("%Y-%m-%d"),
-                "Rating": int(satisfaction),
+                CUSTOMER_ID: customer_id,
+                FEEDBACK_DATE: datetime.now().strftime("%Y-%m-%d"),
+                "Rating": int(round(satisfaction)),
                 "Category": category.title().replace("_", " "),
                 "Subcategory": "General",
                 "Feedback Text": (
@@ -1303,7 +1373,7 @@ Recent Interaction Summary:
                 "Priority": "High" if response.escalate else "Medium",
                 "Product Version": "v2.1",
                 "Channel": "Chat",
-                "Customer Tier": "Business",  # Default, should be from customer context
+                "Customer Tier": customer_tier,
                 "Escalated": "Yes" if response.escalate else "No",
                 "Resolution Date": (
                     datetime.now().strftime("%Y-%m-%d")
@@ -1314,7 +1384,6 @@ Recent Interaction Summary:
                 "Tags": f"{category},ai_response",
                 "Internal Notes": f"AI confidence: {response.confidence:.2f}",
             }
-
             self.feedback_manager.add_feedback_entry(feedback_entry)
             system_logger.info(
                 "Interaction logged",
@@ -1330,7 +1399,8 @@ Recent Interaction Summary:
             )
             session.rollback()
         finally:
-            session.close()
+            if session:
+                session.close()
 
     def handle_customer_request_enhanced(
         self,
@@ -1434,7 +1504,6 @@ Recent Interaction Summary:
             satisfaction_trend = self.feedback_manager.get_customer_satisfaction_trend(
                 customer_id
             )
-            _feedback_trends = self.feedback_manager.get_feedback_trends(days=30)
 
             # Calculate metrics
             avg_satisfaction = (
@@ -1450,6 +1519,10 @@ Recent Interaction Summary:
                 .order_by(SupportTicket.created_at.desc())
                 .limit(10)
                 .all()
+            )
+
+            risk_indicators = self._assess_customer_risk(
+                customer_context, sentiment_distribution, satisfaction_trend
             )
 
             return {
@@ -1493,16 +1566,15 @@ Recent Interaction Summary:
                 "recommendations": self._generate_customer_recommendations(
                     customer_context, sentiment_distribution, satisfaction_trend
                 ),
-                "risk_indicators": self._assess_customer_risk(
-                    customer_context, sentiment_distribution, satisfaction_trend
-                ),
+                "risk_indicators": risk_indicators,
             }
 
         except Exception as e:
             system_logger.error(f"Error getting customer insights: {e}", exc_info=True)
             return {"error": f"Failed to retrieve customer insights: {str(e)}"}
         finally:
-            session.close()
+            if session:
+                session.close()
 
     def _generate_customer_recommendations(
         self,
@@ -1512,54 +1584,52 @@ Recent Interaction Summary:
     ) -> List[str]:
         """Generate recommendations for customer management"""
         recommendations = []
+        recommendations.extend(self._satisfaction_recommendations(satisfaction_trend))
+        recommendations.extend(self._sentiment_recommendations(sentiment_dist))
+        recommendations.extend(self._tier_recommendations(customer_context))
+        recommendations.extend(self._ticket_recommendations(customer_context))
+        return recommendations[:5]  # Limit to top 5 recommendations
 
-        # Satisfaction-based recommendations
+    def _satisfaction_recommendations(self, satisfaction_trend: Dict) -> List[str]:
+        recs = []
         if satisfaction_trend:
             trend_direction = satisfaction_trend.get("trend_direction", "stable")
             latest_rating = satisfaction_trend.get("latest_rating", 3.0)
-
             if trend_direction == "declining":
-                recommendations.append(
-                    "Priority attention needed - satisfaction declining"
-                )
-                recommendations.append("Schedule proactive check-in call")
+                recs.append("Priority attention needed - satisfaction declining")
+                recs.append("Schedule proactive check-in call")
             elif trend_direction == "improving":
-                recommendations.append("Positive momentum - continue current approach")
-
+                recs.append("Positive momentum - continue current approach")
             if latest_rating and latest_rating < 3.0:
-                recommendations.append(
-                    "Low satisfaction score - immediate intervention required"
-                )
+                recs.append("Low satisfaction score - immediate intervention required")
+        return recs
 
-        # Sentiment-based recommendations
+    def _sentiment_recommendations(self, sentiment_dist: Dict) -> List[str]:
+        recs = []
+        total_interactions = sum(sentiment_dist.values()) if sentiment_dist else 1
         negative_sentiment = sentiment_dist.get("negative", 0) + sentiment_dist.get(
             "very_negative", 0
         )
-        total_interactions = sum(sentiment_dist.values()) if sentiment_dist else 1
+        if total_interactions > 0 and (negative_sentiment / total_interactions) > 0.3:
+            recs.append("High negative sentiment ratio - review service approach")
+        return recs
 
-        if negative_sentiment / total_interactions > 0.3:
-            recommendations.append(
-                "High negative sentiment ratio - review service approach"
-            )
-
-        # Tier-based recommendations
+    def _tier_recommendations(self, customer_context: CustomerContext) -> List[str]:
+        recs = []
         if customer_context.tier == "enterprise":
-            recommendations.append("Enterprise customer - ensure dedicated support")
+            recs.append("Enterprise customer - ensure dedicated support")
             if len(customer_context.open_tickets) > 2:
-                recommendations.append(
-                    "Multiple open tickets - escalate to account manager"
-                )
+                recs.append("Multiple open tickets - escalate to account manager")
         elif customer_context.tier == "free":
             if len(customer_context.open_tickets) > 0:
-                recommendations.append(
-                    "Consider upgrade conversation for better support"
-                )
+                recs.append("Consider upgrade conversation for better support")
+        return recs
 
-        # Ticket-based recommendations
+    def _ticket_recommendations(self, customer_context: CustomerContext) -> List[str]:
+        recs = []
         if len(customer_context.open_tickets) > 3:
-            recommendations.append("Multiple open issues - consolidate and prioritize")
-
-        return recommendations[:5]  # Limit to top 5 recommendations
+            recs.append("Multiple open issues - consolidate and prioritize")
+        return recs
 
     def _assess_customer_risk(
         self,
@@ -1572,51 +1642,75 @@ Recent Interaction Summary:
         risk_factors = []
 
         # Satisfaction trend risk
+        score, factors = self._satisfaction_trend_risk(satisfaction_trend)
+        risk_score += score
+        risk_factors.extend(factors)
+
+        # Sentiment risk
+        score, factors = self._sentiment_risk(sentiment_dist)
+        risk_score += score
+        risk_factors.extend(factors)
+
+        # Ticket volume risk
+        score, factors = self._ticket_volume_risk(customer_context)
+        risk_score += score
+        risk_factors.extend(factors)
+
+        # Determine risk level
+        if risk_score >= 0.7:
+            risk_level = "high"
+        elif risk_score >= 0.4:
+            risk_level = "medium"
+        else:
+            risk_level = "low"
+
+        return {
+            "risk_score": min(1.0, risk_score),
+            "risk_level": risk_level,
+            "risk_factors": risk_factors,
+            "recommended_actions": self._get_risk_mitigation_actions(
+                risk_level, risk_factors
+            ),
+        }
+
+    def _satisfaction_trend_risk(self, satisfaction_trend: Dict) -> tuple[float, list]:
+        score = 0.0
+        factors = []
         if satisfaction_trend:
             trend_direction = satisfaction_trend.get("trend_direction", "stable")
             latest_rating = satisfaction_trend.get("latest_rating", 3.0)
-
             if trend_direction == "declining":
-                risk_score += 0.3
-                risk_factors.append("Declining satisfaction trend")
-
+                score += 0.3
+                factors.append("Declining satisfaction trend")
             if latest_rating and latest_rating < 2.5:
-                risk_score += 0.4
-                risk_factors.append("Very low satisfaction rating")
+                score += 0.4
+                factors.append("Very low satisfaction rating")
+        return score, factors
 
-        # Sentiment risk
+    def _sentiment_risk(self, sentiment_dist: Dict) -> tuple[float, list]:
+        score = 0.0
+        factors = []
         if sentiment_dist:
             total_interactions = sum(sentiment_dist.values())
-            negative_ratio = (
-                sentiment_dist.get("negative", 0)
-                + sentiment_dist.get("very_negative", 0)
-            ) / total_interactions
+            if total_interactions > 0:
+                negative_ratio = (
+                    sentiment_dist.get("negative", 0)
+                    + sentiment_dist.get("very_negative", 0)
+                ) / total_interactions
+                if negative_ratio > 0.4:
+                    score += 0.2
+                    factors.append("High negative sentiment ratio")
+        return score, factors
 
-            if negative_ratio > 0.4:
-                risk_score += 0.2
-                risk_factors.append("High negative sentiment ratio")
-
-            # Ticket volume risk
-            if len(customer_context.open_tickets) > 2:
-                risk_score += 0.1
-                risk_factors.append("Multiple open tickets")
-
-            # Determine risk level
-            if risk_score >= 0.7:
-                risk_level = "high"
-            elif risk_score >= 0.4:
-                risk_level = "medium"
-            else:
-                risk_level = "low"
-
-            return {
-                "risk_score": min(1.0, risk_score),
-                "risk_level": risk_level,
-                "risk_factors": risk_factors,
-                "recommended_actions": self._get_risk_mitigation_actions(
-                    risk_level, risk_factors
-                ),
-            }
+    def _ticket_volume_risk(
+        self, customer_context: CustomerContext
+    ) -> tuple[float, list]:
+        score = 0.0
+        factors = []
+        if len(customer_context.open_tickets) > 2:
+            score += 0.1
+            factors.append("Multiple open tickets")
+        return score, factors
 
     def _get_risk_mitigation_actions(
         self, risk_level: str, risk_factors: List[str]
@@ -1661,16 +1755,10 @@ Recent Interaction Summary:
         return actions[:5]  # Limit to top 5 actions
 
     def get_agent_performance_metrics(self, days: int = 30) -> Dict[str, Any]:
-        session = None
+        session = get_session()
         try:
-            # Get feedback trends
             feedback_trends = self.feedback_manager.get_feedback_trends(days)
-
-            session = get_session()
             cutoff_date = datetime.now() - timedelta(days=days)
-            cutoff_date = datetime.now() - timedelta(days=days)
-
-            # Get recent interactions
             recent_interactions = (
                 session.query(CustomerInteraction)
                 .filter(CustomerInteraction.created_at >= cutoff_date)
@@ -1681,49 +1769,26 @@ Recent Interaction Summary:
             if not recent_interactions:
                 return {"message": "No recent interactions found"}
 
-            # Calculate metrics
-            total_interactions = len(recent_interactions)
-            satisfaction_scores = [
-                i.satisfaction_score
-                for i in recent_interactions
-                if i.satisfaction_score is not None
-            ]
+            metrics = self._calculate_agent_metrics(recent_interactions)
+            avg_satisfaction = metrics["avg_satisfaction"]
+            escalation_rate = metrics["escalation_rate"]
+            sentiment_distribution = metrics["sentiment_distribution"]
+            satisfaction_scores = metrics["satisfaction_scores"]
+            metrics["escalation_count"]
+            total_interactions = metrics["total_interactions"]
 
-            sentiment_distribution = {}
-            escalation_count = 0
-
-            for interaction in recent_interactions:
-                # Sentiment distribution
-                sentiment = interaction.sentiment or "neutral"
-                sentiment_distribution[sentiment] = (
-                    sentiment_distribution.get(sentiment, 0) + 1
-                )
-
-                # Escalation count
-                if interaction.metadata and interaction.metadata.get("escalated"):
-                    escalation_count += 1
-
-            avg_satisfaction = (
-                sum(satisfaction_scores) / len(satisfaction_scores)
-                if satisfaction_scores
-                else 0.0
-            )
-            escalation_rate = (
-                (escalation_count / total_interactions) * 100
-                if total_interactions > 0
-                else 0.0
+            response_quality = self._get_response_quality(avg_satisfaction)
+            escalation_management = (
+                "good" if escalation_rate < 10 else "needs_improvement"
             )
 
             return {
                 "period_days": days,
                 "total_interactions": total_interactions,
                 "average_satisfaction": round(avg_satisfaction, 2),
-                "satisfaction_distribution": {
-                    "excellent": len([s for s in satisfaction_scores if s >= 4.5]),
-                    "good": len([s for s in satisfaction_scores if 3.5 <= s < 4.5]),
-                    "average": len([s for s in satisfaction_scores if 2.5 <= s < 3.5]),
-                    "poor": len([s for s in satisfaction_scores if s < 2.5]),
-                },
+                "satisfaction_distribution": self._get_satisfaction_distribution(
+                    satisfaction_scores
+                ),
                 "sentiment_distribution": sentiment_distribution,
                 "escalation_rate": round(escalation_rate, 2),
                 "feedback_integration_metrics": feedback_trends,
@@ -1731,27 +1796,80 @@ Recent Interaction Summary:
                     "customer_satisfaction_trend": (
                         "improving" if avg_satisfaction > 3.5 else "needs_attention"
                     ),
-                    "response_quality": (
-                        "high"
-                        if avg_satisfaction > 4.0
-                        else "medium" if avg_satisfaction > 3.0 else "low"
-                    ),
-                    "escalation_management": (
-                        "good" if escalation_rate < 10 else "needs_improvement"
-                    ),
+                    "response_quality": response_quality,
+                    "escalation_management": escalation_management,
                 },
                 "recommendations": self._get_agent_improvement_recommendations(
                     avg_satisfaction, escalation_rate, sentiment_distribution
                 ),
             }
-
         except Exception as e:
             system_logger.error(
                 f"Error getting agent performance metrics: {e}", exc_info=True
             )
             return {"error": f"Failed to retrieve performance metrics: {str(e)}"}
         finally:
-            session.close()
+            if session:
+                session.close()
+
+    def _calculate_agent_metrics(self, interactions: List[Any]) -> Dict[str, Any]:
+        satisfaction_scores = [
+            i.satisfaction_score
+            for i in interactions
+            if i.satisfaction_score is not None
+        ]
+        sentiment_distribution = {}
+        escalation_count = 0
+
+        for interaction in interactions:
+            sentiment = interaction.sentiment or "neutral"
+            sentiment_distribution[sentiment] = (
+                sentiment_distribution.get(sentiment, 0) + 1
+            )
+            if interaction.metadata and interaction.metadata.get("escalated"):
+                escalation_count += 1
+
+        total_interactions = len(interactions)
+        avg_satisfaction = (
+            sum(satisfaction_scores) / len(satisfaction_scores)
+            if satisfaction_scores
+            else 0.0
+        )
+        escalation_rate = (
+            (escalation_count / total_interactions) * 100
+            if total_interactions > 0
+            else 0.0
+        )
+
+        return {
+            "satisfaction_scores": satisfaction_scores,
+            "sentiment_distribution": sentiment_distribution,
+            "escalation_count": escalation_count,
+            "total_interactions": total_interactions,
+            "avg_satisfaction": avg_satisfaction,
+            "escalation_rate": escalation_rate,
+        }
+
+    def _get_satisfaction_distribution(self, scores: List[float]) -> Dict[str, int]:
+        return {
+            "excellent": len([s for s in scores if s >= 4.5]),
+            "good": len([s for s in scores if 3.5 <= s < 4.5]),
+            "average": len([s for s in scores if 2.5 <= s < 3.5]),
+            "poor": len([s for s in scores if s < 2.5]),
+        }
+
+    def _get_response_quality(self, avg_satisfaction: float) -> str:
+        try:
+            avg_satisfaction_float = float(avg_satisfaction)
+        except Exception:
+            avg_satisfaction_float = 0.0
+
+        if avg_satisfaction_float > 4.0:
+            return "high"
+        elif avg_satisfaction_float > 3.0:
+            return "medium"
+        else:
+            return "low"
 
     def _get_agent_improvement_recommendations(
         self, avg_satisfaction: float, escalation_rate: float, sentiment_dist: Dict
@@ -1769,10 +1887,11 @@ Recent Interaction Summary:
             )
             recommendations.append("Enhance escalation criteria and thresholds")
 
+        total_sentiment = sum(sentiment_dist.values()) if sentiment_dist else 1
         negative_sentiment_ratio = (
             (sentiment_dist.get("negative", 0) + sentiment_dist.get("very_negative", 0))
-            / sum(sentiment_dist.values())
-            if sentiment_dist
+            / total_sentiment
+            if total_sentiment > 0
             else 0
         )
 
@@ -1849,9 +1968,8 @@ Recent Interaction Summary:
                         f"Satisfaction Trend: {trend.get('trend_direction', 'N/A')}\n"
                     )
                     f.write(f"Latest Rating: {trend.get('latest_rating', 'N/A')}/5\n")
-                    f.write(
-                        f"Average Rating: {trend.get('average_rating', 'N/A'):.1f}/5\n"
-                    )
+                    if trend.get("average_rating") is not None:
+                        f.write(f"Average Rating: {trend['average_rating']:.1f}/5\n")
                 f.write("\n")
 
                 # Support Tickets
@@ -1916,17 +2034,20 @@ Recent Interaction Summary:
         human_messages = [msg.content for msg in messages if msg.type == "human"]
         ai_messages = [msg.content for msg in messages if msg.type == "ai"]
 
+        conversation_start_time = messages[0].additional_kwargs.get(
+            "timestamp"
+        ) or messages[0].additional_kwargs.get("created_at")
+        last_interaction_time = messages[-1].additional_kwargs.get(
+            "timestamp"
+        ) or messages[-1].additional_kwargs.get("created_at")
+
         return {
             "session_id": session_id,
             "message_count": len(messages),
             "human_messages": len(human_messages),
             "ai_responses": len(ai_messages),
-            "conversation_start": messages[0].additional_kwargs.get(
-                "timestamp", "Unknown"
-            ),
-            "last_interaction": messages[-1].additional_kwargs.get(
-                "timestamp", "Unknown"
-            ),
+            "conversation_start": conversation_start_time,
+            "last_interaction": last_interaction_time,
             "topics_discussed": self._extract_topics_from_messages(human_messages),
             "session_active": True,
         }
@@ -1934,11 +2055,9 @@ Recent Interaction Summary:
     def _extract_topics_from_messages(self, messages: List[str]) -> List[str]:
         """Extract main topics from conversation messages"""
         topics = set()
-
         for message in messages:
             category = self.categorize_issue(message)
             topics.add(category.replace("_", " ").title())
-
         return list(topics)
 
     def get_feedback_summary(self, days: int = 30) -> Dict[str, Any]:
@@ -1966,21 +2085,25 @@ Recent Interaction Summary:
             escalation_rate = feedback_trends.get("escalation_rate", 0)
 
             # Calculate escalation_control, satisfaction_level, and resolution_efficiency
-            escalation_control = (
-                "excellent"
-                if escalation_rate <= 5
-                else "good" if escalation_rate <= 15 else "needs_improvement"
-            )
-            satisfaction_level = (
-                "excellent"
-                if avg_rating >= 4.5
-                else "good" if avg_rating >= 4.0 else "needs_improvement"
-            )
-            resolution_efficiency = (
-                "excellent"
-                if resolution_rate >= 90
-                else "good" if resolution_rate >= 75 else "needs_improvement"
-            )
+            if escalation_rate <= 5:
+                escalation_control = "excellent"
+            elif escalation_rate <= 15:
+                escalation_control = "good"
+            else:
+                escalation_control = "needs_improvement"
+            if avg_rating >= 4.5:
+                satisfaction_level = "excellent"
+            elif avg_rating >= 4.0:
+                satisfaction_level = "good"
+            else:
+                satisfaction_level = "needs_improvement"
+
+            if resolution_rate >= 90:
+                resolution_efficiency = "excellent"
+            elif resolution_rate >= 75:
+                resolution_efficiency = "good"
+            else:
+                resolution_efficiency = "needs_improvement"
 
             return {
                 "period_days": days,
@@ -2037,13 +2160,11 @@ Recent Interaction Summary:
                 "Implement proactive customer outreach for at-risk accounts"
             )
 
-        # Sentiment-based recommendations
+        total_sentiment = sum(sentiment_dist.values()) if sentiment_dist else 1
         negative_sentiment = sentiment_dist.get("Negative", 0) + sentiment_dist.get(
             "Very Negative", 0
         )
-        total_sentiment = sum(sentiment_dist.values()) if sentiment_dist else 1
-
-        if negative_sentiment / total_sentiment > 0.3:
+        if total_sentiment > 0 and (negative_sentiment / total_sentiment) > 0.3:
             recommendations.append(
                 "Address communication tone and empathy in responses"
             )
@@ -2072,8 +2193,8 @@ Recent Interaction Summary:
                 try:
                     # Validate required fields
                     required_fields = [
-                        "Customer ID",
-                        "Feedback Date",
+                        CUSTOMER_ID,
+                        FEEDBACK_DATE,
                         "Rating",
                         "Category",
                         "Feedback Text",
@@ -2115,16 +2236,28 @@ Recent Interaction Summary:
             system_logger.error(f"Error processing bulk feedback: {e}", exc_info=True)
             return {"error": f"Failed to process bulk feedback: {str(e)}"}
 
+    def _get_satisfaction_level(self, avg_satisfaction):
+        """Helper to determine satisfaction level from average satisfaction score."""
+        try:
+            avg = float(avg_satisfaction)
+        except Exception:
+            avg = 0.0
+        if avg >= 4.5:
+            return "excellent"
+        elif avg >= 3.5:
+            return "good"
+        else:
+            return "needs_attention"
+
     def generate_daily_report(self, date: Optional[str] = None) -> Dict[str, Any]:
         """Generate daily performance report"""
         if not date:
             date = datetime.now().strftime("%Y-%m-%d")
 
+        session = get_session()
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d")
             next_date = target_date + timedelta(days=1)
-
-            session = get_session()
 
             # Get interactions for the day
             daily_interactions = (
@@ -2143,72 +2276,29 @@ Recent Interaction Summary:
                 .all()
             )
 
-            # Calculate metrics
-            total_interactions = len(daily_interactions)
-            satisfaction_scores = [
-                i.satisfaction_score for i in daily_interactions if i.satisfaction_score
-            ]
-            avg_satisfaction = (
-                sum(satisfaction_scores) / len(satisfaction_scores)
-                if satisfaction_scores
-                else 0
+            interaction_metrics, escalation_count, avg_satisfaction = (
+                self._calculate_daily_interaction_metrics(daily_interactions)
             )
+            ticket_metrics = self._calculate_daily_ticket_metrics(daily_tickets)
 
-            sentiment_dist = {}
-            category_dist = {}
-            escalation_count = 0
+            total_interactions = interaction_metrics["total_interactions"]
 
-            for interaction in daily_interactions:
-                # Sentiment distribution
-                sentiment = interaction.sentiment or "neutral"
-                sentiment_dist[sentiment] = sentiment_dist.get(sentiment, 0) + 1
-
-                # Category distribution
-                if interaction.metadata and "category" in interaction.metadata:
-                    category = interaction.metadata["category"]
-                    category_dist[category] = category_dist.get(category, 0) + 1
-
-                # Escalation count
-                if interaction.metadata and interaction.metadata.get("escalated"):
-                    escalation_count += 1
-
-            # Ticket metrics
-            ticket_priorities = {}
-            ticket_categories = {}
-
-            for ticket in daily_tickets:
-                ticket_priorities[ticket.priority] = (
-                    ticket_priorities.get(ticket.priority, 0) + 1
-                )
-                ticket_categories[ticket.category] = (
-                    ticket_categories.get(ticket.category, 0) + 1
-                )
+            if avg_satisfaction >= 4.5:
+                satisfaction_level = "excellent"
+            elif avg_satisfaction >= 3.5:
+                satisfaction_level = "good"
+            else:
+                satisfaction_level = "needs_attention"
 
             return {
                 "date": date,
-                "interaction_metrics": {
-                    "total_interactions": total_interactions,
-                    "average_satisfaction": round(avg_satisfaction, 2),
-                    "sentiment_distribution": sentiment_dist,
-                    "category_distribution": category_dist,
-                    "escalation_count": escalation_count,
-                    "escalation_rate": (
-                        round((escalation_count / total_interactions) * 100, 1)
-                        if total_interactions > 0
-                        else 0
-                    ),
-                },
-                "ticket_metrics": {
-                    "total_tickets": len(daily_tickets),
-                    "priority_distribution": ticket_priorities,
-                    "category_distribution": ticket_categories,
-                },
+                "interaction_metrics": interaction_metrics,
+                "ticket_metrics": ticket_metrics,
                 "performance_summary": {
-                    "satisfaction_level": (
-                        "excellent" if avg_satisfaction >= 4.5 else None
-                    ),
-                    # Extracted nested conditional for volume_status
-                    "volume_status": None,
+                    "satisfaction_level": satisfaction_level,
+                    "volume_status": (
+                        "high" if total_interactions > 100 else "normal"
+                    ),  # Example logic
                     "escalation_status": (
                         "concerning" if escalation_count > 5 else "normal"
                     ),
@@ -2221,7 +2311,73 @@ Recent Interaction Summary:
             )
             return {"error": f"Failed to generate daily report: {str(e)}"}
         finally:
-            session.close()
+            if session:
+                session.close()
+
+    def _calculate_daily_interaction_metrics(
+        self, daily_interactions: List[Any]
+    ) -> tuple:
+        """Helper to calculate daily interaction metrics and reduce complexity."""
+        total_interactions = len(daily_interactions)
+        satisfaction_scores = [
+            i.satisfaction_score for i in daily_interactions if i.satisfaction_score
+        ]
+        avg_satisfaction = (
+            sum(satisfaction_scores) / len(satisfaction_scores)
+            if satisfaction_scores
+            else 0
+        )
+
+        sentiment_dist = {}
+        category_dist = {}
+        escalation_count = 0
+
+        for interaction in daily_interactions:
+            # Sentiment distribution
+            sentiment = interaction.sentiment or "neutral"
+            sentiment_dist[sentiment] = sentiment_dist.get(sentiment, 0) + 1
+
+            # Category distribution
+            if interaction.metadata and "category" in interaction.metadata:
+                category = interaction.metadata["category"]
+                category_dist[category] = category_dist.get(category, 0) + 1
+
+            # Escalation count
+            if interaction.metadata and interaction.metadata.get("escalated"):
+                escalation_count += 1
+
+        return (
+            {
+                "total_interactions": total_interactions,
+                "average_satisfaction": round(avg_satisfaction, 2),
+                "sentiment_distribution": sentiment_dist,
+                "category_distribution": category_dist,
+                "satisfaction_level": self._get_satisfaction_level(avg_satisfaction),
+            },
+            escalation_count,
+            avg_satisfaction,
+        )
+
+    def _calculate_daily_ticket_metrics(
+        self, daily_tickets: List[Any]
+    ) -> Dict[str, Any]:
+        """Helper to calculate daily ticket metrics and reduce complexity."""
+        ticket_priorities = {}
+        ticket_categories = {}
+
+        for ticket in daily_tickets:
+            ticket_priorities[ticket.priority] = (
+                ticket_priorities.get(ticket.priority, 0) + 1
+            )
+            ticket_categories[ticket.category] = (
+                ticket_categories.get(ticket.category, 0) + 1
+            )
+
+        return {
+            "total_tickets": len(daily_tickets),
+            "priority_distribution": ticket_priorities,
+            "category_distribution": ticket_categories,
+        }
 
 
 # Example usage and testing functions

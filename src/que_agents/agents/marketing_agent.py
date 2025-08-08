@@ -206,7 +206,7 @@ class MarketingAgent:
         try:
             results = search_agent_knowledge_base("marketing", query, limit=3)
             system_logger.info(
-                f"Knowledge base query successful",
+                "Knowledge base query successful",
                 additional_info={"query": query, "results_count": len(results)},
             )
             return results
@@ -1223,92 +1223,47 @@ Ready to learn more? Let's connect and explore the possibilities together.
                 },
             )
 
-            # Generate enhanced strategy
-            # Ensure industry is a string if a list is provided
-            industry_str = None
-            if isinstance(industry, list):
-                industry_str = industry[0] if industry else None
-            else:
-                industry_str = industry
+            industry_str = self._extract_industry_string(industry)
             strategy = self.create_enhanced_campaign_strategy(request, industry_str)
 
-            # Generate enhanced content pieces
-            content_pieces = []
-            for channel in request.channels:
-                for content_type in request.content_requirements:
-                    content_piece = self.generate_enhanced_content(
-                        platform=channel,
-                        content_type=content_type,
-                        campaign_theme=request.campaign_type.value,
-                        target_audience=request.target_audience,
-                        key_messages=request.goals,
-                        brand_voice=brand_voice,
-                    )
-                    content_pieces.append(content_piece)
+            content_pieces = self._generate_content_pieces(request, brand_voice)
 
             schedule = self._create_optimized_schedule(
                 content_pieces, request.duration_days
             )
 
-            # Enhanced budget allocation
             budget_allocation = self._create_enhanced_budget_allocation(
                 request, content_pieces
             )
 
-            # Comprehensive success metrics
             success_metrics = self._define_success_metrics(
                 request.campaign_type, request.goals
             )
 
-            # Enhanced performance estimation
-            # Ensure industry is a string if a list is provided
-            industry_str = None
-            if isinstance(industry, list):
-                industry_str = industry[0] if industry else None
-            else:
-                industry_str = industry
-            # Ensure industry_str is always a string (default to "technology" if None)
-            industry_str = industry_str if industry_str is not None else "technology"
+            industry_str = self._extract_industry_string(industry, default="technology")
             estimated_performance = self._calculate_enhanced_performance(
                 content_pieces, request, industry_str
             )
 
-            # Risk assessment and mitigation
-            # Ensure industry is a string if a list is provided
-            industry_str = None
-            if isinstance(industry, list):
-                industry_str = industry[0] if industry else None
-            else:
-                industry_str = industry
-            # Ensure industry_str is always a string (default to "technology" if None)
-            industry_str = industry_str if industry_str is not None else "technology"
             risk_assessment = self._assess_campaign_risks(request, industry_str)
 
-            # Optimization roadmap
             optimization_roadmap = self._create_optimization_roadmap(
                 request.duration_days
             )
 
-            # Extract industry value into an independent statement
-            if isinstance(industry, list) and industry:
-                industry_value = industry[0]
-            elif isinstance(industry, str) or industry is None:
-                industry_value = industry
-            else:
-                industry_value = str(industry)
+            industry_value = self._extract_industry_value(industry)
 
-            campaign_plan = CampaignPlan(
-                campaign_id=f"campaign_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                strategy=strategy,
-                content_pieces=content_pieces,
-                schedule=schedule,
-                budget_allocation=budget_allocation,
-                success_metrics=success_metrics,
-                estimated_performance=estimated_performance,
-                risk_assessment=risk_assessment,
-                optimization_roadmap=optimization_roadmap,
-                industry=industry_value,
-                brand_voice=brand_voice,
+            campaign_plan = self._build_campaign_plan(
+                strategy,
+                content_pieces,
+                schedule,
+                budget_allocation,
+                success_metrics,
+                estimated_performance,
+                risk_assessment,
+                optimization_roadmap,
+                industry_value,
+                brand_voice,
             )
 
             system_logger.info(
@@ -1331,6 +1286,65 @@ Ready to learn more? Let's connect and explore the possibilities together.
                 },
             )
             return self._create_basic_campaign_plan(request)
+
+    def _extract_industry_string(self, industry, default=None):
+        """Helper to extract industry string from list or str, with optional default."""
+        if isinstance(industry, list):
+            return industry[0] if industry else default
+        return industry if industry is not None else default
+
+    def _extract_industry_value(self, industry):
+        """Helper to extract industry value for campaign plan."""
+        if isinstance(industry, list) and industry:
+            return industry[0]
+        elif isinstance(industry, str) or industry is None:
+            return industry
+        else:
+            return str(industry)
+
+    def _generate_content_pieces(self, request, brand_voice):
+        """Helper to generate content pieces for campaign plan."""
+        content_pieces = []
+        for channel in request.channels:
+            for content_type in request.content_requirements:
+                content_piece = self.generate_enhanced_content(
+                    platform=channel,
+                    content_type=content_type,
+                    campaign_theme=request.campaign_type.value,
+                    target_audience=request.target_audience,
+                    key_messages=request.goals,
+                    brand_voice=brand_voice,
+                )
+                content_pieces.append(content_piece)
+        return content_pieces
+
+    def _build_campaign_plan(
+        self,
+        strategy,
+        content_pieces,
+        schedule,
+        budget_allocation,
+        success_metrics,
+        estimated_performance,
+        risk_assessment,
+        optimization_roadmap,
+        industry_value,
+        brand_voice,
+    ):
+        """Helper to build CampaignPlan object."""
+        return CampaignPlan(
+            campaign_id=f"campaign_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            strategy=strategy,
+            content_pieces=content_pieces,
+            schedule=schedule,
+            budget_allocation=budget_allocation,
+            success_metrics=success_metrics,
+            estimated_performance=estimated_performance,
+            risk_assessment=risk_assessment,
+            optimization_roadmap=optimization_roadmap,
+            industry=industry_value,
+            brand_voice=brand_voice,
+        )
 
     def _create_optimized_schedule(
         self, content_pieces: List[ContentPiece], duration_days: int

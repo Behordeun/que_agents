@@ -30,6 +30,8 @@ from src.que_agents.knowledge_base.kb_manager import search_agent_knowledge_base
 
 system_logger.info("Initializing Financial Trading Bot Agent ...")
 
+PORTFOLIO_ISSUE = "Portfolio not found"
+
 # Load agent configuration
 with open("configs/agent_config.yaml", "r") as f:
     agent_config = yaml.safe_load(f)
@@ -39,12 +41,17 @@ class FinancialTradingBotAgent:
     """Financial Automated Trading Bot Agent"""
 
     def __init__(self, portfolio_id: int = 1):
-        config = agent_config["financial_trading_bot_agent"]
+        # Try different config key names
+        config_key = "financial_trading_bot_agent"
+        if config_key not in agent_config:
+            config_key = "financial_trading_bot"
+
+        config = agent_config[config_key]
         self.llm = LLMFactory.get_llm(
             agent_type="financial_trading_bot",
             model_name=config["model_name"],
             temperature=config["temperature"],
-            max_tokens=800,
+            max_tokens=config.get("max_tokens", 800),
         )
 
         self.portfolio_id = portfolio_id
@@ -664,38 +671,51 @@ Min Confidence: {self.min_confidence_threshold:.1%}
     ) -> float:
         """Calculate confidence score based on technical indicators"""
         confidence = 0.5  # Base confidence
+        confidence += self._rsi_confidence(market_conditions, action)
+        confidence += self._moving_avg_confidence(market_conditions, action)
+        confidence += self._macd_confidence(market_conditions, action)
+        confidence += self._sentiment_confidence(market_conditions, action)
+        return min(1.0, max(0.0, confidence))
 
-        # RSI signals
-        if action == "buy" and market_conditions.rsi < 40:
-            confidence += 0.2
-        elif action == "sell" and market_conditions.rsi > 60:
-            confidence += 0.2
+    def _rsi_confidence(
+        self, market_conditions: MarketConditions, action: str
+    ) -> float:
+        if (action == "buy" and market_conditions.rsi < 40) or (
+            action == "sell" and market_conditions.rsi > 60
+        ):
+            return 0.2
+        return 0.0
 
-        # Moving average signals
+    def _moving_avg_confidence(
+        self, market_conditions: MarketConditions, action: str
+    ) -> float:
         if (
             action == "buy"
             and market_conditions.current_price > market_conditions.moving_avg_20
-        ):
-            confidence += 0.1
-        elif (
+        ) or (
             action == "sell"
             and market_conditions.current_price < market_conditions.moving_avg_20
         ):
-            confidence += 0.1
+            return 0.1
+        return 0.0
 
-        # MACD signals
-        if action == "buy" and market_conditions.macd > 0:
-            confidence += 0.1
-        elif action == "sell" and market_conditions.macd < 0:
-            confidence += 0.1
+    def _macd_confidence(
+        self, market_conditions: MarketConditions, action: str
+    ) -> float:
+        if (action == "buy" and market_conditions.macd > 0) or (
+            action == "sell" and market_conditions.macd < 0
+        ):
+            return 0.1
+        return 0.0
 
-        # Market sentiment
-        if action == "buy" and market_conditions.market_sentiment == "bullish":
-            confidence += 0.1
-        elif action == "sell" and market_conditions.market_sentiment == "bearish":
-            confidence += 0.1
-
-        return min(1.0, max(0.0, confidence))
+    def _sentiment_confidence(
+        self, market_conditions: MarketConditions, action: str
+    ) -> float:
+        if (action == "buy" and market_conditions.market_sentiment == "bullish") or (
+            action == "sell" and market_conditions.market_sentiment == "bearish"
+        ):
+            return 0.1
+        return 0.0
 
     def _calculate_risk_score(
         self, market_conditions: MarketConditions, action: str, quantity: float
@@ -769,7 +789,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             )
 
             if not portfolio:
-                print("Portfolio not found")
+                print(PORTFOLIO_ISSUE)
                 return False
 
             # Get current market price
@@ -783,38 +803,23 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             holdings = portfolio.holdings or {}
 
             if decision.action == "buy":
-                # Check if we have enough cash
-                total_cost = trade_value + fees
-                if total_cost > float(portfolio.cash_balance):
-                    print(
-                        f"Insufficient cash: need ${total_cost:.2f}, have ${float(portfolio.cash_balance):.2f}"
-                    )
+                if not self._execute_buy(
+                    portfolio, holdings, decision, trade_value, fees
+                ):
                     return False
-
-                # Execute buy order
-                portfolio.cash_balance -= total_cost
-                current_holding = holdings.get(decision.symbol, 0)
-                holdings[decision.symbol] = current_holding + decision.quantity
-
-            elif decision.action == "sell":
-                # Check if we have enough shares
-                current_holding = holdings.get(decision.symbol, 0)
-                if decision.quantity > current_holding:
-                    print(
-                        f"Insufficient shares: trying to sell {decision.quantity}, have {current_holding}"
-                    )
-                    return False
-
-                # Execute sell order
-                portfolio.cash_balance += trade_value - fees
-                holdings[decision.symbol] = current_holding - decision.quantity
-
-                # Remove symbol if no shares left
-                if holdings[decision.symbol] <= 0:
-                    del holdings[decision.symbol]
+            elif decision.action == "sell" and not self._execute_sell(
+                portfolio, holdings, decision, trade_value, fees
+            ):
+                return False
 
             # Update portfolio
-            portfolio.holdings = holdings
+            if hasattr(portfolio.holdings, "update"):
+                # If holdings is a mutable dict (e.g., MutableDict from SQLAlchemy), update in-place
+                portfolio.holdings.clear()
+                portfolio.holdings.update(holdings)
+            else:
+                # If not, assign the holdings dictionary directly
+                portfolio.holdings = holdings
 
             # Log the trade
             trade_log = TradeLog(
@@ -856,6 +861,33 @@ Min Confidence: {self.min_confidence_threshold:.1%}
         finally:
             session.close()
 
+    def _execute_buy(self, portfolio, holdings, decision, trade_value, fees) -> bool:
+        """Helper to execute buy logic"""
+        total_cost = trade_value + fees
+        if total_cost > float(portfolio.cash_balance):
+            print(
+                f"Insufficient cash: need ${total_cost:.2f}, have ${float(portfolio.cash_balance):.2f}"
+            )
+            return False
+        portfolio.cash_balance -= total_cost
+        current_holding = holdings.get(decision.symbol, 0)
+        holdings[decision.symbol] = current_holding + decision.quantity
+        return True
+
+    def _execute_sell(self, portfolio, holdings, decision, trade_value, fees) -> bool:
+        """Helper to execute sell logic"""
+        current_holding = holdings.get(decision.symbol, 0)
+        if decision.quantity > current_holding:
+            print(
+                f"Insufficient shares: trying to sell {decision.quantity}, have {current_holding}"
+            )
+            return False
+        portfolio.cash_balance += trade_value - fees
+        holdings[decision.symbol] = current_holding - decision.quantity
+        if holdings[decision.symbol] <= 0:
+            del holdings[decision.symbol]
+        return True
+
     def run_trading_cycle(self, symbols: Optional[List[str]] = None) -> Dict[str, Any]:
         """Run a complete trading cycle for specified symbols"""
         if symbols is None:
@@ -873,51 +905,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
         portfolio = None  # Ensure portfolio is always defined
 
         for symbol in symbols:
-            try:
-                # Make trading decision (use enhanced version if knowledge base is available)
-                try:
-                    decision = self.make_enhanced_trading_decision(symbol)
-                except Exception:
-                    decision = self.make_trading_decision(symbol)
-
-                # Execute trade if conditions are met
-                trade_executed = False
-                if (
-                    decision.confidence >= self.min_confidence_threshold
-                    and decision.action != "hold"
-                ):
-                    trade_executed = self.execute_trade(decision)
-                    if trade_executed:
-                        results["trades_executed"] += 1
-
-                # Record decision
-                results["decisions"].append(
-                    {
-                        "symbol": symbol,
-                        "action": decision.action,
-                        "quantity": decision.quantity,
-                        "confidence": decision.confidence,
-                        "reasoning": decision.reasoning,
-                        "executed": trade_executed,
-                    }
-                )
-
-                results["total_confidence"] += decision.confidence
-
-            except Exception as e:
-                system_logger.error(
-                    f"Error processing {symbol}: {e}",
-                    additional_info={
-                        "decision": decision.__dict__,
-                        "portfolio": (
-                            portfolio.__dict__ if portfolio is not None else None
-                        ),
-                    },
-                    exc_info=True,
-                )
-                results["decisions"].append(
-                    {"symbol": symbol, "action": "error", "error": str(e)}
-                )
+            self._process_symbol_for_trading_cycle(symbol, results, portfolio)
 
         # Get final portfolio status
         results["portfolio_status"] = self.get_portfolio_status().__dict__
@@ -926,6 +914,56 @@ Min Confidence: {self.min_confidence_threshold:.1%}
         )
 
         return results
+
+    def _process_symbol_for_trading_cycle(
+        self, symbol: str, results: Dict[str, Any], portfolio: Any
+    ):
+        """Helper to process each symbol in trading cycle to reduce cognitive complexity"""
+        try:
+            # Make trading decision (use enhanced version if knowledge base is available)
+            try:
+                decision = self.make_enhanced_trading_decision(symbol)
+            except Exception:
+                decision = self.make_trading_decision(symbol)
+
+            # Execute trade if conditions are met
+            trade_executed = False
+            if (
+                decision.confidence >= self.min_confidence_threshold
+                and decision.action != "hold"
+            ):
+                trade_executed = self.execute_trade(decision)
+                if trade_executed:
+                    results["trades_executed"] += 1
+
+            # Record decision
+            results["decisions"].append(
+                {
+                    "symbol": symbol,
+                    "action": decision.action,
+                    "quantity": decision.quantity,
+                    "confidence": decision.confidence,
+                    "reasoning": decision.reasoning,
+                    "executed": trade_executed,
+                }
+            )
+
+            results["total_confidence"] += decision.confidence
+
+        except Exception as e:
+            system_logger.error(
+                f"Error processing {symbol}: {e}",
+                additional_info={
+                    "decision": decision.__dict__ if "decision" in locals() else None,
+                    "portfolio": (
+                        portfolio.__dict__ if portfolio is not None else None
+                    ),
+                },
+                exc_info=True,
+            )
+            results["decisions"].append(
+                {"symbol": symbol, "action": "error", "error": str(e)}
+            )
 
     def get_performance_report(self) -> Dict[str, Any]:
         """Generate a performance report"""
@@ -940,11 +978,11 @@ Min Confidence: {self.min_confidence_threshold:.1%}
 
             if not portfolio:
                 system_logger.error(
-                    "Portfolio not found",
+                    PORTFOLIO_ISSUE,
                     additional_info={"portfolio_id": self.portfolio_id},
                     exc_info=True,
                 )
-                return {"error": "Portfolio not found"}
+                return {"error": PORTFOLIO_ISSUE}
 
             # Get trade history
             trades = (
