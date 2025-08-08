@@ -11,6 +11,10 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict, List
 
+import yfinance
+import pandas as pd
+import numpy as np
+
 import psutil
 import yaml
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -28,6 +32,10 @@ from src.que_agents.core.schemas import (
     TradingDecisionResponse,
 )
 from src.que_agents.error_trace.errorlogger import system_logger
+
+from src.que_agents.agents.personal_virtual_assistant_agent import (
+    PersonalVirtualAssistantAgent,
+)
 
 
 class AgentManager:
@@ -117,29 +125,71 @@ class AgentManager:
             self._setup_marketing_fallback()
 
     def _initialize_pva_agent(self):
-        """Initialize Personal Virtual Assistant Agent"""
+        """Initialize Personal Virtual Assistant Agent with Groq configuration"""
+        config = None
         try:
-            from src.que_agents.agents.personal_virtual_assistant_agent import (
-                PersonalVirtualAssistantAgent,
-            )
-
-            self.agents["personal_virtual_assistant"] = PersonalVirtualAssistantAgent()
-            self.agent_status["personal_virtual_assistant"] = True
-            system_logger.info(
-                "Personal Virtual Assistant Agent initialized successfully"
-            )
-        except ImportError as e:
+            with open("configs/agent_config.yaml", "r") as f:
+                config = yaml.safe_load(f)
+        except FileNotFoundError:
             system_logger.error(
-                f"Import error for Personal Virtual Assistant Agent: {str(e)}",
+                "Agent configuration file not found: configs/agent_config.yaml",
                 additional_info={
                     "context": "Agent Initialization",
                     "agent": "PersonalVirtualAssistantAgent",
-                    "error_type": "ImportError",
+                    "error_type": "FileNotFoundError",
+                    "suggestion": "Create the agent configuration file",
+                },
+            )
+            self.agents["personal_virtual_assistant"] = None
+            self._setup_pva_fallback()
+            return
+        except Exception as e:
+            system_logger.error(
+                f"Error loading agent configuration: {str(e)}",
+                additional_info={
+                    "context": "Agent Initialization",
+                    "agent": "PersonalVirtualAssistantAgent",
+                    "error_type": type(e).__name__,
                 },
                 exc_info=True,
             )
             self.agents["personal_virtual_assistant"] = None
             self._setup_pva_fallback()
+            return
+
+        # Check if the agent config exists
+        agent_config_key = "personal_virtual_assistant_agent"
+        if config is None or agent_config_key not in config:
+            system_logger.warning(f"Configuration key '{agent_config_key}' not found in agent_config.yaml")
+            # Try alternative key
+            agent_config_key = "personal_virtual_assistant"
+            if config is None or agent_config_key not in config:
+                system_logger.error(
+                    f"No configuration found for PVA agent",
+                    additional_info={
+                        "context": "Agent Initialization",
+                        "agent": "PersonalVirtualAssistantAgent",
+                        "error_type": "KeyError",
+                        "suggestion": "Check agent_config.yaml for correct key names",
+                    },
+                )
+                self.agents["personal_virtual_assistant"] = None
+                self._setup_pva_fallback()
+                return
+
+        # Initialize with config
+        try:
+            test_agent = PersonalVirtualAssistantAgent()
+
+            # Verify agent has required methods
+            required_methods = ['handle_user_request', 'get_assistant_knowledge']
+            for method in required_methods:
+                if not hasattr(test_agent, method):
+                    raise AttributeError(f"Agent missing required method: {method}")
+
+            self.agents["personal_virtual_assistant"] = test_agent
+            self.agent_status["personal_virtual_assistant"] = True
+            system_logger.info(f"Personal Virtual Assistant Agent initialized successfully with {config[agent_config_key].get('model_name', 'default')} model")
         except Exception as e:
             system_logger.error(
                 f"Failed to initialize Personal Virtual Assistant Agent: {str(e)}",
@@ -154,41 +204,45 @@ class AgentManager:
             self._setup_pva_fallback()
 
     def _initialize_trading_bot_agent(self):
-        """Initialize Financial Trading Bot Agent with enhanced error handling"""
+        """Initialize Financial Trading Bot Agent with Groq configuration"""
         try:
+            with open("configs/agent_config.yaml", "r") as f:
+                config = yaml.safe_load(f)
+            
+            # Check if the agent config exists
+            agent_config_key = "financial_trading_bot_agent"
+            if agent_config_key not in config:
+                # Try alternative key
+                agent_config_key = "financial_trading_bot"
+                if agent_config_key not in config:
+                    system_logger.error(
+                        "No configuration found for Trading Bot agent",
+                        additional_info={
+                            "context": "Agent Initialization",
+                            "agent": "FinancialTradingBotAgent",
+                            "error_type": "KeyError",
+                            "suggestion": "Check agent_config.yaml for correct key names",
+                        },
+                    )
+                    raise KeyError(f"No configuration found for Trading Bot agent")
+            
             from src.que_agents.agents.financial_trading_bot_agent import (
                 FinancialTradingBotAgent,
             )
-
-            self.agents["financial_trading_bot"] = FinancialTradingBotAgent()
+            
+            # Initialize with config
+            test_agent = FinancialTradingBotAgent()
+            
+            # Verify agent has required methods
+            required_methods = ['make_trading_decision', 'analyze_market_with_knowledge']
+            for method in required_methods:
+                if not hasattr(test_agent, method):
+                    system_logger.warning(f"Agent missing method: {method}, but continuing initialization")
+            
+            self.agents["financial_trading_bot"] = test_agent
             self.agent_status["financial_trading_bot"] = True
-            system_logger.info("Financial Trading Bot Agent initialized successfully")
-        except ImportError as e:
-            system_logger.error(
-                f"Import error for Financial Trading Bot Agent: {str(e)}",
-                additional_info={
-                    "context": "Agent Initialization",
-                    "agent": "FinancialTradingBotAgent",
-                    "error_type": "ImportError",
-                    "suggestion": "Check if required trading libraries are installed (yfinance, pandas, numpy, etc.)",
-                },
-                exc_info=True,
-            )
-            self.agents["financial_trading_bot"] = None
-            self._setup_trading_bot_fallback()
-        except AttributeError as e:
-            system_logger.error(
-                f"Attribute error for Financial Trading Bot Agent: {str(e)}",
-                additional_info={
-                    "context": "Agent Initialization",
-                    "agent": "FinancialTradingBotAgent",
-                    "error_type": "AttributeError",
-                    "suggestion": "Check if the agent class has all required methods",
-                },
-                exc_info=True,
-            )
-            self.agents["financial_trading_bot"] = None
-            self._setup_trading_bot_fallback()
+            system_logger.info(f"Financial Trading Bot Agent initialized successfully with {config[agent_config_key].get('model_name', 'default')} model")
+            
         except Exception as e:
             system_logger.error(
                 f"Failed to initialize Financial Trading Bot Agent: {str(e)}",
@@ -206,13 +260,12 @@ class AgentManager:
         """Setup fallback for customer support agent"""
 
         class FallbackCustomerSupportAgent:
-            def handle_customer_request_enhanced(self, customer_id: str, message: str):
+            def handle_customer_request_enhanced(self, customer_id, message):
                 return {
-                    "response": "I understand you're having login issues. Let me help you with that. First, please try resetting your password using the 'Forgot Password' link on the login page.",
-                    "confidence": 0.85,
-                    "escalate": False,
+                    "response": "Customer support is temporarily unavailable. Please try again later.",
+                    "confidence": 0.5,
+                    "escalate": True,
                     "suggested_actions": [
-                        "reset_password",
                         "clear_browser_cache",
                         "contact_support",
                     ],
@@ -229,14 +282,14 @@ class AgentManager:
         """Setup fallback for marketing agent"""
 
         class FallbackMarketingAgent:
-            def create_marketing_campaign(self, request_dict):
+            def create_marketing_campaign(self, _request_dict):
                 return {
                     "campaign_id": "fallback_001",
                     "status": "created",
                     "message": "Marketing agent is temporarily unavailable. Campaign created with basic template.",
                 }
 
-            def generate_marketing_content(self, request_dict):
+            def generate_marketing_content(self, _request_dict):
                 return {
                     "content": "Marketing content generation is temporarily unavailable.",
                     "status": "fallback",
