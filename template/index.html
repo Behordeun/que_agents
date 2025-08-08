@@ -572,6 +572,53 @@
             }
         }
 
+        function formatTickets(tickets) {
+            if (!tickets || tickets.length === 0) return '<li>No open tickets</li>';
+            return tickets.map(ticket => {
+                let color;
+                if (ticket.priority === 'High') {
+                    color = 'red';
+                } else if (ticket.priority === 'Medium') {
+                    color = 'orange';
+                } else {
+                    color = 'green';
+                }
+                return `<li><strong>#${ticket.ticket_id}</strong>: ${ticket.title} 
+                <span style="color: ${color}">
+                (${ticket.priority} Priority, ${ticket.status})</span></li>`;
+            }).join('');
+        }
+
+        function formatInteractions(interactions) {
+            if (!interactions || interactions.length === 0) return '<li>No recent interactions</li>';
+            return interactions.map(interaction => {
+                let color;
+                if (interaction.sentiment === 'Positive') {
+                    color = 'green';
+                } else if (interaction.sentiment === 'Negative') {
+                    color = 'red';
+                } else {
+                    color = 'gray';
+                }
+                return `<li><strong>${new Date(interaction.timestamp).toLocaleDateString()}</strong>: 
+                ${interaction.message.substring(0, 100)}${interaction.message.length > 100 ? '...' : ''} 
+                <span style="color: ${color}">
+                (${interaction.sentiment})</span></li>`;
+            }).join('');
+        }
+
+        function formatRiskFactors(riskAssessment) {
+            if (!riskAssessment || !riskAssessment.risk_factors || riskAssessment.risk_factors.length === 0) {
+                return '<li>No risk factors identified</li>';
+            }
+            return riskAssessment.risk_factors.map(factor => `<li>${factor}</li>`).join('');
+        }
+
+        function formatRecommendations(recommendations) {
+            if (!recommendations || recommendations.length === 0) return '<li>No specific recommendations at this time</li>';
+            return recommendations.map(rec => `<li>${rec}</li>`).join('');
+        }
+
         async function loadCustomerContext() {
             const customerId = document.getElementById('customer-id').value;
             const loadingDiv = document.getElementById('support-loading');
@@ -582,15 +629,113 @@
 
             try {
                 const data = await apiCall(`/api/v1/customer-support/customer/${customerId}`);
+
+                const ticketsHtml = formatTickets(data.open_tickets);
+                const interactionsHtml = formatInteractions(data.recent_interactions);
+                const riskHtml = formatRiskFactors(data.risk_assessment);
+                const recommendationsHtml = formatRecommendations(data.recommendations);
+
+                // Extract support tier background color
+                let supportTierBg;
+                if (data.support_tier === 'Enterprise') {
+                    supportTierBg = '#28a745';
+                } else if (data.support_tier === 'Business') {
+                    supportTierBg = '#007bff';
+                } else {
+                    supportTierBg = '#6c757d';
+                }
+
+                // Extract risk level background and color
+                let riskLevelBg;
+                if (data.risk_assessment.risk_level === 'High') {
+                    riskLevelBg = '#dc3545';
+                } else if (data.risk_assessment.risk_level === 'Medium') {
+                    riskLevelBg = '#ffc107';
+                } else {
+                    riskLevelBg = '#28a745';
+                }
+                let riskLevelColor = data.risk_assessment.risk_level === 'Medium' ? 'black' : 'white';
+
                 responseDiv.innerHTML = `
                     <div class="response-content">
-                        <h3>Customer Context for ${data.customer_name}</h3>
-                        <p><strong>Email:</strong> ${data.email}</p>
-                        <p><strong>Support Tier:</strong> ${data.support_tier}</p>
-                        <p><strong>Recent Interactions:</strong></p>
-                        <ul>
-                            ${data.recent_interactions.map(interaction => `<li>${new Date(interaction.timestamp).toLocaleString()}: ${interaction.message}</li>`).join('')}
-                        </ul>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <h3>Customer Profile</h3>
+                                <p><strong>Name:</strong> ${data.customer_name}</p>
+                                <p><strong>Email:</strong> ${data.email}</p>
+                                <p><strong>Company:</strong> ${data.company}</p>
+                                <p><strong>Support Tier:</strong> 
+                                <span style="background: ${supportTierBg}; 
+                                                color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">
+                                ${data.support_tier}
+                                </span>
+                                </p>
+                                <p><strong>Satisfaction Score:</strong> 
+                                ${(() => {
+                                    let satisfactionColor;
+                                    if (data.satisfaction_score >= 4) {
+                                        satisfactionColor = 'green';
+                                    } else if (data.satisfaction_score >= 3) {
+                                        satisfactionColor = 'orange';
+                                    } else {
+                                        satisfactionColor = 'red';
+                                    }
+                                    return `<span style="color: ${satisfactionColor};">${data.satisfaction_score.toFixed(1)}/5.0</span>`;
+                                })()}
+                                </p>
+                                
+                                <h4 style="margin-top: 15px;">Support Metrics</h4>
+                                <p><strong>Total Interactions:</strong> ${data.support_metrics.total_interactions}</p>
+                                <p><strong>Average Satisfaction:</strong> ${data.support_metrics.average_satisfaction}/5.0</p>
+                                <p><strong>Open Tickets:</strong> ${data.support_metrics.open_tickets}</p>
+                                <p><strong>Total Tickets:</strong> ${data.support_metrics.total_tickets}</p>
+                            </div>
+                            
+                            <div>
+                                <h3>Risk Assessment</h3>
+                                <p><strong>Risk Level:</strong> 
+                                <span style="background: ${riskLevelBg}; 
+                                                color: ${riskLevelColor}; 
+                                                padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">
+                                ${data.risk_assessment.risk_level}
+                                </span>
+                                </p>
+                                <p><strong>Risk Score:</strong> ${data.risk_assessment.risk_score}/1.0</p>
+                                <p><strong>Risk Factors:</strong></p>
+                                <ul style="margin-left: 20px; font-size: 0.9em;">${riskHtml}</ul>
+                                
+                                <h4 style="margin-top: 15px;">Feedback Summary</h4>
+                                <p><strong>Total Feedback:</strong> ${data.feedback_summary.feedback_count}</p>
+                                <p><strong>Satisfaction Trend:</strong> ${data.feedback_summary.satisfaction_trend}</p>
+                                ${data.feedback_summary.latest_rating ? `<p><strong>Latest Rating:</strong> ${data.feedback_summary.latest_rating}/5</p>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <h4>Recent Interactions</h4>
+                            <ul style="margin-left: 20px; font-size: 0.9em; max-height: 150px; overflow-y: auto;">
+                                ${interactionsHtml}
+                            </ul>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <h4>Open Support Tickets</h4>
+                            <ul style="margin-left: 20px; font-size: 0.9em;">
+                                ${ticketsHtml}
+                            </ul>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <h4>Recommendations</h4>
+                            <ul style="margin-left: 20px; font-size: 0.9em;">
+                                ${recommendationsHtml}
+                            </ul>
+                        </div>
+                        
+                        <div style="margin-top: 15px; font-size: 0.8em; color: #6c757d;">
+                            <p><strong>Last Updated:</strong> ${new Date(data.last_updated).toLocaleString()}</p>
+                            <p><strong>Data Sources:</strong> ${data.data_sources.join(', ')}</p>
+                        </div>
                     </div>
                 `;
             } catch (error) {
@@ -895,7 +1040,6 @@
         
         // Analytics Dashboard Functions
         async function refreshAnalytics() {
-            const loadingDiv = document.getElementById('analytics-loading');
             const metrics = {
                 'total-customers': 'Total Customers',
                 'total-campaigns': 'Active Campaigns',

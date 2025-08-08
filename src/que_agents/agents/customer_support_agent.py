@@ -68,39 +68,38 @@ class CustomerFeedbackManager:
         self.load_feedback_data()
 
     def load_feedback_data(self):
-        """Load customer feedback data from CSV"""
+        """Load customer feedback data from CSV with improved date handling"""
         try:
             if os.path.exists(self.csv_path):
                 self.feedback_data = pd.read_csv(self.csv_path)
-                self.feedback_data[self.FEEDBACK_DATE_COL] = pd.to_datetime(
-                    self.feedback_data[self.FEEDBACK_DATE_COL], errors="coerce"
-                )
-                self.feedback_data[self.RESOLUTION_DATE_COL] = pd.to_datetime(
-                    self.feedback_data[self.RESOLUTION_DATE_COL], errors="coerce"
-                )
+                
+                # Improved date parsing with multiple format support
+                for date_col in [self.FEEDBACK_DATE_COL, self.RESOLUTION_DATE_COL]:
+                    if date_col in self.feedback_data.columns:
+                        # Handle multiple date formats
+                        self.feedback_data[date_col] = pd.to_datetime(
+                            self.feedback_data[date_col], 
+                            format='mixed',  # This handles multiple formats automatically
+                            errors='coerce'
+                        )
+                        
+                        # Fill any NaT values with a default date
+                        self.feedback_data[date_col] = self.feedback_data[date_col].fillna(
+                            pd.Timestamp('2023-01-01')
+                        )
+                
                 system_logger.info(
                     f"Loaded customer feedback data from {self.csv_path}",
                     {"row_count": len(self.feedback_data)},
                 )
             else:
                 system_logger.warning(f"Feedback CSV file not found at {self.csv_path}")
-                self.feedback_data = pd.DataFrame(
-                    columns=[
-                        self.CUSTOMER_ID_COL,
-                        self.FEEDBACK_DATE_COL,
-                        self.RATING_COL,
-                        self.CATEGORY_COL,
-                        self.RESOLUTION_STATUS_COL,
-                        self.ESCALATED_COL,
-                        self.RESPONSE_TIME_COL,
-                        self.SATISFACTION_SCORE_COL,
-                    ]
-                )
+                self.feedback_data = self._create_empty_feedback_dataframe()
         except Exception as e:
             system_logger.error(
                 f"Error loading feedback data from {self.csv_path}: {e}", exc_info=True
             )
-            self.feedback_data = pd.DataFrame()
+            self.feedback_data = self._create_empty_feedback_dataframe()
 
     def get_customer_feedback_history(self, customer_id: int) -> List[Dict]:
         """Get feedback history for a specific customer"""
@@ -113,82 +112,136 @@ class CustomerFeedbackManager:
 
         return customer_feedback.to_dict("records")
 
+    def _create_empty_feedback_dataframe(self) -> pd.DataFrame:
+        """Create an empty DataFrame with proper column types"""
+        return pd.DataFrame({
+            self.CUSTOMER_ID_COL: pd.Series(dtype='int64'),
+            self.FEEDBACK_DATE_COL: pd.Series(dtype='datetime64[ns]'),
+            self.RATING_COL: pd.Series(dtype='float64'),
+            self.CATEGORY_COL: pd.Series(dtype='str'),
+            self.RESOLUTION_STATUS_COL: pd.Series(dtype='str'),
+            self.ESCALATED_COL: pd.Series(dtype='str'),
+            self.RESPONSE_TIME_COL: pd.Series(dtype='float64'),
+            self.SATISFACTION_SCORE_COL: pd.Series(dtype='float64'),
+            self.RESOLUTION_DATE_COL: pd.Series(dtype='datetime64[ns]'),
+            'Sentiment': pd.Series(dtype='str'),
+            'Subcategory': pd.Series(dtype='str'),
+            'Feedback Text': pd.Series(dtype='str'),
+        })
     def get_feedback_trends(self, days: int = 30) -> Dict[str, Any]:
-        """Get feedback trends for the last N days"""
+        """Get feedback trends for the last N days with improved date handling"""
         if self.feedback_data is None or self.feedback_data.empty:
             return {}
 
-        cutoff_date = datetime.now() - timedelta(days=days)
-        recent_feedback = self.feedback_data[
-            self.feedback_data[self.FEEDBACK_DATE_COL] >= cutoff_date
-        ].copy()
+        try:
+            # Ensure cutoff_date is a pandas Timestamp
+            cutoff_date = pd.Timestamp(datetime.now() - timedelta(days=days))
+            
+            # Ensure the date column is datetime type
+            if not pd.api.types.is_datetime64_any_dtype(self.feedback_data[self.FEEDBACK_DATE_COL]):
+                self.feedback_data[self.FEEDBACK_DATE_COL] = pd.to_datetime(
+                    self.feedback_data[self.FEEDBACK_DATE_COL], 
+                    format='mixed',
+                    errors='coerce'
+                )
+            
+            # Filter recent feedback with proper datetime comparison
+            recent_feedback = self.feedback_data[
+                self.feedback_data[self.FEEDBACK_DATE_COL] >= cutoff_date
+            ].copy()
 
-        if recent_feedback.empty:
+            if recent_feedback.empty:
+                return {
+                    "total_feedback": 0,
+                    "average_rating": 0.0,
+                    "category_distribution": {},
+                    "sentiment_distribution": {},
+                    "resolution_rate": 0.0,
+                    "escalation_rate": 0.0,
+                    "average_response_time": 0.0,
+                }
+
+            # Calculate metrics safely
+            resolution_rate = self._calculate_resolution_rate(recent_feedback)
+            escalation_rate = self._calculate_escalation_rate(recent_feedback)
+            
+            return {
+                "total_feedback": len(recent_feedback),
+                "average_rating": recent_feedback[self.RATING_COL].mean() if not recent_feedback[self.RATING_COL].isna().all() else 0.0,
+                "category_distribution": recent_feedback[self.CATEGORY_COL].value_counts().to_dict(),
+                "sentiment_distribution": recent_feedback["Sentiment"].value_counts().to_dict() if "Sentiment" in recent_feedback.columns else {},
+                "resolution_rate": resolution_rate,
+                "escalation_rate": escalation_rate,
+                "average_response_time": recent_feedback[self.RESPONSE_TIME_COL].mean() if not recent_feedback[self.RESPONSE_TIME_COL].isna().all() else 0.0,
+            }
+            
+        except Exception as e:
+            system_logger.error(f"Error calculating feedback trends: {e}", exc_info=True)
             return {}
 
-        resolution_rate = (
-            (
-                recent_feedback[self.RESOLUTION_STATUS_COL]
-                .isin(["Resolved", "Closed"])
-                .sum()
-                / len(recent_feedback)
-                * 100
-            )
-            if not recent_feedback.empty
-            else 0
-        )
+    def _calculate_resolution_rate(self, data: pd.DataFrame) -> float:
+        """Calculate resolution rate safely"""
+        try:
+            if data.empty:
+                return 0.0
+            resolved_count = data[self.RESOLUTION_STATUS_COL].isin(["Resolved", "Closed"]).sum()
+            return (resolved_count / len(data) * 100) if len(data) > 0 else 0.0
+        except Exception:
+            return 0.0
 
-        escalation_rate = (
-            (
-                (recent_feedback[self.ESCALATED_COL] == "Yes").sum()
-                / len(recent_feedback)
-                * 100
-            )
-            if not recent_feedback.empty
-            else 0
-        )
-
-        return {
-            "total_feedback": len(recent_feedback),
-            "average_rating": recent_feedback[self.RATING_COL].mean(),
-            "category_distribution": recent_feedback[self.CATEGORY_COL]
-            .value_counts()
-            .to_dict(),
-            "sentiment_distribution": recent_feedback["Sentiment"]
-            .value_counts()
-            .to_dict(),
-            "resolution_rate": resolution_rate,
-            "escalation_rate": escalation_rate,
-            "average_response_time": recent_feedback[self.RESPONSE_TIME_COL].mean(),
-        }
+    def _calculate_escalation_rate(self, data: pd.DataFrame) -> float:
+        """Calculate escalation rate safely"""
+        try:
+            if data.empty:
+                return 0.0
+            escalated_count = (data[self.ESCALATED_COL] == "Yes").sum()
+            return (escalated_count / len(data) * 100) if len(data) > 0 else 0.0
+        except Exception:
+            return 0.0
 
     def get_similar_issues(
-        self, category: str, subcategory: str = None, limit: int = 5
+        self, category: str, subcategory: Optional[str] = None, limit: int = 5
     ) -> List[Dict]:
-        """Get similar resolved issues for reference"""
+        """Get similar resolved issues for reference with improved date handling"""
         if self.feedback_data is None or self.feedback_data.empty:
             return []
 
-        similar_issues = self.feedback_data[
-            (self.feedback_data[self.CATEGORY_COL] == category)
-            & (
-                self.feedback_data[self.RESOLUTION_STATUS_COL].isin(
-                    ["Resolved", "Closed"]
+        try:
+            similar_issues = self.feedback_data[
+                (self.feedback_data[self.CATEGORY_COL] == category)
+                & (
+                    self.feedback_data[self.RESOLUTION_STATUS_COL].isin(
+                        ["Resolved", "Closed"]
+                    )
                 )
-            )
-        ].copy()
+            ].copy()
 
-        if subcategory:
-            similar_issues = similar_issues[
-                similar_issues["Subcategory"] == subcategory
-            ]
+            if subcategory and "Subcategory" in similar_issues.columns:
+                similar_issues = similar_issues[
+                    similar_issues["Subcategory"] == subcategory
+                ]
 
-        # Sort by rating (higher first) and recent date
-        similar_issues = similar_issues.sort_values(
-            [self.RATING_COL, self.FEEDBACK_DATE_COL], ascending=[False, False]
-        ).head(limit)
+            # Sort by rating and date - ensure date column is datetime
+            if not similar_issues.empty:
+                # Convert to datetime if not already
+                if not pd.api.types.is_datetime64_any_dtype(similar_issues[self.FEEDBACK_DATE_COL]):
+                    similar_issues[self.FEEDBACK_DATE_COL] = pd.to_datetime(
+                        similar_issues[self.FEEDBACK_DATE_COL],
+                        format='mixed',
+                        errors='coerce'
+                    )
+                
+                similar_issues = similar_issues.sort_values(
+                    [self.RATING_COL, self.FEEDBACK_DATE_COL], 
+                    ascending=[False, False],
+                    na_position='last'
+                ).head(limit)
 
-        return similar_issues.to_dict("records")
+            return similar_issues.to_dict("records")
+            
+        except Exception as e:
+            system_logger.error(f"Error getting similar issues: {e}", exc_info=True)
+            return []
 
     def add_feedback_entry(self, feedback_data: Dict[str, Any]):
         """Add new feedback entry to CSV"""
@@ -213,33 +266,47 @@ class CustomerFeedbackManager:
             system_logger.error(f"Error adding feedback entry: {e}", exc_info=True)
 
     def get_customer_satisfaction_trend(self, customer_id: int) -> Dict[str, Any]:
-        """Get satisfaction trend for a specific customer"""
+        """Get satisfaction trend for a specific customer with improved error handling"""
         if self.feedback_data is None or self.feedback_data.empty:
             return {}
 
-        customer_feedback = self.feedback_data[
-            self.feedback_data[self.CUSTOMER_ID_COL] == customer_id
-        ].sort_values(self.FEEDBACK_DATE_COL)
+        try:
+            customer_feedback = self.feedback_data[
+                self.feedback_data[self.CUSTOMER_ID_COL] == customer_id
+            ].copy()
 
-        if customer_feedback.empty:
+            if customer_feedback.empty:
+                return {}
+
+            # Ensure date column is datetime and sort
+            if not pd.api.types.is_datetime64_any_dtype(customer_feedback[self.FEEDBACK_DATE_COL]):
+                customer_feedback[self.FEEDBACK_DATE_COL] = pd.to_datetime(
+                    customer_feedback[self.FEEDBACK_DATE_COL],
+                    format='mixed',
+                    errors='coerce'
+                )
+            
+            customer_feedback = customer_feedback.sort_values(self.FEEDBACK_DATE_COL, na_position='first')
+
+            # Get ratings and satisfaction scores safely
+            ratings = customer_feedback[self.RATING_COL].dropna().tolist()
+            satisfaction_scores = customer_feedback[self.SATISFACTION_SCORE_COL].dropna().tolist()
+
+            result = {
+                "rating_trend": ratings,
+                "satisfaction_trend": satisfaction_scores,
+                "latest_rating": ratings[-1] if ratings else None,
+                "latest_satisfaction": satisfaction_scores[-1] if satisfaction_scores else None,
+                "average_rating": sum(ratings) / len(ratings) if ratings else None,
+                "trend_direction": self._calculate_trend_direction(ratings),
+                "feedback_count": len(customer_feedback),
+            }
+            
+            return result
+            
+        except Exception as e:
+            system_logger.error(f"Error getting customer satisfaction trend: {e}", exc_info=True)
             return {}
-
-        ratings = customer_feedback[self.RATING_COL].dropna().tolist()
-        satisfaction_scores = (
-            customer_feedback[self.SATISFACTION_SCORE_COL].dropna().tolist()
-        )
-
-        return {
-            "rating_trend": ratings,
-            "satisfaction_trend": satisfaction_scores,
-            "latest_rating": ratings[-1] if ratings else None,
-            "latest_satisfaction": (
-                satisfaction_scores[-1] if satisfaction_scores else None
-            ),
-            "average_rating": sum(ratings) / len(ratings) if ratings else None,
-            "trend_direction": self._calculate_trend_direction(ratings),
-            "feedback_count": len(customer_feedback),
-        }
 
     def _calculate_trend_direction(self, values: List[float]) -> str:
         """Calculate if trend is improving, declining, or stable"""
@@ -947,7 +1014,7 @@ Respond with ONLY the category name from the list above."""
             return []
 
     def get_feedback_insights(self, customer_id: int, category: str) -> str:
-        """Get insights from feedback data for better responses"""
+        """Get insights from feedback data for better responses with improved error handling"""
         try:
             # Get customer satisfaction trend
             satisfaction_trend = self.feedback_manager.get_customer_satisfaction_trend(
@@ -962,24 +1029,25 @@ Respond with ONLY the category name from the list above."""
 
             insights = ""
 
-            if satisfaction_trend:
+            if satisfaction_trend and satisfaction_trend.get('trend_direction'):
                 insights += f"Customer Satisfaction: {satisfaction_trend.get('trend_direction', 'stable')} trend, "
-                insights += f"latest rating {satisfaction_trend.get('latest_rating', 'N/A')}/5\n"
+                latest_rating = satisfaction_trend.get('latest_rating')
+                if latest_rating is not None:
+                    insights += f"latest rating {latest_rating}/5\n"
+                else:
+                    insights += "no recent ratings\n"
 
             if similar_issues:
                 insights += f"Similar Issues Resolved: {len(similar_issues)} cases with avg rating "
-                avg_rating = (
-                    sum(issue.get("Rating", 0) for issue in similar_issues)
-                    / len(similar_issues)
-                    if similar_issues
-                    else 0
-                )
-                insights += f"{avg_rating:.1f}/5\n"
+                ratings = [issue.get("Rating") for issue in similar_issues if issue.get("Rating") is not None]
+                if ratings:
+                    avg_rating = sum(ratings) / len(ratings)
+                    insights += f"{avg_rating:.1f}/5\n"
+                else:
+                    insights += "no ratings available\n"
 
-            if feedback_trends:
-                category_issues_count = feedback_trends.get(
-                    "category_distribution", {}
-                ).get(category, 0)
+            if feedback_trends and feedback_trends.get("category_distribution"):
+                category_issues_count = feedback_trends["category_distribution"].get(category, 0)
                 resolution_rate = feedback_trends.get("resolution_rate", 0)
                 insights += f"Category Trends: {category_issues_count} "
                 insights += f"recent {category} issues, {resolution_rate:.1f}% resolution rate\n"
@@ -988,7 +1056,7 @@ Respond with ONLY the category name from the list above."""
 
         except Exception as e:
             system_logger.error(f"Error getting feedback insights: {e}", exc_info=True)
-            return ""
+            return "Unable to retrieve feedback insights at this time."
 
     def process_customer_message(
         self, customer_id: int, message: str, session_id: Optional[str] = None
@@ -1525,9 +1593,10 @@ Recent Interaction Summary:
                 customer_context, sentiment_distribution, satisfaction_trend
             )
 
+            # FIX: Use proper attribute access for CustomerContext object
             return {
-                "customer_id": customer_id,
                 "customer_context": {
+                    "customer_id": customer_context.customer_id,  # Fix: Use attribute access
                     "name": customer_context.name,
                     "email": customer_context.email,
                     "tier": customer_context.tier,
@@ -1540,6 +1609,18 @@ Recent Interaction Summary:
                     "category_distribution": category_distribution,
                     "average_satisfaction": avg_satisfaction,
                     "satisfaction_scores": satisfaction_scores[-10:],  # Last 10 scores
+                    "interaction_stats": {  # Add nested structure for API compatibility
+                        "recent_interactions": [
+                            {
+                                "type": interaction.get("type", "chat"),
+                                "message": interaction.get("message", "No message"),
+                                "sentiment": interaction.get("sentiment", "neutral"),
+                                "satisfaction": interaction.get("satisfaction", 0),
+                                "date": interaction.get("date", datetime.now().isoformat())
+                            }
+                            for interaction in customer_context.recent_interactions
+                        ][:5]
+                    }
                 },
                 "feedback_insights": {
                     "feedback_count": len(feedback_history),
