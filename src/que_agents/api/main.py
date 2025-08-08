@@ -34,6 +34,7 @@ from src.que_agents.error_trace.errorlogger import system_logger
 
 AGENT_INITIALIZATION = "Agent Initialization"
 CUSTOMER_SUPPORT_UNAVAILABLE = "Customer support agent not available"
+CREATE_MARKETING_CAMPAIGN = "Create Marketing Campaign"
 
 
 class AgentManager:
@@ -1347,6 +1348,7 @@ async def create_marketing_campaign(
     try:
         agent = agent_manager.get_agent("marketing")
         if not agent:
+            system_logger.warning("Marketing agent not. available")
             raise HTTPException(status_code=503, detail="Marketing agent not available")
 
         # Convert request to the format expected by the agent
@@ -1366,6 +1368,14 @@ async def create_marketing_campaign(
         result = agent.create_marketing_campaign(campaign_request)
 
         if "error" in result:
+            system_logger.warning(
+                "Error creating marketing campaign",
+                additional_info={
+                    "context": CREATE_MARKETING_CAMPAIGN,
+                    "campaign_type": getattr(request, "campaign_type", "unknown"),
+                    "target_audience": getattr(request, "target_audience", "unknown"),
+                },
+            )
             raise HTTPException(status_code=400, detail=result["error"])
 
         return {
@@ -1378,13 +1388,23 @@ async def create_marketing_campaign(
             "timestamp": datetime.now().isoformat(),
         }
 
-    except HTTPException:
+    except HTTPException as e:
+        # Re-raise HTTP exceptions to maintain status codes
+        system_logger.error(
+            f"HTTP Exception in create_marketing_campaign: {str(e)}",
+            additional_info={
+                "context": CREATE_MARKETING_CAMPAIGN,
+                "campaign_type": getattr(request, "campaign_type", "unknown"),
+                "target_audience": getattr(request, "target_audience", "unknown"),
+            },
+            exc_info=True,
+        )
         raise
     except Exception as e:
         system_logger.error(
             f"Error creating marketing campaign: {str(e)}",
             additional_info={
-                "context": "Create Marketing Campaign",
+                "context": CREATE_MARKETING_CAMPAIGN,
                 "campaign_type": getattr(request, "campaign_type", "unknown"),
                 "target_audience": getattr(request, "target_audience", "unknown"),
             },

@@ -37,6 +37,7 @@ system_logger.info(
     "Customer Support Agent initialized", {"timestamp": datetime.now().isoformat()}
 )
 
+FEEDBACK_TEXT = "Feedback Text"
 FEEDBACK_DATE = "Feedback Date"
 CUSTOMER_ID = "Customer ID"
 
@@ -127,7 +128,7 @@ class CustomerFeedbackManager:
                 self.RESOLUTION_DATE_COL: pd.Series(dtype="datetime64[ns]"),
                 "Sentiment": pd.Series(dtype="str"),
                 "Subcategory": pd.Series(dtype="str"),
-                "Feedback Text": pd.Series(dtype="str"),
+                FEEDBACK_TEXT: pd.Series(dtype="str"),
             }
         )
 
@@ -1469,7 +1470,7 @@ Recent Interaction Summary:
                 "Rating": int(round(satisfaction)),
                 "Category": category.title().replace("_", " "),
                 "Subcategory": "General",
-                "Feedback Text": (
+                FEEDBACK_TEXT: (
                     message[:200] + "..." if len(message) > 200 else message
                 ),
                 "Resolution Status": (
@@ -2321,7 +2322,7 @@ Recent Interaction Summary:
                         FEEDBACK_DATE,
                         "Rating",
                         "Category",
-                        "Feedback Text",
+                        FEEDBACK_TEXT,
                     ]
                     if not all(
                         field in row and pd.notna(row[field])

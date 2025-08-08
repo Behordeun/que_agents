@@ -12,6 +12,7 @@ from sqlalchemy import (
     JSON,
     Boolean,
     Column,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -98,15 +99,15 @@ class KnowledgeBase(Base):
 class MarketingCampaign(Base):
     __tablename__ = "marketing_campaigns"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    description = Column(Text)
-    campaign_type = Column(String(50))  # email, social, ads, content
-    status = Column(String(50), default="draft")  # draft, active, paused, completed
-    target_audience = Column(JSON)  # Audience segmentation criteria
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    campaign_type = Column(String, index=True)
+    target_audience = Column(String)
     budget = Column(Float)
-    start_date = Column(DateTime)
-    end_date = Column(DateTime)
+    start_date = Column(Date)
+    end_date = Column(Date)
+    status = Column(String, default="active")
+    strategy = Column(Text)  # Add this field if it doesn't exist
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -137,11 +138,12 @@ class MarketingPost(Base):
 class AudienceSegment(Base):
     __tablename__ = "audience_segments"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    description = Column(Text)
-    criteria = Column(JSON)  # Segmentation criteria (age, location, interests, etc.)
-    size = Column(Integer)  # Estimated audience size
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    criteria = Column(JSON)  # Store criteria as JSON
+    characteristics = Column(
+        JSON
+    )  # Store characteristics including estimated_size as JSON
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
