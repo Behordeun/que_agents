@@ -103,7 +103,8 @@ def test_api_structure():
         print("✓ FastAPI app instance found")
 
         # Check routes
-        routes = [route.path for route in app.routes if hasattr(route, "path")]
+        from fastapi.routing import APIRoute
+        routes = [route.path for route in app.routes if isinstance(route, APIRoute)]
         expected_routes = [
             "/health",
             "/api/v1/customer-support/chat",
