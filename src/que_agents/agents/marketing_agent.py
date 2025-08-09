@@ -36,6 +36,7 @@ system_logger.info("Initializing Marketing Agent ...")
 
 
 DEFAULT_CALL_TO_ACTION = "Learn more"
+GENERATED_CONTENT = "Generated content"
 RETRY_CAMPAIGN_CREATION = "Retry campaign creation"
 CAMPAIGN_STRATEGY_CREATION_STATUS = "Campaign strategy created successfully"
 MONITOR_INITIAL_PERFORMANCE = "Monitor initial performance"
@@ -1081,7 +1082,7 @@ Provide detailed audience insights and targeting recommendations."""
             return ContentPiece(
                 content_type=content_type,
                 platform=platform,
-                title=parsed_content.get("title", "Generated Content"),
+                title=parsed_content.get("title", GENERATED_CONTENT),
                 content=parsed_content.get("content", ""),
                 call_to_action=parsed_content.get("cta", DEFAULT_CALL_TO_ACTION),
                 hashtags=parsed_content.get("hashtags", []),
@@ -1114,7 +1115,7 @@ Provide detailed audience insights and targeting recommendations."""
         lines = content.split("\n")
 
         # Extract title/headline
-        title = lines[0].strip() if lines else "Generated Content"
+        title = lines[0].strip() if lines else GENERATED_CONTENT
         if title.startswith("Title:") or title.startswith("Headline:"):
             title = title.split(":", 1)[1].strip()
 
@@ -2800,49 +2801,53 @@ Provide detailed audience insights and targeting recommendations."""
     def generate_marketing_content(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Generate marketing content (API compatibility method)"""
         try:
-            # Convert dict request to proper parameters
-            content_type = ContentType(request.get("content_type", "social_media"))
-            platform = request.get("platform", "social_media")
-            campaign_theme = request.get("campaign_theme", "general marketing")
-            target_audience = request.get("target_audience", "general audience")
-            key_messages = request.get("key_messages", ["engaging content"])
-            brand_voice = request.get("brand_voice", "professional")
+            from src.que_agents.core.schemas import ContentType
 
-            # Generate enhanced content
+            # Convert string content_type to enum if needed
+            content_type_str = request.get("content_type", "social_media")
+            try:
+                content_type = ContentType(content_type_str)
+            except ValueError:
+                content_type = ContentType.SOCIAL_MEDIA
+
+            # Generate content using existing method
             content_piece = self.generate_enhanced_content(
-                platform=platform,
+                platform=request.get("platform", "social_media"),
                 content_type=content_type,
-                campaign_theme=campaign_theme,
-                target_audience=target_audience,
-                key_messages=key_messages,
-                brand_voice=brand_voice,
+                campaign_theme=request.get("campaign_theme", "marketing"),
+                target_audience=request.get("target_audience", "general audience"),
+                key_messages=request.get("key_messages", ["engaging", "innovative"]),
+                brand_voice=request.get("brand_voice", "professional"),
             )
 
+            # Convert ContentPiece to dict for API response
             return {
-                "content": content_piece.content,
-                "title": content_piece.title,
-                "hashtags": content_piece.hashtags,
-                "call_to_action": content_piece.call_to_action,
-                "platform": content_piece.platform,
-                "content_type": content_piece.content_type.value,
-                "estimated_reach": content_piece.estimated_reach,
+                "title": getattr(content_piece, "title", GENERATED_CONTENT),
+                "content": getattr(content_piece, "content", ""),
+                "call_to_action": getattr(
+                    content_piece, "call_to_action", DEFAULT_CALL_TO_ACTION
+                ),
+                "hashtags": getattr(content_piece, "hashtags", []),
+                "platform": getattr(content_piece, "platform", request.get("platform")),
+                "estimated_reach": getattr(content_piece, "estimated_reach", 1000),
                 "optimization_score": getattr(content_piece, "optimization_score", 0.6),
-                "variations": content_piece.variations,
-                "status": "success",
             }
 
         except Exception as e:
             system_logger.error(
-                f"Error in generating marketing content: {e}", exc_info=True
+                f"Error in generate_marketing_content: {e}", exc_info=True
             )
             return {
-                "error": "Failed to generate marketing content",
-                "message": str(e),
-                "status": "failed",
-                "content": "Unable to generate content at this time. Please try again.",
-                "title": "Content Generation Error",
-                "hashtags": [],
-                "call_to_action": "Try again",
+                "error": str(e),
+                "fallback_content": {
+                    "title": f"Exciting {request.get('campaign_theme', 'Marketing')} Update",
+                    "content": f"Great content about {request.get('campaign_theme', 'our initiative')} for {request.get('target_audience', 'our audience')}!",
+                    "call_to_action": DEFAULT_CALL_TO_ACTION,
+                    "hashtags": ["#Marketing", "#Innovation"],
+                    "platform": request.get("platform", "social_media"),
+                    "estimated_reach": 1500,
+                    "optimization_score": 0.7,
+                },
             }
 
     def analyze_campaign_performance(self, campaign_id: int) -> Dict[str, Any]:

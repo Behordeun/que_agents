@@ -857,40 +857,31 @@
 
                 console.log('Generating content with:', requestData);
 
-                const response = await fetch('/api/v1/marketing/content/generate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer demo-token-123'
-                    },
-                    body: JSON.stringify(requestData)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
+                const data = await apiCall('/api/v1/marketing/content/generate', 'POST', requestData);
                 
-                responseDiv.innerHTML = `
-                    <div class="response-content">
-                        <h3>✨ Content Generated Successfully!</h3>
-                        <div class="generated-content">
-                            <h4>${data.content.title}</h4>
-                            <div class="content-body">
-                                <p>${data.content.content}</p>
-                            </div>
-                            <div class="content-meta">
-                                <p><strong>Call to Action:</strong> ${data.content.call_to_action}</p>
-                                <p><strong>Hashtags:</strong> ${data.content.hashtags.join(' ')}</p>
-                                <p><strong>Platform:</strong> ${data.content.platform}</p>
-                                <p><strong>Estimated Reach:</strong> ${data.content.estimated_reach.toLocaleString()}</p>
-                                <p><strong>Optimization Score:</strong> ${(data.content.optimization_score * 100).toFixed(1)}%</p>
+                if (data.success) {
+                    responseDiv.innerHTML = `
+                        <div class="response-content">
+                            <h3>✨ Content Generated Successfully!</h3>
+                            <div class="generated-content">
+                                <h4>${data.content.title}</h4>
+                                <div class="content-body">
+                                    <p style="white-space: pre-line;">${data.content.content}</p>
+                                </div>
+                                <div class="content-meta">
+                                    <p><strong>Call to Action:</strong> ${data.content.call_to_action}</p>
+                                    <p><strong>Hashtags:</strong> ${data.content.hashtags.join(' ')}</p>
+                                    <p><strong>Platform:</strong> ${data.content.platform}</p>
+                                    <p><strong>Estimated Reach:</strong> ${data.content.estimated_reach.toLocaleString()}</p>
+                                    <p><strong>Optimization Score:</strong> ${(data.content.optimization_score * 100).toFixed(1)}%</p>
+                                    ${data.fallback_mode ? '<p><em>Generated using fallback system</em></p>' : ''}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    throw new Error(data.message || 'Content generation failed');
+                }
 
             } catch (error) {
                 console.error('Content generation error:', error);
@@ -898,7 +889,7 @@
                     <div class="error">
                         <h3>❌ Content Generation Failed</h3>
                         <p><strong>Error:</strong> ${error.message}</p>
-                        <p>Please try again.</p>
+                        <p>Please try again or check the server logs.</p>
                     </div>
                 `;
             } finally {
@@ -1064,6 +1055,7 @@
             }
         }
 
+        // Update the getPortfolioStatus function to handle the actual API response format
         async function getPortfolioStatus() {
             const loadingDiv = document.getElementById('trading-loading');
             const responseDiv = document.getElementById('trading-response');
@@ -1073,21 +1065,99 @@
 
             try {
                 const data = await apiCall('/api/v1/trading/portfolio');
+                
+                // Handle the actual response format from your API
+                const portfolioValue = parseFloat(data.total_value) || 0;
+                const cashBalance = parseFloat(data.cash_balance) || 0;
+                const unrealizedPnl = parseFloat(data.unrealized_pnl) || 0;
+                const realizedPnl = parseFloat(data.realized_pnl) || 0;
+                const totalReturn = data.performance_metrics?.total_return || 0;
+                const sharpeRatio = data.sharpe_ratio || data.performance_metrics?.sharpe_ratio;
+                const maxDrawdown = data.max_drawdown || data.performance_metrics?.max_drawdown;
+                
                 responseDiv.innerHTML = `
                     <div class="response-content">
-                        <h3>Portfolio Status</h3>
-                        <p><strong>Total Value:</strong> $${data.portfolio_value.toFixed(2)}</p>
-                        <p><strong>Cash Balance:</strong> $${data.cash_balance.toFixed(2)}</p>
-                        <p><strong>Unrealized PnL:</strong> $${data.unrealized_pnl.toFixed(2)}</p>
-                        <p><strong>Realized PnL:</strong> $${data.realized_pnl.toFixed(2)}</p>
-                        <h4>Holdings:</h4>
-                        <pre>${JSON.stringify(data.holdings, null, 2)}</pre>
-                        <h4>Performance Metrics:</h4>
-                        <pre>${JSON.stringify(data.performance_metrics, null, 2)}</pre>
+                        <h3>📊 Portfolio Status</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div>
+                                <p><strong>Total Portfolio Value:</strong> $${portfolioValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                                <p><strong>Cash Balance:</strong> $${cashBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                                <p><strong>Unrealized P&L:</strong> <span style="color: ${unrealizedPnl >= 0 ? 'green' : 'red'};">$${unrealizedPnl.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></p>
+                                <p><strong>Realized P&L:</strong> <span style="color: ${realizedPnl >= 0 ? 'green' : 'red'};">$${realizedPnl.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></p>
+                            </div>
+                            <div>
+                                <p><strong>Total Return:</strong> <span style="color: ${totalReturn >= 0 ? 'green' : 'red'};">${(totalReturn * 100).toFixed(2)}%</span></p>
+                                ${sharpeRatio !== null && sharpeRatio !== undefined ? 
+                                    `<p><strong>Sharpe Ratio:</strong> ${parseFloat(sharpeRatio).toFixed(2)}</p>` : 
+                                    '<p><strong>Sharpe Ratio:</strong> N/A</p>'
+                                }
+                                ${maxDrawdown !== null && maxDrawdown !== undefined ? 
+                                    `<p><strong>Max Drawdown:</strong> ${(parseFloat(maxDrawdown) * 100).toFixed(2)}%</p>` : 
+                                    '<p><strong>Max Drawdown:</strong> N/A</p>'
+                                }
+                                <p><strong>Last Updated:</strong> ${new Date().toLocaleString()}</p>
+                            </div>
+                        </div>
+                        
+                        <h4>📈 Current Holdings</h4>
+                        ${Object.keys(data.holdings || {}).length > 0 ? 
+                            `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                                ${Object.entries(data.holdings).map(([symbol, quantity]) => `
+                                    <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; text-align: center;">
+                                        <strong>${symbol}</strong><br>
+                                        ${parseFloat(quantity).toFixed(2)} shares
+                                    </div>
+                                `).join('')}
+                            </div>` : 
+                            '<p><em>No current holdings (Cash position)</em></p>'
+                        }
+                        
+                        <h4>📊 Performance Metrics</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                                <strong>Total Return:</strong><br>
+                                <span style="color: ${totalReturn >= 0 ? 'green' : 'red'};">${(totalReturn * 100).toFixed(2)}%</span>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                                <strong>Holdings Value:</strong><br>
+                                $${(data.performance_metrics?.holdings_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </div>
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                                <strong>Portfolio Health:</strong><br>
+                                ${(() => {
+                                    let health;
+                                    if (totalReturn >= 0) {
+                                        health = '🟢 Positive';
+                                    } else if (totalReturn > -0.1) {
+                                        health = '🟡 Stable';
+                                    } else {
+                                        health = '🔴 Declining';
+                                    }
+                                    return health;
+                                })()}
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px;">
+                            <p><strong>💡 Portfolio Summary:</strong></p>
+                            <p>You currently have a cash-heavy portfolio with ${(totalReturn * 100).toFixed(2)}% total return. 
+                            ${Object.keys(data.holdings || {}).length === 0 ? 
+                                'Consider diversifying into some stock positions for potential growth.' : 
+                                `You hold ${Object.keys(data.holdings).length} different positions.`
+                            }</p>
+                        </div>
                     </div>
                 `;
             } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                console.error('Portfolio status error:', error);
+                responseDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Portfolio Status Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>The portfolio service is temporarily unavailable. Please try again later.</p>
+                        <button class="btn" onclick="getPortfolioStatus()" style="margin-top: 10px;">Retry</button>
+                    </div>
+                `;
             } finally {
                 loadingDiv.style.display = 'none';
             }
