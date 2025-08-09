@@ -31,6 +31,7 @@ from src.que_agents.core.schemas import (
 )
 from src.que_agents.error_trace.errorlogger import system_logger
 
+
 AGENT_INITIALIZATION = "Agent Initialization"
 CUSTOMER_SUPPORT_UNAVAILABLE = "Customer support agent not available"
 CREATE_MARKETING_CAMPAIGN = "Create Marketing Campaign"
