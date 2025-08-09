@@ -76,6 +76,15 @@ class FinancialTradingBotAgent:
             "INTC",
         ]
 
+        # Initialize default strategy if needed
+        try:
+            self.default_strategy_id = self.initialize_default_trading_strategy()
+        except Exception as e:
+            system_logger.warning(
+                f"Could not initialize default trading strategy: {e}. Will create on demand."
+            )
+            self.default_strategy_id = None
+
         # Initialize prompt templates
         self.analysis_prompt = self._create_analysis_prompt()
         self.decision_prompt = self._create_decision_prompt()
@@ -135,23 +144,24 @@ class FinancialTradingBotAgent:
 
         # Enhanced market data string
         market_data_str = f"""
-Symbol: {market_data.symbol}
-Current Price: ${market_data.current_price:.2f}
-24h Change: {market_data.change_24h:.2f}%
-Volume: {market_data.volume:,.0f}
-Market Sentiment: {market_data.market_sentiment}
+    Symbol: {market_data.symbol}
+    Current Price: ${market_data.current_price:.2f}
+    24h Change: {market_data.change_24h:.2f}%
+    Volume: {market_data.volume:,.0f}
+    Market Sentiment: {market_data.market_sentiment}
 
-Knowledge Base Context:
-{knowledge_context}
-"""
+    Knowledge Base Context:
+    {knowledge_context}
+    """
 
         technical_indicators_str = f"""
-RSI: {market_data.rsi:.2f}
-MACD: {market_data.macd:.2f}
-20-day MA: ${market_data.moving_avg_20:.2f}
-50-day MA: ${market_data.moving_avg_50:.2f}
-Volatility: {market_data.volatility:.2f}
-"""
+    RSI: {market_data.rsi:.2f}
+    MACD: {market_data.macd:.2f}
+    20-day MA: ${market_data.moving_avg_20:.2f}
+    50-day MA: ${market_data.moving_avg_50:.2f}
+    200-day MA: ${market_data.moving_avg_200:.2f}
+    Volatility: {market_data.volatility:.2f}
+    """
 
         # Get historical performance (simulated)
         historical_data_str = (
@@ -403,6 +413,9 @@ Provide risk assessment including:
         macd = random.uniform(-2, 2)
         moving_avg_20 = current_price * random.uniform(0.98, 1.02)
         moving_avg_50 = current_price * random.uniform(0.95, 1.05)
+        moving_avg_200 = current_price * random.uniform(
+            0.90, 1.10
+        )  # Add missing 200-day MA
         volatility = random.uniform(0.15, 0.35)
         volume = random.uniform(1000000, 10000000)
         change_24h = random.uniform(-5, 5)
@@ -427,6 +440,7 @@ Provide risk assessment including:
             macd=macd,
             moving_avg_20=moving_avg_20,
             moving_avg_50=moving_avg_50,
+            moving_avg_200=moving_avg_200,  # Include the 200-day moving average
             volatility=volatility,
             market_sentiment=market_sentiment,
         )
@@ -493,20 +507,21 @@ Provide risk assessment including:
 
         # Prepare market data for analysis
         market_data_str = f"""
-Symbol: {market_data.symbol}
-Current Price: ${market_data.current_price:.2f}
-24h Change: {market_data.change_24h:.2f}%
-Volume: {market_data.volume:,.0f}
-Market Sentiment: {market_data.market_sentiment}
-"""
+    Symbol: {market_data.symbol}
+    Current Price: ${market_data.current_price:.2f}
+    24h Change: {market_data.change_24h:.2f}%
+    Volume: {market_data.volume:,.0f}
+    Market Sentiment: {market_data.market_sentiment}
+    """
 
         technical_indicators_str = f"""
-RSI: {market_data.rsi:.2f}
-MACD: {market_data.macd:.2f}
-20-day MA: ${market_data.moving_avg_20:.2f}
-50-day MA: ${market_data.moving_avg_50:.2f}
-Volatility: {market_data.volatility:.2f}
-"""
+    RSI: {market_data.rsi:.2f}
+    MACD: {market_data.macd:.2f}
+    20-day MA: ${market_data.moving_avg_20:.2f}
+    50-day MA: ${market_data.moving_avg_50:.2f}
+    200-day MA: ${market_data.moving_avg_200:.2f}
+    Volatility: {market_data.volatility:.2f}
+    """
 
         # Get historical performance (simulated)
         historical_data_str = (
@@ -689,15 +704,26 @@ Min Confidence: {self.min_confidence_threshold:.1%}
     def _moving_avg_confidence(
         self, market_conditions: MarketConditions, action: str
     ) -> float:
-        if (
-            action == "buy"
-            and market_conditions.current_price > market_conditions.moving_avg_20
-        ) or (
-            action == "sell"
-            and market_conditions.current_price < market_conditions.moving_avg_20
-        ):
-            return 0.1
-        return 0.0
+        price = market_conditions.current_price
+        ma_20 = market_conditions.moving_avg_20
+        ma_50 = market_conditions.moving_avg_50
+        ma_200 = market_conditions.moving_avg_200
+
+        confidence_boost = 0.0
+
+        # Check if price is above/below key moving averages
+        if action == "buy":
+            if price > ma_20 and ma_20 > ma_50:
+                confidence_boost += 0.1
+            if price > ma_200:  # Above long-term trend
+                confidence_boost += 0.05
+        elif action == "sell":
+            if price < ma_20 and ma_20 < ma_50:
+                confidence_boost += 0.1
+            if price < ma_200:  # Below long-term trend
+                confidence_boost += 0.05
+
+        return confidence_boost
 
     def _macd_confidence(
         self, market_conditions: MarketConditions, action: str
@@ -767,7 +793,9 @@ Min Confidence: {self.min_confidence_threshold:.1%}
 
         return base_return
 
-    def execute_trade(self, decision: TradingDecision, strategy_id: int = 1) -> bool:
+    def execute_trade(
+        self, decision: TradingDecision, strategy_id: Optional[int] = None
+    ) -> bool:
         """Execute a trading decision"""
         if decision.action == "hold" or decision.quantity <= 0:
             return True
@@ -792,6 +820,9 @@ Min Confidence: {self.min_confidence_threshold:.1%}
                 print(PORTFOLIO_ISSUE)
                 return False
 
+            # Get or create strategy and update strategy_id
+            strategy_id = self._get_or_create_strategy(session, strategy_id)
+
             # Get current market price
             market_conditions = self.get_market_data(decision.symbol)
             current_price = market_conditions.current_price
@@ -813,37 +844,22 @@ Min Confidence: {self.min_confidence_threshold:.1%}
                 return False
 
             # Update portfolio
-            if hasattr(portfolio.holdings, "update"):
-                # If holdings is a mutable dict (e.g., MutableDict from SQLAlchemy), update in-place
-                portfolio.holdings.clear()
-                portfolio.holdings.update(holdings)
-            else:
-                # If not, assign the holdings dictionary directly
-                portfolio.holdings = holdings
+            portfolio.holdings.clear()
+            portfolio.holdings.update(holdings)
 
-            # Log the trade
-            trade_log = TradeLog(
-                strategy_id=strategy_id,
-                symbol=decision.symbol,
-                trade_type=decision.action,
-                quantity=decision.quantity,
-                price=current_price,
-                total_value=trade_value,
-                fees=fees,
-                market_conditions={
-                    "rsi": market_conditions.rsi,
-                    "macd": market_conditions.macd,
-                    "volatility": market_conditions.volatility,
-                    "sentiment": market_conditions.market_sentiment,
-                },
-                confidence_score=decision.confidence,
+            # Log the trade with valid strategy_id
+            self._log_trade(
+                session,
+                strategy_id,
+                decision,
+                current_price,
+                trade_value,
+                fees,
+                market_conditions,
             )
 
-            session.add(trade_log)
-            session.commit()
-
             print(
-                f"Trade executed: {decision.action.upper()} {decision.quantity:.2f} {decision.symbol} at ${current_price:.2f}"
+                f"Trade executed: {decision.action.upper()} {decision.quantity:.2f} {decision.symbol} at ${current_price:.2f} (Strategy: {strategy_id})"
             )
             return True
 
@@ -853,6 +869,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
                 additional_info={
                     "decision": decision.__dict__,
                     "portfolio": portfolio.__dict__ if portfolio is not None else None,
+                    "strategy_id": strategy_id,
                 },
                 exc_info=True,
             )
@@ -861,11 +878,106 @@ Min Confidence: {self.min_confidence_threshold:.1%}
         finally:
             session.close()
 
+    def _get_or_create_strategy(self, session, strategy_id):
+        """Helper to get or create a trading strategy and return its id"""
+        if strategy_id is None:
+            system_logger.warning("No strategy_id provided. Creating default strategy.")
+            strategy = session.query(TradingStrategy).first()
+            if not strategy:
+                strategy = TradingStrategy(
+                    strategy_type="momentum",  # Use correct column name
+                    description="Default Momentum Strategy",
+                    parameters={
+                        "rsi_oversold": 30,
+                        "rsi_overbought": 70,
+                        "macd_signal": True,
+                        "moving_avg_crossover": True,
+                        "max_position_size": 0.1,
+                        "stop_loss": 0.05,
+                        "take_profit": 0.15,
+                    },
+                    risk_parameters={
+                        "risk_tolerance": "medium",
+                        "expected_return": 0.08,
+                        "max_drawdown": 0.15,
+                    },
+                    is_active=True,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                session.add(strategy)
+                session.commit()
+            return getattr(strategy, "id", None)
+        else:
+            strategy = (
+                session.query(TradingStrategy)
+                .filter(TradingStrategy.id == strategy_id)
+                .first()
+            )
+            if not strategy:
+                system_logger.warning(
+                    f"Strategy with id {strategy_id} not found. Creating default strategy."
+                )
+                strategy = TradingStrategy(
+                    strategy_type="momentum",  # Use correct column name
+                    description=f"Auto-created Strategy {strategy_id}",
+                    parameters={
+                        "rsi_oversold": 30,
+                        "rsi_overbought": 70,
+                        "macd_signal": True,
+                        "moving_avg_crossover": True,
+                        "max_position_size": 0.1,
+                        "stop_loss": 0.05,
+                        "take_profit": 0.15,
+                    },
+                    risk_parameters={
+                        "risk_tolerance": "medium",
+                        "expected_return": 0.08,
+                        "max_drawdown": 0.15,
+                    },
+                    is_active=True,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                session.add(strategy)
+                session.commit()
+            return strategy.id
+
+    def _log_trade(
+        self,
+        session,
+        strategy_id,
+        decision,
+        current_price,
+        trade_value,
+        fees,
+        market_conditions,
+    ):
+        """Helper to log the trade"""
+        trade_log = TradeLog(
+            strategy_id=strategy_id,
+            symbol=decision.symbol,
+            trade_type=decision.action,
+            quantity=decision.quantity,
+            price=current_price,
+            total_value=trade_value,
+            fees=fees,
+            market_conditions={
+                "rsi": market_conditions.rsi,
+                "macd": market_conditions.macd,
+                "volatility": market_conditions.volatility,
+                "sentiment": market_conditions.market_sentiment,
+            },
+            confidence_score=decision.confidence,
+        )
+        session.add(trade_log)
+        session.commit()
+
     def _execute_buy(self, portfolio, holdings, decision, trade_value, fees) -> bool:
         """Helper to execute buy logic"""
         total_cost = trade_value + fees
         if total_cost > float(portfolio.cash_balance):
-            print(
+            system_logger.warning(
                 f"Insufficient cash: need ${total_cost:.2f}, have ${float(portfolio.cash_balance):.2f}"
             )
             return False
@@ -902,10 +1014,41 @@ Min Confidence: {self.min_confidence_threshold:.1%}
             "total_confidence": 0.0,
         }
 
-        portfolio = None  # Ensure portfolio is always defined
+        # Ensure we have a valid strategy for trading
+        session = get_session()
+        try:
+            strategy = session.query(TradingStrategy).first()
+            if not strategy:
+                strategy = TradingStrategy(
+                    strategy_name="Trading Cycle Strategy",
+                    description="Strategy for automated trading cycle execution",
+                    strategy_type="momentum",
+                    parameters={
+                        "rsi_oversold": 30,
+                        "rsi_overbought": 70,
+                        "macd_signal": True,
+                        "moving_avg_crossover": True,
+                        "max_position_size": 0.1,
+                        "stop_loss": 0.05,
+                        "take_profit": 0.15,
+                    },
+                    risk_parameters={
+                        "risk_tolerance": "medium",
+                        "expected_return": 0.08,
+                        "max_drawdown": 0.15,
+                    },
+                    is_active=True,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                session.add(strategy)
+                session.commit()
+            strategy_id = strategy.id
+        finally:
+            session.close()
 
         for symbol in symbols:
-            self._process_symbol_for_trading_cycle(symbol, results, portfolio)
+            self._process_symbol_for_trading_cycle(symbol, results, strategy_id)
 
         # Get final portfolio status
         results["portfolio_status"] = self.get_portfolio_status().__dict__
@@ -916,7 +1059,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
         return results
 
     def _process_symbol_for_trading_cycle(
-        self, symbol: str, results: Dict[str, Any], portfolio: Any
+        self, symbol: str, results: Dict[str, Any], strategy_id: int
     ):
         """Helper to process each symbol in trading cycle to reduce cognitive complexity"""
         decision = None  # Ensure decision is always defined
@@ -933,7 +1076,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
                 decision.confidence >= self.min_confidence_threshold
                 and decision.action != "hold"
             ):
-                trade_executed = self.execute_trade(decision)
+                trade_executed = self.execute_trade(decision, strategy_id)
                 if trade_executed:
                     results["trades_executed"] += 1
 
@@ -946,6 +1089,7 @@ Min Confidence: {self.min_confidence_threshold:.1%}
                     "confidence": decision.confidence,
                     "reasoning": decision.reasoning,
                     "executed": trade_executed,
+                    "strategy_id": strategy_id,
                 }
             )
 
@@ -956,15 +1100,72 @@ Min Confidence: {self.min_confidence_threshold:.1%}
                 f"Error processing {symbol}: {e}",
                 additional_info={
                     "decision": decision.__dict__ if decision is not None else None,
-                    "portfolio": (
-                        portfolio.__dict__ if portfolio is not None else None
-                    ),
+                    "strategy_id": strategy_id,
                 },
                 exc_info=True,
             )
             results["decisions"].append(
                 {"symbol": symbol, "action": "error", "error": str(e)}
             )
+
+    def initialize_default_trading_strategy(self) -> int:
+        """Initialize a default trading strategy if none exists"""
+        session = get_session()
+        try:
+            # Check if any strategy exists
+            strategy = session.query(TradingStrategy).first()
+            if strategy:
+                return strategy.id
+
+            # Create default strategy using only fields that exist in the database model
+            default_strategy = TradingStrategy(
+                strategy_type="momentum",  # Use the correct column name
+                description="Automated trading strategy for momentum-based decisions",
+                parameters={
+                    "rsi_oversold": 30,
+                    "rsi_overbought": 70,
+                    "macd_signal": True,
+                    "moving_avg_crossover": True,
+                    "max_position_size": 0.1,
+                    "stop_loss": 0.05,
+                    "take_profit": 0.15,
+                    "min_confidence": 0.6,
+                    "volatility_threshold": 0.3,
+                },
+                risk_parameters={
+                    "risk_tolerance": "medium",
+                    "expected_return": 0.08,
+                    "max_drawdown": 0.15,
+                    "max_position_size": 0.1,
+                    "stop_loss_threshold": 0.05,
+                    "take_profit_threshold": 0.15,
+                },
+                is_active=True,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+
+            session.add(default_strategy)
+            session.commit()
+
+            system_logger.info(
+                f"Created default trading strategy with ID: {default_strategy.id}",
+                additional_info={
+                    "strategy_type": default_strategy.strategy_type,
+                    "parameters": default_strategy.parameters,
+                },
+            )
+
+            return default_strategy.id
+
+        except Exception as e:
+            session.rollback()
+            system_logger.error(
+                f"Error creating default trading strategy: {e}", exc_info=True
+            )
+            raise
+        finally:
+            session.close()
 
     def get_performance_report(self) -> Dict[str, Any]:
         """Generate a performance report"""

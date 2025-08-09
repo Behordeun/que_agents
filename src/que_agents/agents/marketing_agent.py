@@ -37,6 +37,8 @@ system_logger.info("Initializing Marketing Agent ...")
 
 DEFAULT_CALL_TO_ACTION = "Learn more"
 RETRY_CAMPAIGN_CREATION = "Retry campaign creation"
+CAMPAIGN_STRATEGY_CREATION_STATUS = "Campaign strategy created successfully"
+MONITOR_INITIAL_PERFORMANCE = "Monitor initial performance"
 
 # Load agent configuration
 try:
@@ -921,12 +923,12 @@ Provide detailed audience insights and targeting recommendations."""
                 request.target_audience, industry
             )
 
-            # Fix: Handle campaign_type properly - it should be enum not string
-            campaign_type_value = (
-                request.campaign_type.value
-                if hasattr(request.campaign_type, "value")
-                else str(request.campaign_type)
-            )
+            # Fix: Handle campaign_type properly - check if it's enum or string
+            if hasattr(request.campaign_type, "value"):
+                campaign_type_value = request.campaign_type.value
+            else:
+                campaign_type_value = str(request.campaign_type)
+
             market_data = self.get_enhanced_market_data(request.campaign_type, industry)
             enhanced_context = self.get_enhanced_campaign_context(request, industry)
 
@@ -958,7 +960,7 @@ Provide detailed audience insights and targeting recommendations."""
             )
 
             system_logger.info(
-                "Campaign strategy created successfully",
+                CAMPAIGN_STRATEGY_CREATION_STATUS,
                 additional_info={
                     "campaign_type": campaign_type_value,
                     "target_audience": request.target_audience,
@@ -966,15 +968,17 @@ Provide detailed audience insights and targeting recommendations."""
             )
             return strategy
         except Exception as e:
+            # Handle campaign_type safely for error logging
+            campaign_type_value = (
+                request.campaign_type.value
+                if hasattr(request.campaign_type, "value")
+                else str(request.campaign_type)
+            )
             system_logger.error(
                 error=f"Error creating enhanced campaign strategy: {e}",
                 exc_info=True,
                 additional_info={
-                    "campaign_type": (
-                        campaign_type_value
-                        if "campaign_type_value" in locals()
-                        else "unknown"
-                    ),
+                    "campaign_type": campaign_type_value,
                     "target_audience": request.target_audience,
                     "budget": request.budget,
                 },
@@ -984,23 +988,30 @@ Provide detailed audience insights and targeting recommendations."""
 
     def _create_basic_strategy(self, request: CampaignRequest) -> str:
         """Fallback basic strategy creation"""
+        # Safe campaign type access
+        campaign_type_str = (
+            request.campaign_type.value
+            if hasattr(request.campaign_type, "value")
+            else str(request.campaign_type)
+        )
+
         return f"""
-CAMPAIGN STRATEGY OVERVIEW
+    CAMPAIGN STRATEGY OVERVIEW
 
-Campaign Type: {request.campaign_type.value}
-Target Audience: {request.target_audience}
-Budget: ${request.budget:,.2f}
-Duration: {request.duration_days} days
+    Campaign Type: {campaign_type_str}
+    Target Audience: {request.target_audience}
+    Budget: ${request.budget:,.2f}
+    Duration: {request.duration_days} days
 
-RECOMMENDED APPROACH:
-1. Multi-channel approach across {', '.join(request.channels)}
-2. Content mix including {', '.join([ct.value for ct in request.content_requirements])}
-3. Focus on {', '.join(request.goals)}
-4. Budget allocation: Equal distribution across channels
-5. Weekly performance reviews and optimizations
+    RECOMMENDED APPROACH:
+    1. Multi-channel approach across {', '.join(request.channels)}
+    2. Content mix including {', '.join([ct.value if hasattr(ct, 'value') else str(ct) for ct in request.content_requirements])}
+    3. Focus on {', '.join(request.goals)}
+    4. Budget allocation: Equal distribution across channels
+    5. Weekly performance reviews and optimizations
 
-This strategy provides a solid foundation for achieving your campaign objectives.
-"""
+    This strategy provides a solid foundation for achieving your campaign objectives.
+    """
 
     def generate_enhanced_content(
         self,
@@ -1269,19 +1280,24 @@ This strategy provides a solid foundation for achieving your campaign objectives
     ) -> ContentPiece:
         """Generate fallback content when enhanced generation fails"""
 
+        # Handle content_type safely
+        _content_type_str = (
+            content_type.value if hasattr(content_type, "value") else str(content_type)
+        )
+
         return ContentPiece(
             content_type=content_type,
             platform=platform,
             title=f"Exciting {campaign_theme} Update",
             content=f"""
-🚀 Exciting news about {campaign_theme}!
+    🚀 Exciting news about {campaign_theme}!
 
-We're thrilled to share something amazing with you. Our latest innovation is designed to transform your experience and deliver exceptional value.
+    We're thrilled to share something amazing with you. Our latest innovation is designed to transform your experience and deliver exceptional value.
 
-Ready to learn more? Let's connect and explore the possibilities together.
+    Ready to learn more? Let's connect and explore the possibilities together.
 
-#Innovation #Technology #Growth
-""",
+    #Innovation #Technology #Growth
+    """,
             call_to_action=DEFAULT_CALL_TO_ACTION,
             hashtags=["#Innovation", "#Technology", "#Growth"],
             estimated_reach=1000,
@@ -1297,12 +1313,12 @@ Ready to learn more? Let's connect and explore the possibilities together.
     ) -> CampaignPlan:
         """Create a comprehensive campaign plan with enhanced features"""
         try:
-            # Handle campaign_type safely
-            campaign_type_str = (
-                request.campaign_type.value
-                if hasattr(request.campaign_type, "value")
-                else str(request.campaign_type)
-            )
+            # Handle campaign_type safely - check if it's already a string or enum
+            if hasattr(request.campaign_type, "value"):
+                campaign_type_str = request.campaign_type.value
+            else:
+                campaign_type_str = str(request.campaign_type)
+
             system_logger.info(
                 "Creating enhanced campaign plan",
                 additional_info={
@@ -1316,7 +1332,9 @@ Ready to learn more? Let's connect and explore the possibilities together.
             industry_str = self._extract_industry_string(industry)
             strategy = self.create_enhanced_campaign_strategy(request, industry_str)
 
-            content_pieces = self._generate_content_pieces(request, brand_voice)
+            content_pieces = self._generate_content_pieces(
+                request, brand_voice, campaign_type_str
+            )
 
             schedule = self._create_optimized_schedule(
                 content_pieces, request.duration_days
@@ -1398,15 +1416,24 @@ Ready to learn more? Let's connect and explore the possibilities together.
         else:
             return str(industry)
 
-    def _generate_content_pieces(self, request, brand_voice):
+    def _generate_content_pieces(self, request, brand_voice, campaign_type_str=None):
         """Helper to generate content pieces for campaign plan."""
         content_pieces = []
+
+        # Use the safe campaign type string
+        if campaign_type_str is None:
+            campaign_type_str = (
+                request.campaign_type.value
+                if hasattr(request.campaign_type, "value")
+                else str(request.campaign_type)
+            )
+
         for channel in request.channels:
             for content_type in request.content_requirements:
                 content_piece = self.generate_enhanced_content(
                     platform=channel,
                     content_type=content_type,
-                    campaign_theme=request.campaign_type.value,
+                    campaign_theme=campaign_type_str,
                     target_audience=request.target_audience,
                     key_messages=request.goals,
                     brand_voice=brand_voice,
@@ -1632,7 +1659,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
                 "week": 1,
                 "focus": "Performance baseline establishment",
                 "actions": [
-                    "Monitor initial performance",
+                    MONITOR_INITIAL_PERFORMANCE,
                     "Identify top performers",
                     "Flag underperformers",
                 ],
@@ -1674,11 +1701,18 @@ Ready to learn more? Let's connect and explore the possibilities together.
 
     def _create_basic_campaign_plan(self, request: CampaignRequest) -> CampaignPlan:
         """Create basic campaign plan as fallback"""
+        # Safe campaign type access
+        campaign_type_str = (
+            request.campaign_type.value
+            if hasattr(request.campaign_type, "value")
+            else str(request.campaign_type)
+        )
+
         # Generate basic content pieces
         content_pieces = []
         for channel in request.channels:
             content_piece = self._generate_fallback_content(
-                channel, ContentType.SOCIAL_MEDIA, request.campaign_type.value
+                channel, ContentType.SOCIAL_MEDIA, campaign_type_str
             )
             content_pieces.append(content_piece)
 
@@ -2304,20 +2338,27 @@ Ready to learn more? Let's connect and explore the possibilities together.
     ) -> Dict[str, Any]:
         """Create a fallback campaign response when database operations fail"""
 
+        # Safe campaign type access
+        campaign_type_str = (
+            request.campaign_type.value
+            if hasattr(request.campaign_type, "value")
+            else str(request.campaign_type)
+        )
+
         # Generate basic campaign content without database
         content_pieces = []
         for i, channel in enumerate(request.channels[:3]):  # Limit to 3 pieces
             content_pieces.append(
                 {
                     "platform": channel,
-                    "title": f"{request.campaign_type.value.replace('_', ' ').title()} - {channel.title()} Content",
-                    "content": f"Engaging {request.campaign_type.value.replace('_', ' ')} content for {request.target_audience} on {channel}. This campaign aims to drive awareness and engagement with our target demographic.",
+                    "title": f"{campaign_type_str.replace('_', ' ').title()} - {channel.title()} Content",
+                    "content": f"Engaging {campaign_type_str.replace('_', ' ')} content for {request.target_audience} on {channel}. This campaign aims to drive awareness and engagement with our target demographic.",
                     "hashtags": [
                         "#marketing",
-                        f"#{request.campaign_type.value}",
+                        f"#{campaign_type_str}",
                         "#engagement",
                     ],
-                    "call_to_action": "Learn more",
+                    "call_to_action": DEFAULT_CALL_TO_ACTION,
                     "estimated_reach": 5000 * (i + 1),
                 }
             )
@@ -2338,7 +2379,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
         return {
             "campaign_id": f"fallback_{int(datetime.now().timestamp())}",
             "campaign_plan": {
-                "strategy": f"Comprehensive {request.campaign_type.value.replace('_', ' ')} campaign targeting {request.target_audience}. This campaign focuses on multi-channel engagement across {', '.join(request.channels)} to maximize reach and conversion potential within the ${request.budget:,.0f} budget allocation.",
+                "strategy": f"Comprehensive {campaign_type_str.replace('_', ' ')} campaign targeting {request.target_audience}. This campaign focuses on multi-channel engagement across {', '.join(request.channels)} to maximize reach and conversion potential within the ${request.budget:,.0f} budget allocation.",
                 "content_pieces_count": len(content_pieces),
                 "budget_allocation": {
                     channel: request.budget / len(request.channels)
@@ -2367,7 +2408,7 @@ Ready to learn more? Let's connect and explore the possibilities together.
             "content_pieces": content_pieces,
             "schedule": schedule,
             "optimization_roadmap": [
-                "Monitor initial performance metrics",
+                f"{MONITOR_INITIAL_PERFORMANCE} metrics",
                 "A/B test content variations",
                 "Optimize based on engagement data",
                 "Scale successful content types",
@@ -2455,185 +2496,20 @@ Ready to learn more? Let's connect and explore the possibilities together.
     def create_campaign_from_request(
         self, request: CampaignRequest, industry: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Create a complete campaign with database persistence - Fixed content_type issue"""
+        """Create a complete campaign with database persistence - Refactored for lower cognitive complexity"""
         session = get_session()
         try:
-            # Try to fix database schema issues
             self._check_and_fix_database_schema(session)
-            # Create enhanced campaign plan
             campaign_plan = self.create_enhanced_campaign_plan(
                 request, [industry] if industry is not None else None
             )
-
-            # Save campaign to database with proper data types
-            campaign_data = {
-                "name": f"{request.campaign_type.value.replace('_', ' ').title()} Campaign",
-                "campaign_type": request.campaign_type.value,
-                "target_audience": str(request.target_audience),  # Ensure it's a string
-                "budget": float(request.budget),
-                "start_date": datetime.now().date(),
-                "end_date": (
-                    datetime.now() + timedelta(days=request.duration_days)
-                ).date(),
-                "status": "active",
-                "created_at": datetime.now(),
-                "updated_at": datetime.now(),
-            }
-
-            # Add strategy if available and limit length
-            if hasattr(campaign_plan, "strategy") and campaign_plan.strategy:
-                # Ensure strategy is not too long for database
-                strategy_text = campaign_plan.strategy
-                if len(strategy_text) > 10000:  # Limit to 10KB
-                    strategy_text = strategy_text[:10000] + "... [truncated]"
-                campaign_data["strategy"] = strategy_text
-
-            # Create campaign with proper data types
-            campaign = MarketingCampaign(**campaign_data)
-            session.add(campaign)
-            session.commit()
-
-            # Save content pieces as posts with safe database handling
-            content_pieces_saved = 0
-            try:
-                for i, content in enumerate(campaign_plan.content_pieces):
-                    # Create post data with all available fields
-                    post_data = {
-                        "campaign_id": campaign.id,
-                        "platform": str(content.platform),
-                        "content": str(content.content),
-                        "call_to_action": (
-                            str(content.call_to_action)[:255]
-                            if content.call_to_action
-                            else "Learn more"
-                        ),
-                        "estimated_reach": int(content.estimated_reach),
-                        "scheduled_time": datetime.now() + timedelta(hours=i * 2),
-                        "status": "scheduled",
-                    }
-
-                    # Add title if available
-                    if hasattr(content, "title") and content.title:
-                        post_data["title"] = str(content.title)[:255]
-
-                    # Add content_type if available
-                    if hasattr(content, "content_type") and content.content_type:
-                        content_type_value = (
-                            content.content_type.value
-                            if hasattr(content.content_type, "value")
-                            else str(content.content_type)
-                        )
-                        post_data["content_type"] = content_type_value
-
-                    # Safely handle hashtags
-                    try:
-                        if isinstance(content.hashtags, list):
-                            post_data["hashtags"] = json.dumps(content.hashtags)
-                        else:
-                            post_data["hashtags"] = json.dumps([])
-                    except Exception:
-                        post_data["hashtags"] = json.dumps([])
-
-                    # Try to create the post
-                    try:
-                        post = MarketingPost(**post_data)
-                        session.add(post)
-                        session.flush()  # Test if this works
-                        content_pieces_saved += 1
-                    except Exception as post_error:
-                        # If it fails, try with minimal data
-                        system_logger.warning(
-                            f"Failed to save full post data, trying minimal: {post_error}"
-                        )
-                        session.rollback()
-
-                        minimal_post_data = {
-                            "campaign_id": campaign.id,
-                            "platform": str(content.platform),
-                            "content": str(content.content)[:1000],
-                            "status": "scheduled",
-                        }
-
-                        try:
-                            minimal_post = MarketingPost(**minimal_post_data)
-                            session.add(minimal_post)
-                            session.flush()
-                            content_pieces_saved += 1
-                        except Exception as minimal_error:
-                            system_logger.error(
-                                f"Failed to save even minimal post: {minimal_error}"
-                            )
-                            session.rollback()
-
-                if content_pieces_saved > 0:
-                    session.commit()
-                    system_logger.info(f"Saved {content_pieces_saved} content pieces")
-
-            except Exception as posts_error:
-                system_logger.error(f"Error saving content posts: {posts_error}")
-                session.rollback()
-
-                # Re-add the campaign if rollback affected it
-                try:
-                    if not session.get(MarketingCampaign, campaign.id):
-                        session.add(campaign)
-                        session.commit()
-                except Exception as campaign_restore_error:
-                    system_logger.error(
-                        f"Error restoring campaign: {campaign_restore_error}"
-                    )
-
-            # Build response with safe data extraction
-            response = {
-                "campaign_id": campaign.id,
-                "campaign_plan": {
-                    "strategy": (
-                        getattr(
-                            campaign_plan,
-                            "strategy",
-                            "Campaign strategy created successfully",
-                        )[:500]
-                        + "..."
-                        if hasattr(campaign_plan, "strategy")
-                        and len(getattr(campaign_plan, "strategy", "")) > 500
-                        else getattr(
-                            campaign_plan,
-                            "strategy",
-                            "Campaign strategy created successfully",
-                        )
-                    ),
-                    "content_pieces_count": len(
-                        getattr(campaign_plan, "content_pieces", [])
-                    ),
-                    "budget_allocation": getattr(
-                        campaign_plan, "budget_allocation", {}
-                    ),
-                    "success_metrics": getattr(campaign_plan, "success_metrics", []),
-                    "estimated_performance": getattr(
-                        campaign_plan, "estimated_performance", {}
-                    ),
-                },
-                "schedule": getattr(campaign_plan, "schedule", []),
-                "optimization_roadmap": getattr(
-                    campaign_plan, "optimization_roadmap", []
-                ),
-                "status": "created_successfully",
-                "next_steps": [
-                    "Review and approve content pieces",
-                    "Set up tracking and analytics",
-                    "Begin campaign execution",
-                    "Monitor initial performance",
-                ],
-                "database_info": {
-                    "campaign_saved": True,
-                    "content_pieces_saved": content_pieces_saved,
-                    "total_content_pieces": len(
-                        getattr(campaign_plan, "content_pieces", [])
-                    ),
-                    "save_success_rate": f"{content_pieces_saved}/{len(getattr(campaign_plan, 'content_pieces', []))}",
-                },
-            }
-
+            campaign = self._save_campaign_to_db(session, request, campaign_plan)
+            content_pieces_saved = self._save_content_pieces_to_db(
+                session, campaign, campaign_plan
+            )
+            response = self._build_campaign_creation_response(
+                campaign, campaign_plan, content_pieces_saved
+            )
             system_logger.info(
                 "Campaign created and saved to database",
                 additional_info={
@@ -2643,56 +2519,196 @@ Ready to learn more? Let's connect and explore the possibilities together.
                 },
             )
             return response
-
         except Exception as e:
             session.rollback()
             system_logger.error(
                 error=f"Error creating campaign: {e}",
                 exc_info=True,
                 additional_info={
-                    "campaign_type": request.campaign_type.value,
+                    "campaign_type": getattr(
+                        request.campaign_type, "value", str(request.campaign_type)
+                    ),
                     "target_audience": request.target_audience,
                     "error_type": type(e).__name__,
                 },
             )
-
-            # Return comprehensive fallback response
-            return {
-                "error": "Failed to create campaign in database",
-                "message": str(e),
-                "campaign_id": None,
-                "campaign_plan": {
-                    "strategy": f"Basic {request.campaign_type.value.replace('_', ' ')} campaign targeting {request.target_audience}",
-                    "content_pieces_count": len(request.channels),
-                    "budget_allocation": {
-                        channel: request.budget / len(request.channels)
-                        for channel in request.channels
-                    },
-                    "success_metrics": ["reach", "engagement", "conversions"],
-                    "estimated_performance": {
-                        "total_reach": 10000,
-                        "estimated_roi": 2.0,
-                        "confidence_interval": "±20%",
-                    },
-                },
-                "schedule": [
-                    {"day": i + 1, "platform": channel, "action": "content_posting"}
-                    for i, channel in enumerate(request.channels)
-                ],
-                "optimization_roadmap": [
-                    "Monitor initial performance",
-                    "Optimize underperforming content",
-                    "Scale successful elements",
-                ],
-                "status": "failed_to_save_to_database",
-                "next_steps": [
-                    "Check database connection",
-                    RETRY_CAMPAIGN_CREATION,
-                    "Contact support if issue persists",
-                ],
-            }
+            return self._build_campaign_creation_fallback_response(request, e)
         finally:
             session.close()
+
+    def _save_campaign_to_db(self, session, request, campaign_plan):
+        campaign_data = {
+            "name": f"{request.campaign_type.value.replace('_', ' ').title()} Campaign",
+            "campaign_type": request.campaign_type.value,
+            "target_audience": str(request.target_audience),
+            "budget": float(request.budget),
+            "start_date": datetime.now().date(),
+            "end_date": (datetime.now() + timedelta(days=request.duration_days)).date(),
+            "status": "active",
+            "created_at": datetime.now(),
+            "updated_at": datetime.now(),
+        }
+        if hasattr(campaign_plan, "strategy") and campaign_plan.strategy:
+            strategy_text = campaign_plan.strategy
+            if len(strategy_text) > 10000:
+                strategy_text = strategy_text[:10000] + "... [truncated]"
+            campaign_data["strategy"] = strategy_text
+        campaign = MarketingCampaign(**campaign_data)
+        session.add(campaign)
+        session.commit()
+        return campaign
+
+    def _save_content_pieces_to_db(self, session, campaign, campaign_plan):
+        content_pieces_saved = 0
+        for i, content in enumerate(getattr(campaign_plan, "content_pieces", [])):
+            post_data = self._build_post_data(content, campaign.id, i)
+            try:
+                post = MarketingPost(**post_data)
+                session.add(post)
+                session.flush()
+                content_pieces_saved += 1
+            except Exception as post_error:
+                system_logger.warning(
+                    f"Failed to save full post data, trying minimal: {post_error}"
+                )
+                session.rollback()
+                minimal_post_data = {
+                    "campaign_id": campaign.id,
+                    "platform": str(content.platform),
+                    "content": str(content.content)[:1000],
+                    "status": "scheduled",
+                }
+                try:
+                    minimal_post = MarketingPost(**minimal_post_data)
+                    session.add(minimal_post)
+                    session.flush()
+                    content_pieces_saved += 1
+                except Exception as minimal_error:
+                    system_logger.error(
+                        f"Failed to save even minimal post: {minimal_error}"
+                    )
+                    session.rollback()
+        if content_pieces_saved > 0:
+            session.commit()
+            system_logger.info(f"Saved {content_pieces_saved} content pieces")
+        return content_pieces_saved
+
+    def _build_post_data(self, content, campaign_id, i):
+        post_data = {
+            "campaign_id": campaign_id,
+            "platform": str(content.platform),
+            "content": str(content.content),
+            "call_to_action": (
+                str(content.call_to_action)[:255]
+                if getattr(content, "call_to_action", None)
+                else DEFAULT_CALL_TO_ACTION
+            ),
+            "estimated_reach": int(getattr(content, "estimated_reach", 0)),
+            "scheduled_time": datetime.now() + timedelta(hours=i * 2),
+            "status": "scheduled",
+        }
+        if hasattr(content, "title") and content.title:
+            post_data["title"] = str(content.title)[:255]
+        if hasattr(content, "content_type") and content.content_type:
+            content_type_value = (
+                content.content_type.value
+                if hasattr(content.content_type, "value")
+                else str(content.content_type)
+            )
+            post_data["content_type"] = content_type_value
+        try:
+            if isinstance(content.hashtags, list):
+                post_data["hashtags"] = json.dumps(content.hashtags)
+            else:
+                post_data["hashtags"] = json.dumps([])
+        except Exception:
+            post_data["hashtags"] = json.dumps([])
+        return post_data
+
+    def _build_campaign_creation_response(
+        self, campaign, campaign_plan, content_pieces_saved
+    ):
+        return {
+            "campaign_id": campaign.id,
+            "campaign_plan": {
+                "strategy": (
+                    getattr(
+                        campaign_plan,
+                        "strategy",
+                        CAMPAIGN_STRATEGY_CREATION_STATUS,
+                    )[:500]
+                    + "..."
+                    if hasattr(campaign_plan, "strategy")
+                    and len(getattr(campaign_plan, "strategy", "")) > 500
+                    else getattr(
+                        campaign_plan,
+                        "strategy",
+                        CAMPAIGN_STRATEGY_CREATION_STATUS,
+                    )
+                ),
+                "content_pieces_count": len(
+                    getattr(campaign_plan, "content_pieces", [])
+                ),
+                "budget_allocation": getattr(campaign_plan, "budget_allocation", {}),
+                "success_metrics": getattr(campaign_plan, "success_metrics", []),
+                "estimated_performance": getattr(
+                    campaign_plan, "estimated_performance", {}
+                ),
+            },
+            "schedule": getattr(campaign_plan, "schedule", []),
+            "optimization_roadmap": getattr(campaign_plan, "optimization_roadmap", []),
+            "status": "created_successfully",
+            "next_steps": [
+                "Review and approve content pieces",
+                "Set up tracking and analytics",
+                "Begin campaign execution",
+                MONITOR_INITIAL_PERFORMANCE,
+            ],
+            "database_info": {
+                "campaign_saved": True,
+                "content_pieces_saved": content_pieces_saved,
+                "total_content_pieces": len(
+                    getattr(campaign_plan, "content_pieces", [])
+                ),
+                "save_success_rate": f"{content_pieces_saved}/{len(getattr(campaign_plan, 'content_pieces', []))}",
+            },
+        }
+
+    def _build_campaign_creation_fallback_response(self, request, error):
+        return {
+            "error": "Failed to create campaign in database",
+            "message": str(error),
+            "campaign_id": None,
+            "campaign_plan": {
+                "strategy": f"Basic {getattr(request.campaign_type, 'value', str(request.campaign_type)).replace('_', ' ')} campaign targeting {request.target_audience}",
+                "content_pieces_count": len(request.channels),
+                "budget_allocation": {
+                    channel: request.budget / len(request.channels)
+                    for channel in request.channels
+                },
+                "success_metrics": ["reach", "engagement", "conversions"],
+                "estimated_performance": {
+                    "total_reach": 10000,
+                    "estimated_roi": 2.0,
+                    "confidence_interval": "±20%",
+                },
+            },
+            "schedule": [
+                {"day": i + 1, "platform": channel, "action": "content_posting"}
+                for i, channel in enumerate(request.channels)
+            ],
+            "optimization_roadmap": [
+                MONITOR_INITIAL_PERFORMANCE,
+                "Optimize underperforming content",
+                "Scale successful elements",
+            ],
+            "status": "failed_to_save_to_database",
+            "next_steps": [
+                "Check database connection",
+                RETRY_CAMPAIGN_CREATION,
+                "Contact support if issue persists",
+            ],
+        }
 
     def create_marketing_campaign(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Create marketing campaign with comprehensive error handling"""

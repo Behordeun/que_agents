@@ -67,16 +67,16 @@ def test_database_models():
         )
 
         # Test model instantiation
-        customer = Customer(name="Test User", email="test@example.com")
+        _customer = Customer(name="Test User", email="test@example.com")
         print("✓ Customer model created")
 
-        user_prefs = UserPreferences(user_id="test123", preferences={})
+        _user_prefs = UserPreferences(user_id="test123", preferences={})
         print("✓ UserPreferences model created")
 
-        portfolio = Portfolio(portfolio_name="Test Portfolio")
+        _portfolio = Portfolio(portfolio_name="Test Portfolio")
         print("✓ Portfolio model created")
 
-        trading_strategy = TradingStrategy(
+        _trading_strategy = TradingStrategy(
             name="Test Strategy", strategy_type="momentum", parameters={}
         )
         print("✓ TradingStrategy model created")

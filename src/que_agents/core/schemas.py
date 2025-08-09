@@ -370,21 +370,90 @@ class CustomerContext:
     risk_score: Optional[float] = None
 
 
+# Fix the AgentResponse class to handle all response types properly
+# Fix the AgentResponse class to handle all response types properly
 @dataclass
 class AgentResponse:
-    """Enhanced agent response structure"""
+    """Enhanced agent response structure that can handle all agent types"""
 
+    # Core response fields (required)
     message: str
     confidence: float
-    escalate: bool
-    suggested_actions: List[str]
-    knowledge_sources: List[str]
-    sentiment: str
+
+    # Standard agent fields
+    escalate: bool = False
+    suggested_actions: List[str] = field(default_factory=list)
+    knowledge_sources: List[str] = field(default_factory=list)
+    sentiment: str = "neutral"
     response_type: str = "standard"
     priority: Priority = Priority.MEDIUM
+    timestamp: Optional[str] = None
+
+    # Optional fields for compatibility with different agent types
     estimated_resolution_time: Optional[str] = None
     follow_up_required: bool = False
     tags: List[str] = field(default_factory=list)
+
+    # PVA-specific fields (optional)
+    intent: Optional[str] = None
+    entities: Optional[Dict[str, Any]] = None
+    actions_taken: Optional[List[str]] = None
+    suggestions: Optional[List[str]] = None
+    session_id: Optional[str] = None
+
+    # Trading-specific fields (optional)
+    symbol: Optional[str] = None
+    action: Optional[str] = None
+    quantity: Optional[float] = None
+    risk_score: Optional[float] = None
+    expected_return: Optional[float] = None
+
+    def __post_init__(self):
+        """Set timestamp if not provided"""
+        if self.timestamp is None:
+            self.timestamp = datetime.now().isoformat()
+
+        # Ensure backward compatibility
+        if self.actions_taken is None and self.suggested_actions:
+            self.actions_taken = self.suggested_actions.copy()
+
+        if self.suggestions is None and self.suggested_actions:
+            self.suggestions = self.suggested_actions.copy()
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert response to dictionary for API responses"""
+        result = {
+            "message": self.message,
+            "confidence": self.confidence,
+            "escalate": self.escalate,
+            "sentiment": self.sentiment,
+            "response_type": self.response_type,
+            "timestamp": self.timestamp,
+        }
+
+        # Add optional fields if they exist
+        optional_fields = [
+            "intent",
+            "entities",
+            "actions_taken",
+            "suggestions",
+            "session_id",
+            "symbol",
+            "action",
+            "quantity",
+            "risk_score",
+            "expected_return",
+            "suggested_actions",
+            "knowledge_sources",
+            "tags",
+        ]
+
+        for field_name in optional_fields:
+            value = getattr(self, field_name, None)
+            if value is not None:
+                result[field_name] = value
+
+        return result
 
 
 # Knowledge Base Models

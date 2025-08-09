@@ -242,11 +242,9 @@ class TradingStrategy(Base):
     __tablename__ = "trading_strategies"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
+    # Use the correct column name from the database
+    strategy_type = Column(String(100), nullable=False)  # This exists
     description = Column(Text)
-    strategy_type = Column(
-        String(100), nullable=False
-    )  # momentum, mean_reversion, arbitrage, etc.
     parameters = Column(JSON)  # Strategy-specific parameters
     risk_parameters = Column(JSON)  # Risk management settings
     is_active = Column(Boolean, default=True)

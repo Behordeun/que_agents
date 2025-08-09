@@ -24,7 +24,8 @@ from src.que_agents.core.database import (
     get_session,
 )
 from src.que_agents.core.llm_factory import LLMFactory
-from src.que_agents.core.schemas import AgentResponse, IntentResult, UserContext
+from src.que_agents.core.pva_schemas import PVAAgentResponse
+from src.que_agents.core.schemas import IntentResult, UserContext
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.knowledge_base.kb_manager import (
     search_agent_knowledge_base,
@@ -1072,89 +1073,37 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
 
     def process_user_request(
         self, user_id: str, user_message: str, session_id: Optional[str] = None
-    ) -> AgentResponse:
-        """Process a user request and generate a response"""
-        # Get user context
+    ) -> PVAAgentResponse:
+        """Process a user request and generate a response (refactored for lower cognitive complexity)"""
+        start_time = datetime.now()
+
         user_context = self.get_user_context(user_id)
         if not user_context:
             system_logger.warning(
                 f"User context not found for user_id: {user_id}",
                 additional_info={"user_id": user_id, "session_id": session_id},
             )
-            return AgentResponse(
+            return PVAAgentResponse(
                 message="I'm having trouble accessing your information. Please try again.",
+                confidence=0.0,
                 intent="error",
                 entities={},
-                confidence=0.0,
                 actions_taken=[],
                 suggestions=[],
+                session_id=session_id,
+                user_context_used=False,
             )
 
-        # Recognize intent
         intent_result = self.recognize_intent(user_message)
-
-        # Extract entities
         entities = self.extract_entities(user_message, intent_result.intent)
-
-        # Get enhanced context from knowledge base
         enhanced_context = self.get_enhanced_context(user_message, intent_result.intent)
-
-        # Handle the request based on intent
-        actions_taken = []
-        additional_info = ""
+        knowledge_base_used = bool(enhanced_context)
 
         try:
-            if intent_result.intent == "weather":
-                additional_info, actions_taken = self.handle_weather_request(
-                    entities, user_context
-                )
-            elif intent_result.intent == "set_reminder":
-                additional_info, actions_taken = self.handle_set_reminder(
-                    entities, user_context
-                )
-            elif intent_result.intent == "list_reminders":
-                additional_info, actions_taken = self.handle_list_reminders(
-                    user_context
-                )
-            elif intent_result.intent == "cancel_reminder":
-                additional_info, actions_taken = self.handle_cancel_reminder(
-                    entities, user_context
-                )
-            elif intent_result.intent == "device_control":
-                additional_info, actions_taken = self.handle_device_control(
-                    entities, user_context
-                )
-            elif intent_result.intent == "smart_home_help":
-                additional_info, actions_taken = self.handle_smart_home_help(
-                    entities, user_context
-                )
-            elif intent_result.intent == "productivity_tips":
-                additional_info, actions_taken = self.handle_productivity_tips(
-                    entities, user_context
-                )
-            elif intent_result.intent == "recommendation":
-                additional_info, actions_taken = self.handle_recommendation(
-                    entities, user_context
-                )
-            elif intent_result.intent == "time_date":
-                additional_info, actions_taken = self.handle_time_date()
-            elif intent_result.intent == "general_query":
-                additional_info, actions_taken = self.handle_enhanced_general_query(
-                    user_message, entities
-                )
-            elif intent_result.intent == "greeting":
-                additional_info = "Hello! I'm your personal assistant. I can help you with weather, reminders, device control, and more. What can I do for you today?"
-                actions_taken = ["Greeted user"]
-            elif intent_result.intent == "goodbye":
-                additional_info = (
-                    "Goodbye! Feel free to ask me anything anytime. Have a great day!"
-                )
-                actions_taken = ["Said goodbye"]
-            else:
-                additional_info = "I'm here to help! I can assist with weather, reminders, smart devices, productivity tips, and general questions. What would you like to do?"
-                actions_taken = ["Provided general help"]
+            additional_info, actions_taken = self._handle_intent(
+                intent_result.intent, user_message, entities, user_context
+            )
 
-            # Generate response using LLM
             context_str = f"""
 User ID: {user_context.user_id}
 Preferences: {json.dumps(user_context.preferences)}
@@ -1174,23 +1123,29 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
                 }
             )
 
-            # Update memory
             self.memory.chat_memory.add_user_message(user_message)
             self.memory.chat_memory.add_ai_message(response)
 
-            # Generate suggestions
             suggestions = self._generate_suggestions(intent_result.intent, user_context)
 
-            return AgentResponse(
+            pva_response = PVAAgentResponse(
                 message=response,
+                confidence=intent_result.confidence,
                 intent=intent_result.intent,
                 entities=entities,
-                confidence=intent_result.confidence,
                 actions_taken=actions_taken,
                 suggestions=suggestions,
+                session_id=session_id,
+                user_context_used=True,
+                knowledge_base_used=knowledge_base_used,
             )
 
+            self._track_interactions(intent_result.intent, actions_taken, pva_response)
+
+            return pva_response
+
         except Exception as e:
+            processing_time = (datetime.now() - start_time).total_seconds() * 1000
             system_logger.error(
                 f"Error processing request: {e}",
                 additional_info={
@@ -1198,19 +1153,95 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
                     "user_message": user_message,
                     "intent": intent_result.intent,
                     "entities": entities,
-                    "actions_taken": actions_taken,
+                    "actions_taken": [],
                     "session_id": session_id,
+                    "processing_time_ms": processing_time,
                 },
                 exc_info=True,
             )
-            return AgentResponse(
+            return PVAAgentResponse(
                 message="I'm sorry, I encountered an error while processing your request. Please try again.",
+                confidence=0.0,
                 intent=intent_result.intent,
                 entities=entities,
-                confidence=0.0,
                 actions_taken=[],
                 suggestions=[],
+                session_id=session_id,
+                user_context_used=True,
+                knowledge_base_used=knowledge_base_used,
             )
+
+    def _handle_intent(
+        self,
+        intent: str,
+        user_message: str,
+        entities: Dict[str, Any],
+        user_context: UserContext,
+    ) -> tuple[str, List[str]]:
+        """Handle the request based on intent (extracted from process_user_request)"""
+        if intent == "weather":
+            return self.handle_weather_request(entities, user_context)
+        if intent == "set_reminder":
+            return self.handle_set_reminder(entities, user_context)
+        if intent == "list_reminders":
+            return self.handle_list_reminders(user_context)
+        if intent == "cancel_reminder":
+            return self.handle_cancel_reminder(entities, user_context)
+        if intent == "device_control":
+            return self.handle_device_control(entities, user_context)
+        if intent == "smart_home_help":
+            return self.handle_smart_home_help(entities, user_context)
+        if intent == "productivity_tips":
+            return self.handle_productivity_tips(entities, user_context)
+        if intent == "recommendation":
+            return self.handle_recommendation(entities, user_context)
+        if intent == "time_date":
+            return self.handle_time_date()
+        if intent == "general_query":
+            return self.handle_enhanced_general_query(user_message, entities)
+        if intent == "greeting":
+            return (
+                "Hello! I'm your personal assistant. I can help you with weather, reminders, device control, and more. What can I do for you today?",
+                ["Greeted user"],
+            )
+        if intent == "goodbye":
+            return (
+                "Goodbye! Feel free to ask me anything anytime. Have a great day!",
+                ["Said goodbye"],
+            )
+        return (
+            "I'm here to help! I can assist with weather, reminders, smart devices, productivity tips, and general questions. What would you like to do?",
+            ["Provided general help"],
+        )
+
+    def _track_interactions(
+        self, intent: str, actions_taken: List[str], pva_response: PVAAgentResponse
+    ):
+        """Track device and reminder interactions for analytics/logging"""
+        if intent == "device_control" and actions_taken:
+            self._track_device_interactions(actions_taken, pva_response)
+        if intent in ["set_reminder", "cancel_reminder"] and actions_taken:
+            self._track_reminder_interactions(actions_taken, intent, pva_response)
+
+    def _track_device_interactions(
+        self, actions_taken: List[str], pva_response: PVAAgentResponse
+    ):
+        """Helper to track device interactions"""
+        for action in actions_taken:
+            if "Controlled device:" in action:
+                device_info = action.replace("Controlled device: ", "")
+                parts = device_info.split(" - ")
+                if len(parts) == 2:
+                    pva_response.add_device_interaction(parts[0], parts[1])
+
+    def _track_reminder_interactions(
+        self, actions_taken: List[str], intent: str, pva_response: PVAAgentResponse
+    ):
+        """Helper to track reminder interactions"""
+        for action in actions_taken:
+            if "reminder:" in action.lower():
+                reminder_info = action.split(": ", 1)[1] if ": " in action else action
+                pva_response.add_reminder_interaction(reminder_info, intent)
 
     def _generate_suggestions(
         self, intent: str, user_context: UserContext
@@ -1272,7 +1303,7 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
         self,
         user_id: str,
         user_message: str,
-        response: AgentResponse,
+        response: PVAAgentResponse,
         session_id: Optional[str] = None,
     ):
         """Log the interaction to the database"""
@@ -1296,7 +1327,7 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
                 additional_info={
                     "user_id": user_id,
                     "user_message": user_message,
-                    "response": response,
+                    "response": response.to_dict(),
                     "session_id": session_id,
                 },
                 exc_info=True,
@@ -1315,16 +1346,8 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
         # Log the interaction
         self.log_interaction(user_id, user_message, response, session_id)
 
-        # Return structured response
-        return {
-            "response": response.message,
-            "intent": response.intent,
-            "entities": response.entities,
-            "confidence": response.confidence,
-            "actions_taken": response.actions_taken,
-            "suggestions": response.suggestions,
-            "timestamp": datetime.now().isoformat(),
-        }
+        # Return structured response as dictionary
+        return response.to_dict()
 
     def get_user_devices(self, user_id: str) -> List[Dict[str, Any]]:
         """Get user's smart devices"""
@@ -1419,6 +1442,9 @@ def test_personal_virtual_assistant_agent():
         print(f"Confidence: {result['confidence']:.2f}")
         print(f"Actions Taken: {', '.join(result['actions_taken'])}")
         print(f"Suggestions: {', '.join(result['suggestions'])}")
+        print(f"Knowledge Base Used: {result['knowledge_base_used']}")
+        print(f"Device Interactions: {result['device_interactions']}")
+        print(f"Reminder Interactions: {result['reminder_interactions']}")
         print("-" * 80)
 
     # Test knowledge base integration
