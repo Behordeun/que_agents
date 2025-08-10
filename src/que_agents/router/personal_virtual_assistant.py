@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends
-from fastapi.security import HTTPAuthorizationCredentials
 
 from src.que_agents.core.schemas import PVARequest, PVAResponse
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.utils.agent_manager import AgentManager
+from src.que_agents.utils.auth import get_verified_token
 
 # Constant for UTC offset replacement
 UTC_OFFSET = "+00:00"
@@ -703,12 +703,6 @@ def get_pva_service(
 ) -> PersonalVirtualAssistantService:
     """Get PVA service instance"""
     return PersonalVirtualAssistantService(agent_manager)
-
-
-# Dependency for token verification (to be imported from main auth module)
-def get_verified_token(credentials: HTTPAuthorizationCredentials = Depends()) -> str:
-    """Verify API token - placeholder for actual implementation"""
-    return credentials.credentials
 
 
 # Personal Virtual Assistant endpoints

@@ -7,11 +7,11 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials
 
 from src.que_agents.core.schemas import TradingAnalysisRequest, TradingDecisionResponse
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.utils.agent_manager import AgentManager
+from src.que_agents.utils.auth import get_verified_token
 
 
 class FinancialTradingBotService:
@@ -513,12 +513,6 @@ def get_trading_service(
 ) -> FinancialTradingBotService:
     """Get financial trading bot service instance"""
     return FinancialTradingBotService(agent_manager)
-
-
-# Dependency for token verification (to be imported from main auth module)
-def get_verified_token(credentials: HTTPAuthorizationCredentials = Depends()) -> str:
-    """Verify API token - placeholder for actual implementation"""
-    return credentials.credentials
 
 
 # Financial Trading Bot endpoints

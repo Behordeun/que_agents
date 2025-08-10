@@ -3,541 +3,876 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agentic AI Demo - Customer Support & Marketing Agents</title>
+    <title>Agentic AI Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* ...existing CSS styles remain the same... */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for longer content */
             min-height: 100vh;
-            padding: 20px;
+            padding: 2rem 1rem; /* Added padding for overall layout */
         }
-
         .container {
             max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-
-        .tabs {
-            display: flex;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            border-bottom: 3px solid transparent;
-        }
-
-        .tab:hover {
-            background: #e9ecef;
-        }
-
-        .tab.active {
-            background: white;
-            border-bottom-color: #3498db;
-            color: #3498db;
-        }
-
-        .content {
-            padding: 30px;
-            min-height: 600px;
-        }
-
-        .agent-section {
-            display: none;
-        }
-
-        .agent-section.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* More rounded corners */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden; /* Ensures rounded corners are visible */
         }
-
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            color: #4b5563; /* Gray text */
+        }
+        .tab-button.active {
+            border-color: #4f46e5; /* Indigo-600 for active tab */
+            color: #4f46e5; /* Indigo-600 text for active */
+            background-color: #eef2ff; /* Light indigo background */
+        }
+        .tab-button:hover:not(.active) {
+            background-color: #f9fafb; /* Lighter gray on hover */
+            color: #1f2937; /* Darker text on hover */
+        }
+        .tab-content {
+            display: none;
+            padding: 2rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .api-section {
+            background-color: #f9fafb;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        .api-section h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        input[type="text"], input[type="number"], textarea, select { /* Added select */
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            color: #374151;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: #6366f1; /* Indigo-500 on focus */
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); /* Focus ring */
         }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        button {
+            background-color: #4f46e5; /* Indigo-600 */
             color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem; /* Slightly more rounded */
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-right: 10px;
-            margin-bottom: 10px;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        button:hover {
+            background-color: #4338ca; /* Indigo-700 */
+            transform: translateY(-1px);
         }
-
-        .btn:disabled {
-            opacity: 0.6;
+        button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        button:disabled {
+            background-color: #a5b4fc; /* Indigo-300 */
             cursor: not-allowed;
-            transform: none;
         }
-
-        .response-area {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #3498db;
-        }
-
-        .response-area h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-
-        .response-content {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            border: 1px solid #dee2e6;
-        }
-
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .metric {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #dee2e6;
-        }
-
-        .metric-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #3498db;
-        }
-
-        .metric-label {
-            color: #6c757d;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            margin-left: 0.5rem;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            border: 1px solid #f5c6cb;
+        pre {
+            background-color: #1f2937; /* Darker gray for code */
+            color: #e5e7eb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            white-space: pre-wrap; /* Wrap long lines */
+            word-wrap: break-word;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
         }
-
-        .success {
-            background: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            border: 1px solid #c3e6cb;
+        .result-box {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #e0f2fe; /* Light blue for success */
+            border-radius: 0.75rem;
+            border: 1px solid #90cdf4;
+            color: #2c5282;
+            font-weight: 500;
         }
-
-        .two-column {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
+        .error-box {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #fee2e2; /* Light red for error */
+            border-radius: 0.75rem;
+            border: 1px solid #ef4444;
+            color: #be123c;
+            font-weight: 500;
         }
-
-        .activity-item {
-            background: white;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border-left: 4px solid #3498db;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .activity-header {
+        /* Analytics Cards */
+        .analytics-card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
+            height: 100%; /* Ensure cards fill height in grid */
         }
-
-        .activity-agent {
-            background: #3498db;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            font-weight: bold;
+        .analytics-card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.75rem;
         }
-
-        .activity-priority {
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 0.7em;
-            font-weight: bold;
+        .analytics-metric {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
         }
-
-        .priority-high {
-            background: #dc3545;
-            color: white;
+        .analytics-description {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
         }
-
-        .priority-medium {
-            background: #ffc107;
-            color: black;
+        .analytics-detail {
+            font-size: 0.875rem;
+            color: #4b5563;
+            margin-top: 0.5rem;
         }
-
-        .priority-low {
-            background: #28a745;
-            color: white;
+        .analytics-trend-positive {
+            color: #10b981; /* Green */
+            font-weight: 600;
         }
-
+        .analytics-trend-negative {
+            color: #ef4444; /* Red */
+            font-weight: 600;
+        }
+        /* Responsive adjustments */
         @media (max-width: 768px) {
-            .two-column {
-                grid-template-columns: 1fr;
+            .tab-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
             }
-
-            .tabs {
-                flex-direction: column;
+            .tab-content {
+                padding: 1.5rem;
             }
-
-            .header h1 {
-                font-size: 2em;
+            .api-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            input[type="text"], input[type="number"], textarea, button {
+                padding: 0.6rem;
+                font-size: 0.9rem;
+            }
+            button {
+                width: 100%; /* Full width buttons on small screens */
+            }
+            .flex-wrap-md {
+                flex-wrap: wrap; /* Allow tabs to wrap on smaller screens */
             }
         }
     </style>
 </head>
-<body>
-    <!-- Keep all existing HTML content exactly the same until the script tag -->
+<body class="bg-gray-100 p-8">
     <div class="container">
-        <div class="header">
-            <h1>🤖 Agentic AI Demo</h1>
-            <p>Customer Support, Marketing, Personal Virtualization & Financial Trading Agents with LangChain, PostgreSQL & FastAPI</p>
+        <header class="bg-gradient-to-r from-indigo-600 to-indigo-800 p-6 text-white text-center rounded-t-xl shadow-lg">
+            <h1 class="text-3xl font-bold mb-2">🤖 Agentic AI Platform</h1>
+            <p class="text-indigo-200">Interact with your Customer Support, Marketing, PVA, and Trading AI Agents</p>
+        </header>
+
+        <div class="flex border-b border-gray-200 bg-white flex-wrap-md" id="agent-tabs">
+            <button class="tab-button active" data-tab="system-agent">System</button>
+            <button class="tab-button" data-tab="customer-support-agent">Customer Support</button>
+            <button class="tab-button" data-tab="financial-trading-bot">Financial Trading</button>
+            <button class="tab-button" data-tab="marketing-agent">Marketing</button>
+            <button class="tab-button" data-tab="pva-agent">PVA</button>
+            <button class="tab-button" data-tab="admin-panel">Admin Panel</button>
         </div>
 
-        <div class="tabs">
-            <button class="tab active" type="button" onclick="switchTab('customer-support')">
-                💬 Customer Support Agent
-            </button>
-            <button class="tab" type="button" onclick="switchTab('marketing')">
-                📈 Marketing Agent
-            </button>
-            <button class="tab" type="button" onclick="switchTab('personal-virtual-assistant')">
-                🗣️ Personal Virtual Assistant
-            </button>
-            <button class="tab" type="button" onclick="switchTab('financial-trading-bot')">
-                💰 Financial Trading Bot
-            </button>
-            <button class="tab" type="button" onclick="switchTab('analytics')">
-                📊 Analytics Dashboard
-            </button>
-        </div>
+        <div id="tab-content-container">
+            <!-- System Agent Tab -->
+            <div id="system-agent" class="tab-content active">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">System Agent</h2>
 
-        <div class="content">
-            <!-- Customer Support Section -->
-            <div id="customer-support" class="agent-section active">
-                <h2>Customer Support Agent</h2>
-                <p>Test the AI-powered customer support agent with natural language queries.</p>
-
-                <div class="two-column">
-                    <div>
-                        <div class="form-group">
-                            <label for="customer-id">Customer ID:</label>
-                            <select id="customer-id">
-                                <option value="1">1 - John Smith (Premium)</option>
-                                <option value="2">2 - Sarah Johnson (Standard)</option>
-                                <option value="3">3 - Mike Wilson (Enterprise)</option>
-                                <option value="4">4 - Emily Davis (Standard)</option>
-                                <option value="5">5 - David Brown (Premium)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="customer-message">Customer Message:</label>
-                            <textarea id="customer-message" placeholder="Enter your support request here...">I can't log into my account. I keep getting an error message saying 'invalid credentials' even though I'm sure my password is correct.</textarea>
-                        </div>
-
-                        <button class="btn" onclick="sendCustomerSupportMessage()">Send Message</button>
-                        <button class="btn" onclick="loadCustomerContext()">Load Customer Context</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="api-section">
+                        <h3>Overall System Status (Public)</h3>
+                        <p class="text-gray-600 mb-4">Get a quick overview of the API system's status.</p>
+                        <button onclick="getSystemStatus()">
+                            Get Status
+                            <span id="system-status-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="system-status-result" class="result-box hidden"></div>
+                        <div id="system-status-error" class="error-box hidden"></div>
                     </div>
 
-                    <div>
-                        <div class="response-area">
-                            <h3>Agent Response</h3>
-                            <div id="support-loading" class="loading">
-                                <div class="spinner"></div>
-                                <p>Processing your request...</p>
-                            </div>
-                            <div id="support-response"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Marketing Section -->
-            <div id="marketing" class="agent-section">
-                <h2>Marketing Agent</h2>
-                <p>Create marketing campaigns and generate content with AI assistance.</p>
-
-                <div class="two-column">
-                    <div>
-                        <div class="form-group">
-                            <label for="campaign-type">Campaign Type:</label>
-                            <select id="campaign-type">
-                                <option value="product_launch">Product Launch</option>
-                                <option value="customer_retention">Customer Retention</option>
-                                <option value="lead_generation">Lead Generation</option>
-                                <option value="brand_awareness">Brand Awareness</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="target-audience">Target Audience:</label>
-                            <input type="text" id="target-audience" value="tech professionals and data scientists" placeholder="Describe your target audience">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="budget">Budget ($):</label>
-                            <input type="number" id="budget" value="10000" min="100" step="100">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="duration">Duration (days):</label>
-                            <input type="number" id="duration" value="30" min="1" max="365">
-                        </div>
-
-                        <button class="btn" onclick="createCampaign()">Create Campaign</button>
-                        <button class="btn" onclick="generateContent()">Generate Content</button>
+                    <div class="api-section">
+                        <h3>Detailed System Metrics (Auth Required)</h3>
+                        <p class="text-gray-600 mb-4">Retrieve in-depth system performance and agent metrics.</p>
+                        <button onclick="getDetailedSystemMetrics()">
+                            Get Detailed Metrics
+                            <span id="detailed-metrics-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="detailed-metrics-result" class="result-box hidden"></div>
+                        <div id="detailed-metrics-error" class="error-box hidden"></div>
                     </div>
 
-                    <div>
-                        <div class="response-area">
-                            <h3>Campaign Results</h3>
-                            <div id="marketing-loading" class="loading">
-                                <div class="spinner"></div>
-                                <p>Creating your campaign...</p>
-                            </div>
-                            <div id="marketing-response"></div>
-                        </div>
+                    <div class="api-section">
+                        <h3>Run System Diagnostics (Auth Required)</h3>
+                        <p class="text-gray-600 mb-4">Run comprehensive diagnostics on the system and agents.</p>
+                        <button onclick="runSystemDiagnostics()">
+                            Run Diagnostics
+                            <span id="diagnostics-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="diagnostics-result" class="result-box hidden"></div>
+                        <div id="diagnostics-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get Health Check (Public)</h3>
+                        <p class="text-gray-600 mb-4">Check the detailed health status of the API and its agents.</p>
+                        <button onclick="getHealthCheck()">
+                            Run Health Check
+                            <span id="health-check-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="health-check-result" class="result-box hidden"></div>
+                        <div id="health-check-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section md:col-span-2">
+                        <h3>List Available Agents (Public)</h3>
+                        <p class="text-gray-600 mb-4">See all active agents and their capabilities.</p>
+                        <button onclick="listAvailableAgents()">
+                            List Agents
+                            <span id="list-agents-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="list-agents-result" class="result-box hidden"></div>
+                        <div id="list-agents-error" class="error-box hidden"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Personal Virtual Assistant Section -->
-            <div id="personal-virtual-assistant" class="agent-section">
-                <h2>Personal Virtual Assistant</h2>
-                <p>Interact with your AI-powered personal assistant for daily tasks.</p>
+            <!-- Customer Support Tab -->
+            <div id="customer-support-agent" class="tab-content">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Customer Support Agent</h2>
 
-                <div class="two-column">
-                    <div>
-                        <div class="form-group">
-                            <label for="pva-user-id">User ID:</label>
-                            <input type="text" id="pva-user-id" value="user123" placeholder="Enter user ID">
-                        </div>
-                        <div class="form-group">
-                            <label for="pva-message">Your Message:</label>
-                            <textarea id="pva-message" placeholder="Ask me anything...">What's the weather like in London?</textarea>
-                        </div>
-                        <button class="btn" onclick="sendPVAMessage()">Send Message</button>
-                        <button class="btn" onclick="getPVAReminders()">Get Reminders</button>
-                        <button class="btn" onclick="getPVADevices()">Get Devices</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="api-section">
+                        <h3>Customer Support Chat (Public)</h3>
+                        <p class="text-gray-600 mb-4">Engage with the customer support agent.</p>
+                        <label for="cs-customer-id" class="block text-gray-700 font-medium">Customer ID:</label>
+                        <input type="number" id="cs-customer-id" value="123" placeholder="Enter Customer ID" required>
+
+                        <label for="cs-message" class="block text-gray-700 font-medium">Message:</label>
+                        <textarea id="cs-message" rows="3" placeholder="Type your message here..." required>My internet is not working.</textarea>
+
+                        <button onclick="customerSupportChat()">
+                            Send Message
+                            <span id="cs-chat-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="cs-chat-result" class="result-box hidden"></div>
+                        <div id="cs-chat-error" class="error-box hidden"></div>
                     </div>
-                    <div>
-                        <div class="response-area">
-                            <h3>Assistant Response</h3>
-                            <div id="pva-loading" class="loading">
-                                <div class="spinner"></div>
-                                <p>Thinking...</p>
-                            </div>
-                            <div id="pva-response"></div>
-                        </div>
+
+                    <div class="api-section">
+                        <h3>Get Customer Context (Auth Required)</h3>
+                        <p class="text-gray-600 mb-4">Retrieve detailed context for a customer.</p>
+                        <label for="context-customer-id" class="block text-gray-700 font-medium">Customer ID:</label>
+                        <input type="number" id="context-customer-id" value="123" placeholder="Enter Customer ID" required>
+
+                        <button onclick="getCustomerContext()">
+                            Get Context
+                            <span id="cs-context-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="cs-context-result" class="result-box hidden"></div>
+                        <div id="cs-context-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Debug Customer Context (Auth Required)</h3>
+                        <p class="text-gray-600 mb-4">Get debug information for a specific customer ID.</p>
+                        <label for="debug-customer-id" class="block text-gray-700 font-medium">Customer ID:</label>
+                        <input type="number" id="debug-customer-id" value="123" placeholder="Enter Customer ID" required>
+                        <button onclick="debugCustomerContext()">
+                            Get Debug Info
+                            <span id="cs-debug-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="cs-debug-result" class="result-box hidden"></div>
+                        <div id="cs-debug-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get Customer Insights (Auth Required)</h3>
+                        <p class="text-gray-600 mb-4">Get comprehensive insights for a customer.</p>
+                        <label for="insights-customer-id" class="block text-gray-700 font-medium">Customer ID:</label>
+                        <input type="number" id="insights-customer-id" value="123" placeholder="Enter Customer ID" required>
+                        <button onclick="getCustomerInsights()">
+                            Get Insights
+                            <span id="cs-insights-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="cs-insights-result" class="result-box hidden"></div>
+                        <div id="cs-insights-error" class="error-box hidden"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Financial Trading Bot Section -->
-            <div id="financial-trading-bot" class="agent-section">
-                <h2>Financial Trading Bot</h2>
-                <p>Automated market analysis and trading decisions.</p>
+            <!-- Financial Trading Bot Tab -->
+            <div id="financial-trading-bot" class="tab-content">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Financial Trading Bot (Auth Required)</h2>
+                <p class="text-gray-600 mb-4">All Financial Trading Bot features require authentication.</p>
 
-                <div class="two-column">
-                    <div>
-                        <div class="form-group">
-                            <label for="trading-symbol">Stock Symbol:</label>
-                            <input type="text" id="trading-symbol" value="AAPL" placeholder="e.g., AAPL, GOOGL">
-                        </div>
-                        <div class="form-group">
-                            <label for="trading-strategy">Strategy Type:</label>
-                            <select id="trading-strategy">
-                                <option value="momentum">Momentum</option>
-                                <option value="mean_reversion">Mean Reversion</option>
-                                <option value="arbitrage">Arbitrage</option>
-                            </select>
-                        </div>
-                        <button class="btn" onclick="analyzeTrading()">Analyze & Decide</button>
-                        <button class="btn" onclick="runTradingCycle()">Run Trading Cycle</button>
-                        <button class="btn" onclick="getPortfolioStatus()">Get Portfolio</button>
-                        <button class="btn" onclick="getMarketData()">Get Market Data</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="api-section">
+                        <h3>Analyze Market & Make Decision</h3>
+                        <p class="text-gray-600 mb-4">Get a trading decision based on symbol and strategy.</p>
+                        <label for="trading-analyze-symbol" class="block text-gray-700 font-medium">Stock Symbol:</label>
+                        <input type="text" id="trading-analyze-symbol" value="GOOGL" placeholder="e.g., GOOGL" required>
+                        <label for="trading-strategy-type" class="block text-gray-700 font-medium">Strategy Type:</label>
+                        <select id="trading-strategy-type" class="w-full p-2 border rounded-md mt-1 mb-3">
+                            <option value="momentum">Momentum</option>
+                            <option value="mean_reversion">Mean Reversion</option>
+                            <option value="arbitrage">Arbitrage</option>
+                        </select>
+                        <button onclick="analyzeAndDecide()">
+                            Analyze & Decide
+                            <span id="ft-analyze-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="ft-analyze-result" class="result-box hidden"></div>
+                        <div id="ft-analyze-error" class="error-box hidden"></div>
                     </div>
-                    <div>
-                        <div class="response-area">
-                            <h3>Trading Bot Output</h3>
-                            <div id="trading-loading" class="loading">
-                                <div class="spinner"></div>
-                                <p>Analyzing market...</p>
-                            </div>
-                            <div id="trading-response"></div>
-                        </div>
+
+                    <div class="api-section">
+                        <h3>Run Trading Cycle</h3>
+                        <p class="text-gray-600 mb-4">Simulate a trading cycle for specified symbols (optional).</p>
+                        <label for="trading-cycle-symbols" class="block text-gray-700 font-medium">Symbols (comma-separated):</label>
+                        <input type="text" id="trading-cycle-symbols" value="AAPL,MSFT" placeholder="e.g., AAPL,MSFT">
+                        <button onclick="runTradingCycle()">
+                            Run Cycle
+                            <span id="ft-cycle-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="ft-cycle-result" class="result-box hidden"></div>
+                        <div id="ft-cycle-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get Portfolio Status</h3>
+                        <p class="text-gray-600 mb-4">View the current status of the trading bot's portfolio.</p>
+                        <button onclick="getPortfolioStatus()">
+                            Get Portfolio
+                            <span id="ft-portfolio-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="ft-portfolio-result" class="result-box hidden"></div>
+                        <div id="ft-portfolio-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get Market Data</h3>
+                        <p class="text-gray-600 mb-4">Retrieve real-time market data for a specific stock symbol.</p>
+                        <label for="market-symbol" class="block text-gray-700 font-medium">Stock Symbol:</label>
+                        <input type="text" id="market-symbol" value="AAPL" placeholder="Enter stock symbol (e.g., AAPL)" required>
+
+                        <button onclick="getMarketData()">
+                            Get Data
+                            <span id="ft-market-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="ft-market-result" class="result-box hidden"></div>
+                        <div id="ft-market-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get Performance Report</h3>
+                        <p class="text-gray-600 mb-4">Retrieve a comprehensive performance report of the trading activities.</p>
+                        <button onclick="getPerformanceReport()">
+                            Get Report
+                            <span id="ft-performance-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="ft-performance-result" class="result-box hidden"></div>
+                        <div id="ft-performance-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get Current Holdings</h3>
+                        <p class="text-gray-600 mb-4">View the trading bot's current stock holdings.</p>
+                        <button onclick="getCurrentHoldings()">
+                            Get Holdings
+                            <span id="ft-holdings-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="ft-holdings-result" class="result-box hidden"></div>
+                        <div id="ft-holdings-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get Risk Assessment</h3>
+                        <p class="text-gray-600 mb-4">Retrieve the current risk assessment for the portfolio.</p>
+                        <button onclick="getRiskAssessment()">
+                            Get Risk
+                            <span id="ft-risk-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="ft-risk-result" class="result-box hidden"></div>
+                        <div id="ft-risk-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get Watchlist</h3>
+                        <p class="text-gray-600 mb-4">View the trading bot's watchlist of monitored symbols.</p>
+                        <button onclick="getWatchlist()">
+                            Get Watchlist
+                            <span id="ft-watchlist-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="ft-watchlist-result" class="result-box hidden"></div>
+                        <div id="ft-watchlist-error" class="error-box hidden"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Analytics Dashboard Section -->
-            <div id="analytics" class="agent-section">
-                <h2>Analytics Dashboard</h2>
-                <p>View system performance and usage statistics.</p>
+            <!-- Marketing Agent Tab -->
+            <div id="marketing-agent" class="tab-content">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Marketing Agent (Auth Required)</h2>
+                <p class="text-gray-600 mb-4">All Marketing Agent features require authentication.</p>
 
-                <div class="metrics">
-                    <div class="metric">
-                        <div class="metric-value" id="total-customers">Loading...</div>
-                        <div class="metric-label">Total Customers</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="api-section">
+                        <h3>Create Marketing Campaign</h3>
+                        <p class="text-gray-600 mb-4">Generate a new marketing campaign plan.</p>
+                        <label for="campaign-type" class="block text-gray-700 font-medium">Campaign Type:</label>
+                        <input type="text" id="campaign-type" value="product_launch" placeholder="e.g., product_launch" required>
+
+                        <label for="target-audience" class="block text-gray-700 font-medium">Target Audience:</label>
+                        <input type="text" id="target-audience" value="tech enthusiasts" placeholder="e.g., tech enthusiasts" required>
+
+                        <label for="budget" class="block text-gray-700 font-medium">Budget:</label>
+                        <input type="number" id="budget" value="5000" placeholder="e.g., 5000" required>
+
+                        <label for="duration-days" class="block text-gray-700 font-medium">Duration (Days):</label>
+                        <input type="number" id="duration-days" value="30" placeholder="e.g., 30" required>
+
+                        <button onclick="createMarketingCampaign()">
+                            Create Campaign
+                            <span id="mk-campaign-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="mk-campaign-result" class="result-box hidden"></div>
+                        <div id="mk-campaign-error" class="error-box hidden"></div>
                     </div>
-                    <div class="metric">
-                        <div class="metric-value" id="active-campaigns">Loading...</div>
-                        <div class="metric-label">Active Campaigns</div>
+
+                    <div class="api-section">
+                        <h3>Generate Marketing Content</h3>
+                        <p class="text-gray-600 mb-4">Generate content for a specific platform and theme.</p>
+                        <label for="content-platform" class="block text-gray-700 font-medium">Platform:</label>
+                        <input type="text" id="content-platform" value="social_media" placeholder="e.g., social_media, email">
+                        <label for="content-type" class="block text-gray-700 font-medium">Content Type:</label>
+                        <input type="text" id="content-type" value="post" placeholder="e.g., post, article">
+                        <label for="content-campaign-theme" class="block text-gray-700 font-medium">Campaign Theme:</label>
+                        <input type="text" id="content-campaign-theme" value="new_product" placeholder="e.g., new_product">
+                        <button onclick="generateMarketingContent()">
+                            Generate Content
+                            <span id="mk-content-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="mk-content-result" class="result-box hidden"></div>
+                        <div id="mk-content-error" class="error-box hidden"></div>
                     </div>
-                    <div class="metric">
-                        <div class="metric-value" id="knowledge-base-documents">Loading...</div>
-                        <div class="metric-label">Knowledge Base Documents</div>
+
+                    <div class="api-section">
+                        <h3>Analyze Campaign Performance</h3>
+                        <p class="text-gray-600 mb-4">Get performance metrics for a specific campaign ID.</p>
+                        <label for="campaign-performance-id" class="block text-gray-700 font-medium">Campaign ID:</label>
+                        <input type="text" id="campaign-performance-id" value="campaign_001" placeholder="Enter Campaign ID">
+                        <button onclick="analyzeCampaignPerformance()">
+                            Analyze Performance
+                            <span id="mk-performance-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="mk-performance-result" class="result-box hidden"></div>
+                        <div id="mk-performance-error" class="error-box hidden"></div>
                     </div>
-                    <div class="metric">
-                        <div class="metric-value" id="api-status">Loading...</div>
-                        <div class="metric-label">API Status</div>
+
+                    <div class="api-section">
+                        <h3>Get Campaign List</h3>
+                        <p class="text-gray-600 mb-4">Retrieve a list of marketing campaigns with optional status filter.</p>
+                        <label for="campaign-list-status" class="block text-gray-700 font-medium">Status Filter (optional):</label>
+                        <input type="text" id="campaign-list-status" value="" placeholder="e.g., active, completed">
+                        <label for="campaign-list-limit" class="block text-gray-700 font-medium">Limit:</label>
+                        <input type="number" id="campaign-list-limit" value="5" min="1">
+                        <button onclick="getCampaignList()">
+                            Get List
+                            <span id="mk-list-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="mk-list-result" class="result-box hidden"></div>
+                        <div id="mk-list-error" class="error-box hidden"></div>
                     </div>
-                    <div class="metric">
-                        <div class="metric-value" id="customer-support-agent">Loading...</div>
-                        <div class="metric-label">Customer Support Agent</div>
+
+                    <div class="api-section">
+                        <h3>Get Content Templates</h3>
+                        <p class="text-gray-600 mb-4">Retrieve available marketing content templates by type (optional).</p>
+                        <label for="template-content-type" class="block text-gray-700 font-medium">Content Type (optional):</label>
+                        <input type="text" id="template-content-type" value="" placeholder="e.g., social_media, email">
+                        <button onclick="getContentTemplates()">
+                            Get Templates
+                            <span id="mk-templates-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="mk-templates-result" class="result-box hidden"></div>
+                        <div id="mk-templates-error" class="error-box hidden"></div>
                     </div>
-                    <div class="metric">
-                        <div class="metric-value" id="marketing-agent">Loading...</div>
-                        <div class="metric-label">Marketing Agent</div>
+
+                    <div class="api-section">
+                        <h3>Get Marketing Trends</h3>
+                        <p class="text-gray-600 mb-4">Discover current marketing trends and insights.</p>
+                        <button onclick="getMarketingTrends()">
+                            Get Trends
+                            <span id="mk-trends-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="mk-trends-result" class="result-box hidden"></div>
+                        <div id="mk-trends-error" class="error-box hidden"></div>
                     </div>
-                    <div class="metric">
-                        <div class="metric-value" id="personal-virtual-assistant">Loading...</div>
-                        <div class="metric-label">Personal Virtual Assistant</div>
+
+                    <div class="api-section">
+                        <h3>Get Audience Segments</h3>
+                        <p class="text-gray-600 mb-4">Retrieve available audience segments for targeting.</p>
+                        <button onclick="getAudienceSegments()">
+                            Get Segments
+                            <span id="mk-segments-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="mk-segments-result" class="result-box hidden"></div>
+                        <div id="mk-segments-error" class="error-box hidden"></div>
                     </div>
-                    <div class="metric">
-                        <div class="metric-value" id="financial-trading-bot">Loading...</div>
-                        <div class="metric-label">Financial Trading Bot</div>
+
+                    <div class="api-section">
+                        <h3>Pause/Resume Campaign</h3>
+                        <p class="text-gray-600 mb-4">Pause or resume a marketing campaign.</p>
+                        <label for="campaign-action-id" class="block text-gray-700 font-medium">Campaign ID:</label>
+                        <input type="text" id="campaign-action-id" value="fallback_campaign_001" placeholder="Enter Campaign ID">
+                        <button onclick="pauseCampaign()">
+                            Pause Campaign
+                            <span id="mk-pause-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <button onclick="resumeCampaign()">
+                            Resume Campaign
+                            <span id="mk-resume-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="mk-action-result" class="result-box hidden"></div>
+                        <div id="mk-action-error" class="error-box hidden"></div>
                     </div>
                 </div>
+            </div>
 
-                <div class="response-area">
-                    <h3>Recent Activity</h3>
-                    <div id="recent-activity">
-                        <p>Loading recent activity...</p>
+            <!-- Personal Virtual Assistant (PVA) Tab -->
+            <div id="pva-agent" class="tab-content">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Personal Virtual Assistant (PVA) (Auth Required)</h2>
+                <p class="text-gray-600 mb-4">All PVA features require authentication.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="api-section">
+                        <h3>PVA Chat</h3>
+                        <p class="text-gray-600 mb-4">Chat with your Personal Virtual Assistant.</p>
+                        <label for="pva-user-id" class="block text-gray-700 font-medium">User ID:</label>
+                        <input type="text" id="pva-user-id" value="user_123" placeholder="Enter User ID" required>
+
+                        <label for="pva-message" class="block text-gray-700 font-medium">Message:</label>
+                        <textarea id="pva-message" rows="3" placeholder="Type your message here..." required>Set a reminder for me to call John tomorrow at 10 AM.</textarea>
+
+                        <button onclick="pvaChat()">
+                            Send Message
+                            <span id="pva-chat-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-chat-result" class="result-box hidden"></div>
+                        <div id="pva-chat-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get User Reminders</h3>
+                        <p class="text-gray-600 mb-4">Retrieve a list of reminders for a user.</p>
+                        <label for="reminders-user-id" class="block text-gray-700 font-medium">User ID:</label>
+                        <input type="text" id="reminders-user-id" value="user_123" placeholder="Enter User ID" required>
+
+                        <button onclick="getUserReminders()">
+                            Get Reminders
+                            <span id="pva-reminders-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-reminders-result" class="result-box hidden"></div>
+                        <div id="pva-reminders-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get User Devices</h3>
+                        <p class="text-gray-600 mb-4">Retrieve a list of smart devices for a user.</p>
+                        <label for="devices-user-id" class="block text-gray-700 font-medium">User ID:</label>
+                        <input type="text" id="devices-user-id" value="user_123" placeholder="Enter User ID" required>
+                        <button onclick="getUserDevices()">
+                            Get Devices
+                            <span id="pva-devices-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-devices-result" class="result-box hidden"></div>
+                        <div id="pva-devices-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get User Context</h3>
+                        <p class="text-gray-600 mb-4">Retrieve user preferences and interaction history.</p>
+                        <label for="context-user-id" class="block text-gray-700 font-medium">User ID:</label>
+                        <input type="text" id="context-user-id" value="user_123" placeholder="Enter User ID" required>
+                        <button onclick="getUserContext()">
+                            Get Context
+                            <span id="pva-context-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-context-result" class="result-box hidden"></div>
+                        <div id="pva-context-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Control Smart Device</h3>
+                        <p class="text-gray-600 mb-4">Send commands to a smart home device.</p>
+                        <label for="control-user-id" class="block text-gray-700 font-medium">User ID:</label>
+                        <input type="text" id="control-user-id" value="user_123" required>
+                        <label for="device-id" class="block text-gray-700 font-medium">Device ID:</label>
+                        <input type="text" id="device-id" value="device_001" placeholder="e.g., device_001" required>
+                        <label for="device-action" class="block text-gray-700 font-medium">Action:</label>
+                        <input type="text" id="device-action" value="turn_on" placeholder="e.g., turn_on, turn_off" required>
+                        <label for="device-parameters" class="block text-gray-700 font-medium">Parameters (JSON, optional):</label>
+                        <textarea id="device-parameters" rows="2" placeholder='{"brightness": 80}'></textarea>
+                        <button onclick="controlSmartDevice()">
+                            Control Device
+                            <span id="pva-control-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-control-result" class="result-box hidden"></div>
+                        <div id="pva-control-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Create Reminder</h3>
+                        <p class="text-gray-600 mb-4">Create a new reminder for the user.</p>
+                        <label for="reminder-user-id" class="block text-gray-700 font-medium">User ID:</label>
+                        <input type="text" id="reminder-user-id" value="user_123" required>
+                        <label for="reminder-title" class="block text-gray-700 font-medium">Title:</label>
+                        <input type="text" id="reminder-title" value="Buy groceries" required>
+                        <label for="reminder-description" class="block text-gray-700 font-medium">Description (optional):</label>
+                        <input type="text" id="reminder-description" value="Milk, eggs, bread">
+                        <label for="reminder-time" class="block text-gray-700 font-medium">Target Time (ISO format):</label>
+                        <input type="text" id="reminder-time" value="2025-08-11T18:00:00" placeholder="YYYY-MM-DDTHH:MM:SS" required>
+                        <button onclick="createReminder()">
+                            Create Reminder
+                            <span id="pva-create-reminder-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-create-reminder-result" class="result-box hidden"></div>
+                        <div id="pva-create-reminder-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get User Calendar</h3>
+                        <p class="text-gray-600 mb-4">Retrieve calendar events for a user for a number of days.</p>
+                        <label for="calendar-user-id" class="block text-gray-700 font-medium">User ID:</label>
+                        <input type="text" id="calendar-user-id" value="user_123" required>
+                        <label for="calendar-days" class="block text-gray-700 font-medium">Days (from today):</label>
+                        <input type="number" id="calendar-days" value="7" min="1" max="30">
+                        <button onclick="getUserCalendar()">
+                            Get Calendar
+                            <span id="pva-calendar-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-calendar-result" class="result-box hidden"></div>
+                        <div id="pva-calendar-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get Weather Info</h3>
+                        <p class="text-gray-600 mb-4">Get weather information for a location.</p>
+                        <label for="weather-user-id" class="block text-gray-700 font-medium">User ID:</label>
+                        <input type="text" id="weather-user-id" value="user_123" required>
+                        <label for="weather-location" class="block text-gray-700 font-medium">Location (optional):</label>
+                        <input type="text" id="weather-location" value="London" placeholder="e.g., London, New York">
+                        <button onclick="getWeatherInfo()">
+                            Get Weather
+                            <span id="pva-weather-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-weather-result" class="result-box hidden"></div>
+                        <div id="pva-weather-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section">
+                        <h3>Get User Tasks</h3>
+                        <p class="text-gray-600 mb-4">Retrieve a list of tasks/to-do items for a user.</p>
+                        <label for="tasks-user-id" class="block text-gray-700 font-medium">User ID:</label>
+                        <input type="text" id="tasks-user-id" value="user_123" required>
+                        <label for="tasks-status" class="block text-gray-700 font-medium">Status (optional):</label>
+                        <input type="text" id="tasks-status" value="" placeholder="e.g., pending, completed">
+                        <button onclick="getUserTasks()">
+                            Get Tasks
+                            <span id="pva-tasks-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-tasks-result" class="result-box hidden"></div>
+                        <div id="pva-tasks-error" class="error-box hidden"></div>
+                    </div>
+
+                    <div class="api-section md:col-span-2">
+                        <h3>Get PVA Capabilities</h3>
+                        <p class="text-gray-600 mb-4">View the capabilities and features of the Personal Virtual Assistant.</p>
+                        <button onclick="getPVACapabilities()">
+                            Get Capabilities
+                            <span id="pva-capabilities-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="pva-capabilities-result" class="result-box hidden"></div>
+                        <div id="pva-capabilities-error" class="error-box hidden"></div>
                     </div>
                 </div>
+            </div>
 
-                <div class="response-area">
-                    <h3>System Health</h3>
-                    <div id="system-health">
-                        <p>Loading system health...</p>
+            <!-- Admin Panel Tab (Analytics Dashboard) -->
+            <div id="admin-panel" class="tab-content">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">🔑 Admin Panel (Analytics Dashboard)</h2>
+                <p class="text-gray-600 mb-4">This section provides comprehensive analytics and insights across all agents.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-3">
+                        <div class="analytics-card">
+                            <h3 class="analytics-card-title">Overall Analytics Overview</h3>
+                            <div id="overall-analytics-content" class="text-gray-700">
+                                <!-- Data will be injected here -->
+                            </div>
+                            <button class="mt-4" onclick="getAnalyticsDashboard()">
+                                Refresh Dashboard
+                                <span id="analytics-dashboard-loading" class="loading-spinner hidden"></span>
+                            </button>
+                            <div id="analytics-dashboard-error" class="error-box hidden mt-4"></div>
+                        </div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3 class="analytics-card-title">Total Customers Analytics</h3>
+                        <div id="customers-analytics-content" class="text-gray-700">
+                            <!-- Data will be injected here -->
+                        </div>
+                        <button class="mt-4" onclick="getTotalCustomersAnalytics()">
+                            Get Customer Analytics
+                            <span id="analytics-customers-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="analytics-customers-error" class="error-box hidden mt-4"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3 class="analytics-card-title">Active Campaigns Analytics</h3>
+                        <div id="campaigns-analytics-content" class="text-gray-700">
+                            <!-- Data will be injected here -->
+                        </div>
+                        <button class="mt-4" onclick="getActiveCampaignsAnalytics()">
+                            Get Campaign Analytics
+                            <span id="analytics-campaigns-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="analytics-campaigns-error" class="error-box hidden mt-4"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3 class="analytics-card-title">Knowledge Base Analytics</h3>
+                        <div id="knowledge-base-analytics-content" class="text-gray-700">
+                            <!-- Data will be injected here -->
+                        </div>
+                        <button class="mt-4" onclick="getKnowledgeBaseAnalytics()">
+                            Get KB Analytics
+                            <span id="analytics-kb-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="analytics-kb-error" class="error-box hidden mt-4"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3 class="analytics-card-title">API Status Analytics</h3>
+                        <div id="api-status-analytics-content" class="text-gray-700">
+                            <!-- Data will be injected here -->
+                        </div>
+                        <button class="mt-4" onclick="getApiStatusAnalytics()">
+                            Get API Status
+                            <span id="analytics-api-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="analytics-api-error" class="error-box hidden mt-4"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3 class="analytics-card-title">Customer Support Agent Analytics</h3>
+                        <div id="cs-agent-analytics-content" class="text-gray-700">
+                            <!-- Data will be injected here -->
+                        </div>
+                        <button class="mt-4" onclick="getCustomerSupportAgentAnalytics()">
+                            Get CS Agent Analytics
+                            <span id="analytics-cs-agent-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="analytics-cs-agent-error" class="error-box hidden mt-4"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3 class="analytics-card-title">Marketing Agent Analytics</h3>
+                        <div id="marketing-agent-analytics-content" class="text-gray-700">
+                            <!-- Data will be injected here -->
+                        </div>
+                        <button class="mt-4" onclick="getMarketingAgentAnalytics()">
+                            Get Marketing Agent Analytics
+                            <span id="analytics-marketing-agent-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="analytics-marketing-agent-error" class="error-box hidden mt-4"></div>
+                    </div>
+
+                     <div class="analytics-card">
+                        <h3 class="analytics-card-title">PVA Agent Analytics</h3>
+                        <div id="pva-agent-analytics-content" class="text-gray-700">
+                            <!-- Data will be injected here -->
+                        </div>
+                        <button class="mt-4" onclick="getPVAAgentAnalytics()">
+                            Get PVA Agent Analytics
+                            <span id="analytics-pva-agent-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="analytics-pva-agent-error" class="error-box hidden mt-4"></div>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3 class="analytics-card-title">Financial Trading Bot Analytics</h3>
+                        <div id="trading-bot-analytics-content" class="text-gray-700">
+                            <!-- Data will be injected here -->
+                        </div>
+                        <button class="mt-4" onclick="getTradingBotAnalytics()">
+                            Get Trading Bot Analytics
+                            <span id="analytics-trading-bot-loading" class="loading-spinner hidden"></span>
+                        </button>
+                        <div id="analytics-trading-bot-error" class="error-box hidden mt-4"></div>
                     </div>
                 </div>
-
-                <button class="btn" onclick="refreshAnalytics()">Refresh Data</button>
             </div>
         </div>
     </div>
@@ -549,601 +884,1155 @@
             if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
                 return 'http://localhost:8000';
             }
-            return 'https://fe69745cefee.ngrok-free.app';
+            return 'https://fe69745cefee.ngrok-free.app'; // Replace with your actual ngrok URL or deployed URL
         }
 
-        const API_BASE = getApiBase();
-        const API_TOKEN = 'demo-agent-123';
+        const API_BASE_URL = getApiBase();
+        const API_TOKEN = 'demo-token-123'; // Hardcoded API token for demo purposes
 
-        console.log(`Using API_BASE: ${API_BASE}`);
+        console.log(`Using API_BASE_URL: ${API_BASE_URL}`);
 
-        // Fixed switchTab function
-        function switchTab(tabName) {
-            // Hide all sections
-            document.querySelectorAll('.agent-section').forEach(section => {
-                section.classList.remove('active');
-            });
+        // API Endpoints
+        const ENDPOINTS = {
+            // Main and System Endpoints
+            root: `${API_BASE_URL}/`,
+            systemStatus: `${API_BASE_URL}/api/v1/system/status`,
+            detailedSystemMetrics: `${API_BASE_URL}/api/v1/system/metrics`, // Auth required
+            listAgents: `${API_BASE_URL}/api/v1/agents/list`,
+            healthCheck: `${API_BASE_URL}/health`,
+            systemDiagnostics: `${API_BASE_URL}/api/v1/diagnostics`, // Auth required
 
-            // Remove active class from all tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
+            // Customer Support Endpoints
+            customerSupportChat: `${API_BASE_URL}/api/v1/customer-support/chat`,
+            customerContext: `${API_BASE_URL}/api/v1/customer-support/customer`, // Append /{customer_id}
+            debugCustomerContext: `${API_BASE_URL}/api/v1/customer-support/debug`, // Append /{customer_id} - Auth required
+            customerInsights: `${API_BASE_URL}/api/v1/customer-support/customer`, // Append /{customer_id}/insights - Auth required
 
-            // Show selected section
-            const targetSection = document.getElementById(tabName);
-            if (targetSection) {
-                targetSection.classList.add('active');
-            }
+            // Financial Trading Bot Endpoints (All Auth required as per FastAPI)
+            analyzeAndDecide: `${API_BASE_URL}/api/v1/trading/analyze`,
+            runTradingCycle: `${API_BASE_URL}/api/v1/trading/cycle`,
+            portfolioStatus: `${API_BASE_URL}/api/v1/trading/portfolio`,
+            marketData: `${API_BASE_URL}/api/v1/trading/market`, // Append /{symbol}
+            performanceReport: `${API_BASE_URL}/api/v1/trading/performance`,
+            currentHoldings: `${API_BASE_URL}/api/v1/trading/holdings`,
+            riskAssessment: `${API_BASE_URL}/api/v1/trading/risk-assessment`,
+            watchlist: `${API_BASE_URL}/api/v1/trading/watchlist`,
 
-            // Add active class to clicked tab
-            if (event && event.target) {
-                event.target.classList.add('active');
-            } else {
-                const targetTab = document.querySelector(`[onclick*="${tabName}"]`);
-                if (targetTab) {
-                    targetTab.classList.add('active');
-                }
-            }
+            // Marketing Agent Endpoints (All Auth required as per FastAPI)
+            createMarketingCampaign: `${API_BASE_URL}/api/v1/marketing/campaign/create`,
+            generateMarketingContent: `${API_BASE_URL}/api/v1/marketing/content/generate`,
+            analyzeCampaignPerformance: `${API_BASE_URL}/api/v1/marketing/campaign`, // Append /{campaign_id}/performance
+            campaignList: `${API_BASE_URL}/api/v1/marketing/campaigns`,
+            contentTemplates: `${API_BASE_URL}/api/v1/marketing/templates`,
+            marketingTrends: `${API_BASE_URL}/api/v1/marketing/insights/trends`,
+            audienceSegments: `${API_BASE_URL}/api/v1/marketing/audience/segments`,
+            pauseCampaign: `${API_BASE_URL}/api/v1/marketing/campaign`, // Append /{campaign_id}/pause
+            resumeCampaign: `${API_BASE_URL}/api/v1/marketing/campaign`, // Append /{campaign_id}/resume
 
-            // Load analytics data when switching to analytics tab
-            if (tabName === 'analytics') {
-                refreshAnalytics();
-            }
-        }
+            // Personal Virtual Assistant (PVA) Endpoints (All Auth required as per FastAPI)
+            pvaChat: `${API_BASE_URL}/api/v1/pva/chat`,
+            userReminders: `${API_BASE_URL}/api/v1/pva/user`, // Append /{user_id}/reminders
+            userDevices: `${API_BASE_URL}/api/v1/pva/user`, // Append /{user_id}/devices
+            userContext: `${API_BASE_URL}/api/v1/pva/user`, // Append /{user_id}/context
+            controlSmartDevice: `${API_BASE_URL}/api/v1/pva/user`, // Append /{user_id}/device/{device_id}/control
+            createReminder: `${API_BASE_URL}/api/v1/pva/user`, // Append /{user_id}/reminder
+            userCalendar: `${API_BASE_URL}/api/v1/pva/user`, // Append /{user_id}/calendar
+            weatherInfo: `${API_BASE_URL}/api/v1/pva/user`, // Append /{user_id}/weather
+            userTasks: `${API_BASE_URL}/api/v1/pva/user`, // Append /{user_id}/tasks
+            pvaCapabilities: `${API_BASE_URL}/api/v1/pva/capabilities`,
 
-        // FIXED Analytics Dashboard Functions
-        async function refreshAnalytics() {
-            console.log('Refreshing analytics data...');
-            
-            try {
-                // Call the correct endpoint that matches your API structure
-                const data = await apiCall('/api/v1/analytics/dashboard');
-                
-                console.log('Analytics data received:', data);
+            // Analytics Dashboard Endpoints (All Auth required as per FastAPI)
+            analyticsDashboard: `${API_BASE_URL}/api/v1/analytics/dashboard`,
+            analyticsCustomers: `${API_BASE_URL}/api/v1/analytics/customers`,
+            analyticsCampaigns: `${API_BASE_URL}/api/v1/analytics/campaigns`,
+            analyticsKnowledgeBase: `${API_BASE_URL}/api/v1/analytics/knowledge-base`,
+            analyticsApiStatus: `${API_BASE_URL}/api/v1/analytics/api-status`,
+            analyticsCSAgent: `${API_BASE_URL}/api/v1/analytics/agents/customer-support`,
+            analyticsMarketingAgent: `${API_BASE_URL}/api/v1/analytics/agents/marketing`,
+            analyticsPVAAgent: `${API_BASE_URL}/api/v1/analytics/agents/personal-virtual-assistant`,
+            analyticsTradingBot: `${API_BASE_URL}/api/v1/analytics/agents/financial-trading-bot`
+        };
 
-                // Update metrics using the correct data structure
-                const metricsMapping = {
-                    'total-customers': data.total_customers || data['total-customers'] || '-',
-                    'active-campaigns': data.active_campaigns || data['active-campaigns'] || '-',
-                    'knowledge-base-documents': data.knowledge_base_documents || data['knowledge-base-documents'] || '-',
-                    'api-status': data.api_status || data['api-status'] || '-',
-                    'customer-support-agent': data.customer_support_agent || data['customer-support-agent'] || '-',
-                    'marketing-agent': data.marketing_agent || data['marketing-agent'] || '-',
-                    'personal-virtual-assistant': data.personal_virtual_assistant || data['personal-virtual-assistant'] || '-',
-                    'financial-trading-bot': data.financial_trading_bot || data['financial-trading-bot'] || '-'
+            // Utility function to fetch data
+            async function fetchData(
+                url,
+                method = 'GET',
+                body = null,
+                ui = {}
+            ) {
+                const {
+                    loadingElementId,
+                    resultElementId,
+                    errorElementId,
+                    renderAsAnalytics = false
+                } = ui;
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true' // Keep this for ngrok
                 };
 
-                // Update each metric display
-                Object.entries(metricsMapping).forEach(([elementId, value]) => {
-                    const element = document.getElementById(elementId);
-                    if (element) {
-                        element.textContent = value;
-                        
-                        // Add color coding for status values
-                        if (value === 'active' || value === 'operational') {
-                            element.style.color = '#28a745'; // Green
-                        } else if (value === 'inactive' || value === 'error') {
-                            element.style.color = '#dc3545'; // Red
-                        } else if (typeof value === 'number') {
-                            element.style.color = '#3498db'; // Blue for numbers
-                        }
-                    }
-                });
+                // Show loading spinner
+                const loadingSpinner = document.getElementById(loadingElementId);
+                if (loadingSpinner) loadingSpinner.classList.remove('hidden');
 
-                // Update Recent Activity with proper formatting
-                const recentActivityDiv = document.getElementById('recent-activity');
-                if (data.recent_activity && data.recent_activity.length > 0) {
-                    const activitiesHtml = data.recent_activity.map(activity => {
-                        const timestamp = new Date(activity.timestamp).toLocaleString();
-                        const priorityClass = `priority-${activity.priority || 'medium'}`;
-                        
-                        return `
-                            <div class="activity-item">
-                                <div class="activity-header">
-                                    <span class="activity-agent">${activity.agent}</span>
-                                    <span class="activity-priority ${priorityClass}">${activity.priority || 'medium'}</span>
-                                </div>
-                                <div>
-                                    <strong>${activity.activity}</strong><br>
-                                    <small>${activity.details}</small><br>
-                                    <small style="color: #6c757d;">${timestamp}</small>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                    
-                    recentActivityDiv.innerHTML = activitiesHtml;
-                } else {
-                    recentActivityDiv.innerHTML = '<p>No recent activity available.</p>';
+                // Clear previous results/errors
+                const resultElement = document.getElementById(resultElementId);
+                const errorElement = document.getElementById(errorElementId);
+                resultElement.classList.add('hidden');
+                errorElement.classList.add('hidden');
+                resultElement.innerHTML = ''; // Clear content too
+                errorElement.innerHTML = ''; // Clear content too
+
+
+                // If authentication is required, use the hardcoded API_TOKEN
+                if (authRequired) {
+                    headers['Authorization'] = `Bearer ${API_TOKEN}`;
                 }
 
-                // Update System Health
-                const systemHealthDiv = document.getElementById('system-health');
-                if (data.system_health) {
-                    let healthColor;
-                    if (data.system_health.status === 'healthy') {
-                        healthColor = '#28a745';
-                    } else if (data.system_health.status === 'degraded') {
-                        healthColor = '#ffc107';
+                const options = {
+                    method: method,
+                    headers: headers,
+                };
+
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+            try {
+                const response = await fetch(url, options);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    let errorMessage = `Error ${response.status}: `;
+                    if (data.detail) {
+                        errorMessage += JSON.stringify(data.detail); // Display detail as JSON
+                    } else if (data.error) {
+                        errorMessage += data.error;
                     } else {
-                        healthColor = '#dc3545';
+                        errorMessage += 'Unknown error';
                     }
-
-                    systemHealthDiv.innerHTML = `
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div class="metric">
-                                <div class="metric-value" style="color: ${healthColor};">${data.system_health.status}</div>
-                                <div class="metric-label">Overall Status</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value">${data.system_health.score}%</div>
-                                <div class="metric-label">Health Score</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value">${data.system_health.issues.length}</div>
-                                <div class="metric-label">Issues</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value">${new Date(data.system_health.last_updated).toLocaleString()}</div>
-                                <div class="metric-label">Last Updated</div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    systemHealthDiv.innerHTML = '<p>System health data not available.</p>';
+                    displayError(errorElementId, errorMessage);
+                    return;
                 }
 
-                console.log('Analytics dashboard updated successfully');
-
+                if (renderAsAnalytics) {
+                    renderAnalyticsData(resultElementId, data);
+                } else {
+                    displayResult(resultElementId, data);
+                }
             } catch (error) {
-                console.error('Error refreshing analytics:', error);
-                
-                // Update all metrics to show error state
-                const errorElements = [
-                    'total-customers', 'active-campaigns', 'knowledge-base-documents', 'api-status',
-                    'customer-support-agent', 'marketing-agent', 'personal-virtual-assistant', 'financial-trading-bot'
-                ];
-                
-                errorElements.forEach(elementId => {
-                    const element = document.getElementById(elementId);
-                    if (element) {
-                        element.textContent = 'Error';
-                        element.style.color = '#dc3545'; // Red
+                console.error('Fetch error:', error);
+                displayError(errorElementId, `Network or unknown error: ${error.message}`);
+            } finally {
+                // Hide loading spinner
+                if (loadingSpinner) loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        function displayResult(elementId, data) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            element.classList.remove('hidden');
+            element.classList.remove('error-box');
+            element.classList.add('result-box');
+        }
+
+        function displayError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<p>${message}</p>`;
+            element.classList.remove('hidden');
+            element.classList.remove('result-box');
+            element.classList.add('error-box');
+        }
+
+        function renderAnalyticsData(elementId, data) {
+            const element = document.getElementById(elementId);
+            let htmlContent = '';
+
+            // Guard against empty or null data objects for analytics rendering
+            if (!data || Object.keys(data).length === 0) {
+                element.innerHTML = `<p class="text-gray-500">No analytics data available for this section.</p>`;
+                element.classList.remove('hidden');
+                return;
+            }
+
+            switch (elementId) {
+                case 'overall-analytics-content':
+                    htmlContent = renderOverallAnalytics(data);
+                    break;
+                case 'customers-analytics-content':
+                    htmlContent = renderCustomersAnalytics(data);
+                    break;
+                case 'campaigns-analytics-content':
+                    htmlContent = renderCampaignsAnalytics(data);
+                    break;
+                case 'knowledge-base-analytics-content':
+                    htmlContent = renderKnowledgeBaseAnalytics(data);
+                    break;
+                case 'api-status-analytics-content':
+                    htmlContent = renderApiStatusAnalytics(data);
+                    break;
+                case 'cs-agent-analytics-content':
+                    htmlContent = renderCSAgentAnalytics(data);
+                    break;
+                case 'marketing-agent-analytics-content':
+                    htmlContent = renderMarketingAgentAnalytics(data);
+                    break;
+                case 'pva-agent-analytics-content':
+                    htmlContent = renderPVAAgentAnalytics(data);
+                    break;
+                case 'trading-bot-analytics-content':
+                    htmlContent = renderTradingBotAnalytics(data);
+                    break;
+                default:
+                    htmlContent = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    break;
+            }
+            element.innerHTML = htmlContent;
+            element.classList.remove('hidden');
+        }
+
+        function renderOverallAnalytics(data) {
+            const totalRequests = data.total_requests || 0;
+            const activeAgents = data.active_agents || 0;
+            const averageResponseTime = data.average_response_time || 0;
+            const errorRate = data.error_rate || 0;
+            const mostActiveAgent = data.most_active_agent || 'N/A';
+            const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A';
+
+            return `
+                <p class="analytics-description">Key metrics for overall system performance.</p>
+                <p class="analytics-metric">${totalRequests} <span class="text-lg font-medium text-gray-500">requests</span></p>
+                <p class="analytics-detail">Active Agents: <span class="font-semibold">${activeAgents}</span></p>
+                <p class="analytics-detail">Avg. Response Time: <span class="font-semibold">${averageResponseTime.toFixed(2)}ms</span></p>
+                <p class="analytics-detail">Error Rate: <span class="${errorRate > 0.05 ? 'analytics-trend-negative' : 'analytics-trend-positive'} font-semibold">${(errorRate * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">Most Active Agent: <span class="font-semibold">${mostActiveAgent}</span></p>
+                <p class="analytics-detail text-xs text-gray-400 mt-2">Last Updated: ${timestamp}</p>
+            `;
+        }
+
+        function renderCustomersAnalytics(data) {
+            const totalCustomers = data.total_customers || 0;
+            const newCustomersLast30Days = data.new_customers_last_30_days || 0;
+            const customerChurnRate = data.customer_churn_rate || 0;
+            const averageInteractionsPerCustomer = data.average_interactions_per_customer || 0;
+            const customerGrowthTrend = data.customer_growth_trend || 'N/A';
+
+            return `
+                <p class="analytics-description">Insights into your customer base.</p>
+                <p class="analytics-metric">${totalCustomers.toLocaleString()} <span class="text-lg font-medium text-gray-500">customers</span></p>
+                <p class="analytics-detail">New Last 30 Days: <span class="analytics-trend-positive font-semibold">${newCustomersLast30Days}</span></p>
+                <p class="analytics-detail">Churn Rate: <span class="${customerChurnRate > 0.05 ? 'analytics-trend-negative' : 'analytics-trend-positive'} font-semibold">${(customerChurnRate * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">Avg. Interactions: <span class="font-semibold">${averageInteractionsPerCustomer.toFixed(1)}</span></p>
+                <p class="analytics-detail">Growth Trend: <span class="${customerGrowthTrend === 'up' ? 'analytics-trend-positive' : 'analytics-trend-negative'} font-semibold">${customerGrowthTrend}</span></p>
+            `;
+        }
+
+        function renderCampaignsAnalytics(data) {
+            const activeCampaigns = data.active_campaigns || 0;
+            const totalCampaigns = data.total_campaigns || 0;
+            const completedCampaigns = data.completed_campaigns || 0;
+            const averageRoi = data.average_roi || 0;
+            const conversionRate = data.conversion_rate || 0;
+            const campaignEngagementRate = data.campaign_engagement_rate || 0;
+            const topPerformingCampaignName = data.top_performing_campaigns?.[0]?.name || 'N/A';
+
+            return `
+                <p class="analytics-description">Performance metrics for marketing campaigns.</p>
+                <p class="analytics-metric">${activeCampaigns} / ${totalCampaigns} <span class="text-lg font-medium text-gray-500">active</span></p>
+                <p class="analytics-detail">Completed: <span class="font-semibold">${completedCampaigns}</span></p>
+                <p class="analytics-detail">Avg. ROI: <span class="${averageRoi >= 0 ? 'analytics-trend-positive' : 'analytics-trend-negative'} font-semibold">${(averageRoi * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">Conversion Rate: <span class="analytics-trend-positive font-semibold">${(conversionRate * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">Engagement Rate: <span class="font-semibold">${(campaignEngagementRate * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">Top Campaign: <span class="font-semibold">${topPerformingCampaignName}</span></p>
+            `;
+        }
+
+        function renderKnowledgeBaseAnalytics(data) {
+            const totalArticles = data.total_articles || 0;
+            const mostViewedArticle = data.most_viewed_article || 'N/A';
+            const searchHitRate = data.search_hit_rate || 0;
+            const topSearchQuery = data.top_search_queries?.[0] || 'N/A';
+
+            return `
+                <p class="analytics-description">Effectiveness of your knowledge base.</p>
+                <p class="analytics-metric">${totalArticles} <span class="text-lg font-medium text-gray-500">articles</span></p>
+                <p class="analytics-detail">Most Viewed: <span class="font-semibold">${mostViewedArticle}</span></p>
+                <p class="analytics-detail">Search Hit Rate: <span class="analytics-trend-positive font-semibold">${(searchHitRate * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">Top Query: <span class="font-semibold">${topSearchQuery}</span></p>
+            `;
+        }
+
+        function renderApiStatusAnalytics(data) {
+            const serviceUptime = data.service_uptime || 0;
+            const averageLatencyMs = data.latency_metrics?.average_latency_ms || 0;
+            const maxLatencyMs = data.latency_metrics?.max_latency_ms || 0;
+            const error5xxRate = data.error_rates_by_endpoint?.['5xx_errors'] || 0;
+            const totalRequestsTraffic = data.traffic_volume?.total_requests || 0;
+
+            return `
+                <p class="analytics-description">Real-time API performance and availability.</p>
+                <p class="analytics-metric">${(serviceUptime * 100).toFixed(2)}% <span class="text-lg font-medium text-gray-500">Uptime</span></p>
+                <p class="analytics-detail">Avg. Latency: <span class="font-semibold">${averageLatencyMs.toFixed(2)}ms</span></p>
+                <p class="analytics-detail">Max Latency: <span class="font-semibold">${maxLatencyMs.toFixed(2)}ms</span></p>
+                <p class="analytics-detail">Error Rate (5xx): <span class="${error5xxRate > 0 ? 'analytics-trend-negative' : 'analytics-trend-positive'} font-semibold">${(error5xxRate * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">Traffic Volume: <span class="font-semibold">${totalRequestsTraffic} requests</span></p>
+            `;
+        }
+
+        function renderCSAgentAnalytics(data) {
+            const totalChats = data.total_chats || 0;
+            const averageResolutionTimeMinutes = data.average_resolution_time_minutes || 0;
+            const customerSatisfactionScore = data.customer_satisfaction_score || 0;
+            const escalationRate = data.escalation_rate || 0;
+
+            return `
+                <p class="analytics-description">Customer Support Agent performance.</p>
+                <p class="analytics-metric">${totalChats} <span class="text-lg font-medium text-gray-500">chats</span></p>
+                <p class="analytics-detail">Avg. Resolution Time: <span class="font-semibold">${averageResolutionTimeMinutes.toFixed(1)} min</span></p>
+                <p class="analytics-detail">CSAT Score: <span class="${customerSatisfactionScore >= 4 ? 'analytics-trend-positive' : 'analytics-trend-negative'} font-semibold">${customerSatisfactionScore.toFixed(1)}/5</span></p>
+                <p class="analytics-detail">Escalation Rate: <span class="${escalationRate > 0.1 ? 'analytics-trend-negative' : 'analytics-trend-positive'} font-semibold">${(escalationRate * 100).toFixed(2)}%</span></p>
+            `;
+        }
+
+        function renderMarketingAgentAnalytics(data) {
+            const campaignsCreated = data.campaigns_created || 0;
+            const contentGenerated = data.content_generated || 0;
+            const leadConversionRate = data.lead_conversion_rate || 0;
+            const marketingRoiTrends = data.marketing_roi_trends || 'N/A';
+
+            return `
+                <p class="analytics-description">Marketing Agent activity and impact.</p>
+                <p class="analytics-metric">${campaignsCreated} <span class="text-lg font-medium text-gray-500">campaigns</span></p>
+                <p class="analytics-detail">Content Generated: <span class="font-semibold">${contentGenerated} units</span></p>
+                <p class="analytics-detail">Lead Conv. Rate: <span class="analytics-trend-positive font-semibold">${(leadConversionRate * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">ROI Trend: <span class="${marketingRoiTrends === 'up' ? 'analytics-trend-positive' : 'analytics-trend-negative'} font-semibold">${marketingRoiTrends}</span></p>
+            `;
+        }
+
+        function renderPVAAgentAnalytics(data) {
+            const totalInteractions = data.total_interactions || 0;
+            const averageSessionDurationSeconds = data.average_session_duration_seconds || 0;
+            const taskCompletionRate = data.task_completion_rate || 0;
+            const smartDeviceCommandsIssued = data.smart_device_commands_issued || 0;
+
+            return `
+                <p class="analytics-description">Personal Virtual Assistant usage metrics.</p>
+                <p class="analytics-metric">${totalInteractions} <span class="text-lg font-medium text-gray-500">interactions</span></p>
+                <p class="analytics-detail">Avg. Session Duration: <span class="font-semibold">${averageSessionDurationSeconds.toFixed(1)}s</span></p>
+                <p class="analytics-detail">Task Completion Rate: <span class="analytics-trend-positive font-semibold">${(taskCompletionRate * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">Device Commands: <span class="font-semibold">${smartDeviceCommandsIssued}</span></p>
+            `;
+        }
+
+        function renderTradingBotAnalytics(data) {
+            const tradesExecuted = data.trades_executed || 0;
+            const portfolioValue = data.portfolio_value || 0;
+            const profitLoss = data.profit_loss || 0;
+            const winRate = data.win_rate || 0;
+            const riskExposure = data.risk_exposure || 'N/A';
+
+            return `
+                <p class="analytics-description">Financial Trading Bot performance summary.</p>
+                <p class="analytics-metric">${tradesExecuted} <span class="text-lg font-medium text-gray-500">trades</span></p>
+                <p class="analytics-detail">Portfolio Value: <span class="font-semibold">$${portfolioValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></p>
+                <p class="analytics-detail">Profit/Loss: <span class="${profitLoss >= 0 ? 'analytics-trend-positive' : 'analytics-trend-negative'} font-semibold">$${profitLoss.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></p>
+                <p class="analytics-detail">Win Rate: <span class="analytics-trend-positive font-semibold">${(winRate * 100).toFixed(2)}%</span></p>
+                <p class="analytics-detail">Risk Exposure: <span class="${riskExposure === 'high' ? 'analytics-trend-negative' : 'analytics-trend-positive'} font-semibold">${riskExposure}</span></p>
+            `;
+        }
+
+
+        // Tab Switching Logic
+        document.getElementById('agent-tabs').addEventListener('click', function(event) {
+            const target = event.target;
+            if (target.classList.contains('tab-button')) {
+                // Remove active class from all buttons and hide all content
+                document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+                // Add active class to clicked button and show corresponding content
+                target.classList.add('active');
+                const tabId = target.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+
+                // Trigger preload for specific tabs
+                if (tabId === 'customer-support-agent') {
+                    // Preload customer context for default ID 123
+                    const customerIdInput = document.getElementById('context-customer-id');
+                    if (customerIdInput) {
+                        customerIdInput.value = '123'; // Set default value
+                        getCustomerContext(); // Trigger context fetch
                     }
-                });
-
-                // Show error in recent activity
-                document.getElementById('recent-activity').innerHTML = `
-                    <div class="error">
-                        <h4>❌ Error Loading Analytics</h4>
-                        <p><strong>Error:</strong> ${error.message}</p>
-                        <p>Please check the API connection and try again.</p>
-                        <button class="btn" onclick="refreshAnalytics()" style="margin-top: 10px;">Retry</button>
-                    </div>
-                `;
-
-                // Show error in system health
-                document.getElementById('system-health').innerHTML = `
-                    <div class="error">
-                        <p>Unable to load system health data.</p>
-                    </div>
-                `;
+                } else if (tabId === 'admin-panel') {
+                    // Trigger all analytics fetches for the dashboard view
+                    getAnalyticsDashboard();
+                    getTotalCustomersAnalytics();
+                    getActiveCampaignsAnalytics();
+                    getKnowledgeBaseAnalytics();
+                    getApiStatusAnalytics();
+                    getCustomerSupportAgentAnalytics();
+                    getMarketingAgentAnalytics();
+                    getPVAAgentAnalytics();
+                    getTradingBotAnalytics();
+                }
             }
+        });
+
+
+        async function getSystemStatus() {
+            await fetchData(
+                ENDPOINTS.systemStatus, 'GET', null, false,
+                {
+                    loadingElementId: 'system-status-loading',
+                    resultElementId: 'system-status-result',
+                    errorElementId: 'system-status-error'
+                }
+            );
         }
 
-        // Keep all existing functions for other agents exactly the same
-        // (Customer Support, Marketing, PVA, Trading functions remain unchanged)
-        
-        // Customer Support Functions
-        async function sendCustomerSupportMessage() {
-            const customerId = document.getElementById('customer-id').value;
-            const message = document.getElementById('customer-message').value;
-            const loadingDiv = document.getElementById('support-loading');
-            const responseDiv = document.getElementById('support-response');
+        async function getDetailedSystemMetrics() {
+            await fetchData(
+                ENDPOINTS.detailedSystemMetrics, 'GET', null, true,
+                {
+                    loadingElementId: 'detailed-metrics-loading',
+                    resultElementId: 'detailed-metrics-result',
+                    errorElementId: 'detailed-metrics-error'
+                }
+            );
+        }
 
-            if (!message.trim()) {
-                alert('Please enter a message');
+        async function runSystemDiagnostics() {
+            await fetchData(
+                ENDPOINTS.systemDiagnostics, 'GET', null, true,
+                {
+                    loadingElementId: 'diagnostics-loading',
+                    resultElementId: 'diagnostics-result',
+                    errorElementId: 'diagnostics-error'
+                }
+            );
+        }
+
+        async function getHealthCheck() {
+            await fetchData(
+                ENDPOINTS.healthCheck, 'GET', null, false,
+                {
+                    loadingElementId: 'health-check-loading',
+                    resultElementId: 'health-check-result',
+                    errorElementId: 'health-check-error'
+                }
+            );
+        }
+
+        async function listAvailableAgents() {
+            await fetchData(
+                ENDPOINTS.listAgents, 'GET', null, false,
+                {
+                    loadingElementId: 'list-agents-loading',
+                    resultElementId: 'list-agents-result',
+                    errorElementId: 'list-agents-error'
+                }
+            );
+        }
+
+        // --- Customer Support Functions ---
+        async function customerSupportChat() {
+            const customerId = document.getElementById('cs-customer-id').value;
+            const message = document.getElementById('cs-message').value;
+
+            if (!customerId || !message) {
+                displayError('cs-chat-error', 'Customer ID and message are required.');
                 return;
             }
 
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
+            const body = {
+                customer_id: customerId,
+                message: message,
+            };
 
-            try {
-                const data = await apiCall('/api/v1/customer-support/chat', 'POST', {
-                    customer_id: parseInt(customerId),
-                    message: message,
-                    session_id: `session-${customerId}-${Date.now()}`
-                });
-                
-                responseDiv.innerHTML = `
-                    <div class="response-content">
-                        <p><strong>Response:</strong> ${data.response}</p>
-                        <p><strong>Confidence:</strong> ${data.confidence.toFixed(2)}</p>
-                        <p><strong>Sentiment:</strong> ${data.sentiment}</p>
-                        <p><strong>Category:</strong> ${data.category}</p>
-                        <p><strong>Escalated:</strong> ${data.escalate ? 'Yes' : 'No'}</p>
-                        <p><strong>Ticket ID:</strong> ${data.ticket_id || 'N/A'}</p>
-                        <p><strong>Suggested Actions:</strong> ${data.suggested_actions.join(', ')}</p>
-                        <p><strong>Knowledge Sources:</strong> ${data.knowledge_sources.join(', ')}</p>
-                    </div>
-                `;
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-            }
-        }
-
-        async function loadCustomerContext() {
-            const customerId = document.getElementById('customer-id').value;
-            const loadingDiv = document.getElementById('support-loading');
-            const responseDiv = document.getElementById('support-response');
-
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const data = await apiCall(`/api/v1/customer-support/customer/${customerId}`);
-
-                responseDiv.innerHTML = `
-                    <div class="response-content">
-                        <h3>Customer Profile: ${data.customer_name}</h3>
-                        <p><strong>Email:</strong> ${data.email}</p>
-                        <p><strong>Company:</strong> ${data.company}</p>
-                        <p><strong>Support Tier:</strong> ${data.support_tier}</p>
-                        <p><strong>Satisfaction Score:</strong> ${data.satisfaction_score.toFixed(1)}/5.0</p>
-                        <p><strong>Open Tickets:</strong> ${data.support_metrics.open_tickets}</p>
-                        <p><strong>Risk Level:</strong> ${data.risk_assessment.risk_level}</p>
-                    </div>
-                `;
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-            }
-        }
-
-        // Marketing Functions
-        async function createCampaign() {
-            const campaignType = document.getElementById('campaign-type').value;
-            const targetAudience = document.getElementById('target-audience').value;
-            const budget = document.getElementById('budget').value;
-            const duration = document.getElementById('duration').value;
-            
-            const loadingDiv = document.getElementById('marketing-loading');
-            const responseDiv = document.getElementById('marketing-response');
-
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const requestData = {
-                    campaign_type: campaignType,
-                    target_audience: targetAudience,
-                    budget: parseFloat(budget),
-                    duration_days: parseInt(duration),
-                    goals: ["increase_awareness", "generate_leads"],
-                    channels: ["social_media", "email"],
-                    content_requirements: ["social_media", "email"],
-                    industry: "technology",
-                    brand_voice: "professional"
-                };
-
-                const data = await apiCall('/api/v1/marketing/campaign/create', 'POST', requestData);
-                
-                responseDiv.innerHTML = `
-                    <div class="response-content">
-                        <h3>✅ Campaign Created Successfully!</h3>
-                        <p><strong>Campaign ID:</strong> ${data.campaign_id}</p>
-                        <p><strong>Type:</strong> ${campaignType}</p>
-                        <p><strong>Budget:</strong> $${parseFloat(budget).toLocaleString()}</p>
-                        <p><strong>Duration:</strong> ${duration} days</p>
-                    </div>
-                `;
-
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-            }
-        }
-
-        async function generateContent() {
-            const loadingDiv = document.getElementById('marketing-loading');
-            const responseDiv = document.getElementById('marketing-response');
-
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const requestData = {
-                    platform: "social_media",
-                    content_type: "social_media", 
-                    campaign_theme: "product_launch",
-                    target_audience: document.getElementById('target-audience').value || "general audience",
-                    key_messages: ["innovative", "engaging", "valuable"],
-                    brand_voice: "professional"
-                };
-
-                const data = await apiCall('/api/v1/marketing/content/generate', 'POST', requestData);
-                
-                if (data.success) {
-                    responseDiv.innerHTML = `
-                        <div class="response-content">
-                            <h3>✨ Content Generated Successfully!</h3>
-                            <h4>${data.content.title}</h4>
-                            <p style="white-space: pre-line;">${data.content.content}</p>
-                            <p><strong>Call to Action:</strong> ${data.content.call_to_action}</p>
-                            <p><strong>Hashtags:</strong> ${data.content.hashtags.join(' ')}</p>
-                        </div>
-                    `;
-                } else {
-                    throw new Error(data.message || 'Content generation failed');
+            await fetchData(
+                ENDPOINTS.customerSupportChat, 'POST', body, false,
+                {
+                    loadingElementId: 'cs-chat-loading',
+                    resultElementId: 'cs-chat-result',
+                    errorElementId: 'cs-chat-error'
                 }
-
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-            }
+            );
         }
 
-        // PVA Functions
-        async function sendPVAMessage() {
-            const userId = document.getElementById('pva-user-id').value;
-            const message = document.getElementById('pva-message').value;
-            const loadingDiv = document.getElementById('pva-loading');
-            const responseDiv = document.getElementById('pva-response');
+        async function getCustomerContext() {
+            const customerId = document.getElementById('context-customer-id').value;
 
-            if (!message.trim()) {
-                alert('Please enter a message');
+            if (!customerId) {
+                displayError('cs-context-error', 'Customer ID is required.');
                 return;
             }
 
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const data = await apiCall('/api/v1/pva/chat', 'POST', { user_id: userId, message: message });
-                responseDiv.innerHTML = `
-                    <div class="response-content">
-                        <p><strong>Response:</strong> ${data.response}</p>
-                        <p><strong>Intent:</strong> ${data.intent}</p>
-                        <p><strong>Confidence:</strong> ${data.confidence.toFixed(2)}</p>
-                        <p><strong>Actions Taken:</strong> ${data.actions_taken.join(', ')}</p>
-                    </div>
-                `;
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-            }
-        }
-
-        async function getPVAReminders() {
-            const userId = document.getElementById('pva-user-id').value;
-            const loadingDiv = document.getElementById('pva-loading');
-            const responseDiv = document.getElementById('pva-response');
-
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const data = await apiCall(`/api/v1/pva/user/${userId}/reminders`);
-                if (data.reminders && data.reminders.length > 0) {
-                    responseDiv.innerHTML = `
-                        <div class="response-content">
-                            <h3>Your Reminders (${data.total}):</h3>
-                            <ul>
-                                ${data.reminders.map(r => `<li>${r.title} at ${new Date(r.target_time).toLocaleString()}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                } else {
-                    responseDiv.innerHTML = `<div class="response-content"><p>No reminders found.</p></div>`;
+            // Always call with auth true as per latest setup (even if initially public)
+            await fetchData(
+                `${ENDPOINTS.customerContext}/${customerId}`, 'GET', null, true,
+                {
+                    loadingElementId: 'cs-context-loading',
+                    resultElementId: 'cs-context-result',
+                    errorElementId: 'cs-context-error'
                 }
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-            }
+            );
         }
 
-        async function getPVADevices() {
-            const userId = document.getElementById('pva-user-id').value;
-            const loadingDiv = document.getElementById('pva-loading');
-            const responseDiv = document.getElementById('pva-response');
-
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const data = await apiCall(`/api/v1/pva/user/${userId}/devices`);
-                if (data.devices && data.devices.length > 0) {
-                    responseDiv.innerHTML = `
-                        <div class="response-content">
-                            <h3>Your Smart Devices (${data.total}):</h3>
-                            <ul>
-                                ${data.devices.map(d => `<li>${d.name} (${d.type}) - Status: ${d.status}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                } else {
-                    responseDiv.innerHTML = `<div class="response-content"><p>No smart devices found.</p></div>`;
-                }
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-            }
-        }
-
-        // Trading Functions
-        async function analyzeTrading() {
-            const symbol = document.getElementById('trading-symbol').value;
-            const strategyType = document.getElementById('trading-strategy').value;
-            const loadingDiv = document.getElementById('trading-loading');
-            const responseDiv = document.getElementById('trading-response');
-
-            if (!symbol.trim()) {
-                alert('Please enter a stock symbol');
+        async function debugCustomerContext() {
+            const customerId = document.getElementById('debug-customer-id').value;
+            if (!customerId) {
+                displayError('cs-debug-error', 'Customer ID is required.');
                 return;
             }
+            await fetchData(
+                `${ENDPOINTS.debugCustomerContext}/${customerId}`, 'GET', null, true,
+                {
+                    loadingElementId: 'cs-debug-loading',
+                    resultElementId: 'cs-debug-result',
+                    errorElementId: 'cs-debug-error'
+                }
+            );
+        }
 
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const data = await apiCall('/api/v1/trading/analyze', 'POST', { symbol: symbol, strategy_type: strategyType });
-                responseDiv.innerHTML = `
-                    <div class="response-content">
-                        <p><strong>Action:</strong> ${data.action.toUpperCase()}</p>
-                        <p><strong>Symbol:</strong> ${data.symbol}</p>
-                        <p><strong>Quantity:</strong> ${data.quantity}</p>
-                        <p><strong>Confidence:</strong> ${data.confidence.toFixed(2)}</p>
-                        <p><strong>Reasoning:</strong> ${data.reasoning}</p>
-                    </div>
-                `;
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
+        async function getCustomerInsights() {
+            const customerId = document.getElementById('insights-customer-id').value;
+            if (!customerId) {
+                displayError('cs-insights-error', 'Customer ID is required.');
+                return;
             }
+            await fetchData(
+                `${ENDPOINTS.customerInsights}/${customerId}/insights`, 'GET', null, true,
+                {
+                    loadingElementId: 'cs-insights-loading',
+                    resultElementId: 'cs-insights-result',
+                    errorElementId: 'cs-insights-error'
+                }
+            );
+        }
+
+        // --- Financial Trading Bot Functions ---
+        async function analyzeAndDecide() {
+            const symbol = document.getElementById('trading-analyze-symbol').value;
+            const strategyType = document.getElementById('trading-strategy-type').value;
+            if (!symbol || !strategyType) {
+                displayError('ft-analyze-error', 'Stock symbol and strategy type are required.');
+                return;
+            }
+            const body = { symbol: symbol, strategy_type: strategyType };
+            await fetchData(
+                ENDPOINTS.analyzeAndDecide, 'POST', body, true, // Auth Required
+                {
+                    loadingElementId: 'ft-analyze-loading',
+                    resultElementId: 'ft-analyze-result',
+                    errorElementId: 'ft-analyze-error'
+                }
+            );
         }
 
         async function runTradingCycle() {
-            const loadingDiv = document.getElementById('trading-loading');
-            const responseDiv = document.getElementById('trading-response');
-
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const data = await apiCall('/api/v1/trading/cycle', 'POST', {});
-                responseDiv.innerHTML = `
-                    <div class="response-content">
-                        <h3>Trading Cycle Report</h3>
-                        <p><strong>Symbols Analyzed:</strong> ${data.symbols_analyzed}</p>
-                        <p><strong>Trades Executed:</strong> ${data.trades_executed}</p>
-                        <p><strong>Average Confidence:</strong> ${data.average_confidence.toFixed(2)}</p>
-                    </div>
-                `;
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
+            const symbolsInput = document.getElementById('trading-cycle-symbols').value;
+            let symbols = [];
+            if (symbolsInput) {
+                symbols = symbolsInput.split(',').map(s => s.trim()).filter(s => s);
             }
+            const body = symbols.length > 0 ? { symbols: symbols } : {};
+            await fetchData(
+                ENDPOINTS.runTradingCycle, 'POST', body, true, // Auth Required
+                {
+                    loadingElementId: 'ft-cycle-loading',
+                    resultElementId: 'ft-cycle-result',
+                    errorElementId: 'ft-cycle-error'
+                }
+            );
         }
 
         async function getPortfolioStatus() {
-            const loadingDiv = document.getElementById('trading-loading');
-            const responseDiv = document.getElementById('trading-response');
-
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const data = await apiCall('/api/v1/trading/portfolio');
-                
-                const portfolioValue = parseFloat(data.total_value) || 0;
-                const cashBalance = parseFloat(data.cash_balance) || 0;
-                
-                responseDiv.innerHTML = `
-                    <div class="response-content">
-                        <h3>📊 Portfolio Status</h3>
-                        <p><strong>Total Value:</strong> $${portfolioValue.toLocaleString()}</p>
-                        <p><strong>Cash Balance:</strong> $${cashBalance.toLocaleString()}</p>
-                        <p><strong>Holdings:</strong> ${Object.keys(data.holdings || {}).length} positions</p>
-                    </div>
-                `;
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-            }
+            await fetchData(
+                ENDPOINTS.portfolioStatus, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'ft-portfolio-loading',
+                    resultElementId: 'ft-portfolio-result',
+                    errorElementId: 'ft-portfolio-error'
+                }
+            );
         }
 
         async function getMarketData() {
-            const symbol = document.getElementById('trading-symbol').value;
-            const loadingDiv = document.getElementById('trading-loading');
-            const responseDiv = document.getElementById('trading-response');
+            const symbol = document.getElementById('market-symbol').value;
+            if (!symbol) {
+                displayError('ft-market-error', 'Stock symbol is required.');
+                return;
+            }
+            await fetchData(
+                `${ENDPOINTS.marketData}/${symbol}`, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'ft-market-loading',
+                    resultElementId: 'ft-market-result',
+                    errorElementId: 'ft-market-error'
+                }
+            );
+        }
 
-            if (!symbol.trim()) {
-                alert('Please enter a stock symbol');
+        async function getPerformanceReport() {
+            await fetchData(
+                ENDPOINTS.performanceReport, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'ft-performance-loading',
+                    resultElementId: 'ft-performance-result',
+                    errorElementId: 'ft-performance-error'
+                }
+            );
+        }
+
+        async function getCurrentHoldings() {
+            await fetchData(
+                ENDPOINTS.currentHoldings, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'ft-holdings-loading',
+                    resultElementId: 'ft-holdings-result',
+                    errorElementId: 'ft-holdings-error'
+                }
+            );
+        }
+
+        async function getRiskAssessment() {
+            await fetchData(
+                ENDPOINTS.riskAssessment, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'ft-risk-loading',
+                    resultElementId: 'ft-risk-result',
+                    errorElementId: 'ft-risk-error'
+                }
+            );
+        }
+
+        async function getWatchlist() {
+            await fetchData(
+                ENDPOINTS.watchlist, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'ft-watchlist-loading',
+                    resultElementId: 'ft-watchlist-result',
+                    errorElementId: 'ft-watchlist-error'
+                }
+            );
+        }
+
+        // --- Marketing Agent Functions ---
+        async function createMarketingCampaign() {
+            const campaignType = document.getElementById('campaign-type').value;
+            const targetAudience = document.getElementById('target-audience').value;
+            const budget = parseFloat(document.getElementById('budget').value);
+            const durationDays = parseInt(document.getElementById('duration-days').value);
+
+            if (!campaignType || !targetAudience || isNaN(budget) || isNaN(durationDays)) {
+                displayError('mk-campaign-error', 'All campaign fields are required and must be valid numbers for budget/duration.');
                 return;
             }
 
-            loadingDiv.style.display = 'block';
-            responseDiv.innerHTML = '';
-
-            try {
-                const data = await apiCall(`/api/v1/trading/market/${symbol}`);
-                responseDiv.innerHTML = `
-                    <div class="response-content">
-                        <h3>Market Data for ${data.symbol}</h3>
-                        <p><strong>Current Price:</strong> $${data.current_price.toFixed(2)}</p>
-                        <p><strong>24h Change:</strong> ${data.change_24h.toFixed(2)}%</p>
-                        <p><strong>Volume:</strong> ${data.volume.toLocaleString()}</p>
-                        <p><strong>Market Sentiment:</strong> ${data.market_sentiment}</p>
-                    </div>
-                `;
-            } catch (error) {
-                responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-            }
-        }
-
-        // API Call Function
-        async function apiCall(endpoint, method = 'GET', data = null) {
-            const options = {
-                method: method,
-                headers: {
-                    'Authorization': `Bearer ${API_TOKEN}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'ngrok-skip-browser-warning': 'true'
-                }
+            const body = {
+                campaign_type: campaignType,
+                target_audience: targetAudience,
+                budget: budget,
+                duration_days: durationDays,
+                goals: ["increase_awareness", "generate_leads"],
+                channels: ["social_media", "email"],
+                content_requirements: ["social_media", "email"],
+                industry: "general",
+                brand_voice: "professional",
+                geographic_focus: "global",
+                competitor_analysis: false,
+                ab_testing: true,
+                performance_tracking: true,
             };
 
-            if (data) {
-                options.body = JSON.stringify(data);
-            }
-
-            try {
-                const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-                const fullUrl = `${API_BASE}${cleanEndpoint}`;
-                
-                console.log(`Making ${method} request to: ${fullUrl}`);
-                const response = await fetch(fullUrl, options);
-                
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    console.error('Non-JSON response:', text);
-                    throw new Error(`Server returned ${contentType}. Expected JSON.`);
+            await fetchData(
+                ENDPOINTS.createMarketingCampaign, 'POST', body, true, // Auth Required
+                {
+                    loadingElementId: 'mk-campaign-loading',
+                    resultElementId: 'mk-campaign-result',
+                    errorElementId: 'mk-campaign-error'
                 }
-
-                const result = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(result.detail || result.message || `HTTP Error! Status: ${response.status}`);
-                }
-
-                return result;
-
-            } catch (error) {
-                console.error('API Call Error:', error);
-                throw error;
-            }
+            );
         }
 
-        // Auto-load analytics when page loads
+        async function generateMarketingContent() {
+            const platform = document.getElementById('content-platform').value;
+            const contentType = document.getElementById('content-type').value;
+            const campaignTheme = document.getElementById('content-campaign-theme').value;
+
+            if (!platform || !contentType || !campaignTheme) {
+                displayError('mk-content-error', 'Platform, Content Type, and Campaign Theme are required.');
+                return;
+            }
+
+            const body = {
+                platform: platform,
+                content_type: contentType,
+                campaign_theme: campaignTheme,
+                target_audience: "general audience",
+                key_messages: ["engaging", "innovative", "valuable"],
+                brand_voice: "professional",
+                call_to_action: "Learn more",
+                include_hashtags: true
+            };
+            await fetchData(
+                ENDPOINTS.generateMarketingContent, 'POST', body, true, // Auth Required
+                {
+                    loadingElementId: 'mk-content-loading',
+                    resultElementId: 'mk-content-result',
+                    errorElementId: 'mk-content-error'
+                }
+            );
+        }
+
+        async function analyzeCampaignPerformance() {
+            const campaignId = document.getElementById('campaign-performance-id').value;
+            if (!campaignId) {
+                displayError('mk-performance-error', 'Campaign ID is required.');
+                return;
+            }
+            await fetchData(
+                `${ENDPOINTS.analyzeCampaignPerformance}/${campaignId}/performance`, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'mk-performance-loading',
+                    resultElementId: 'mk-performance-result',
+                    errorElementId: 'mk-performance-error'
+                }
+            );
+        }
+
+        async function getCampaignList() {
+            const statusFilter = document.getElementById('campaign-list-status').value;
+            const limit = document.getElementById('campaign-list-limit').value;
+            let url = ENDPOINTS.campaignList;
+            const params = new URLSearchParams();
+            if (statusFilter) {
+                params.append('status', statusFilter);
+            }
+            if (limit) {
+                params.append('limit', limit);
+            }
+            if ([...params].length > 0) {
+                url += `?${params.toString()}`;
+            }
+            await fetchData(
+                url, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'mk-list-loading',
+                    resultElementId: 'mk-list-result',
+                    errorElementId: 'mk-list-error'
+                }
+            );
+        }
+
+        async function getContentTemplates() {
+            const contentType = document.getElementById('template-content-type').value;
+            let url = ENDPOINTS.contentTemplates;
+            if (contentType) {
+                url += `?content_type=${encodeURIComponent(contentType)}`;
+            }
+            await fetchData(
+                url, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'mk-templates-loading',
+                    resultElementId: 'mk-templates-result',
+                    errorElementId: 'mk-templates-error'
+                }
+            );
+        }
+
+        async function getMarketingTrends() {
+            await fetchData(
+                ENDPOINTS.marketingTrends, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'mk-trends-loading',
+                    resultElementId: 'mk-trends-result',
+                    errorElementId: 'mk-trends-error'
+                }
+            );
+        }
+
+        async function getAudienceSegments() {
+            await fetchData(
+                ENDPOINTS.audienceSegments, 'GET', null, true, // Auth Required
+                {
+                    loadingElementId: 'mk-segments-loading',
+                    resultElementId: 'mk-segments-result',
+                    errorElementId: 'mk-segments-error'
+                }
+            );
+        }
+
+        async function pauseCampaign() {
+            const campaignId = document.getElementById('campaign-action-id').value;
+            if (!campaignId) {
+                displayError('mk-action-error', 'Campaign ID is required to pause.');
+                return;
+            }
+            await fetchData(
+                `${ENDPOINTS.pauseCampaign}/${campaignId}/pause`, 'POST', {}, true, // Auth Required
+                {
+                    loadingElementId: 'mk-pause-loading',
+                    resultElementId: 'mk-action-result',
+                    errorElementId: 'mk-action-error'
+                }
+            );
+        }
+
+        async function resumeCampaign() {
+            const campaignId = document.getElementById('campaign-action-id').value;
+            if (!campaignId) {
+                displayError('mk-action-error', 'Campaign ID is required to resume.');
+                return;
+            }
+            await fetchData(
+                `${ENDPOINTS.resumeCampaign}/${campaignId}/resume`, 'POST', {}, true,
+                {
+                    loadingElementId: 'mk-resume-loading',
+                    resultElementId: 'mk-action-result',
+                    errorElementId: 'mk-action-error'
+                }
+            );
+        };
+
+        // --- Personal Virtual Assistant (PVA) Functions ---
+        async function pvaChat() {
+            const userId = document.getElementById('pva-user-id').value;
+            const message = document.getElementById('pva-message').value;
+
+            if (!userId || !message) {
+                displayError('pva-chat-error', 'User ID and message are required.');
+                return;
+            }
+
+            const body = {
+                user_id: userId,
+                message: message,
+            };
+
+            await fetchData(
+                ENDPOINTS.pvaChat, 'POST', body, true,
+                {
+                    loadingElementId: 'pva-chat-loading',
+                    resultElementId: 'pva-chat-result',
+                    errorElementId: 'pva-chat-error'
+                }
+            );
+        }
+
+        async function getUserReminders() {
+            const userId = document.getElementById('reminders-user-id').value;
+
+            if (!userId) {
+                displayError('pva-reminders-error', 'User ID is required.');
+                return;
+            }
+
+            await fetchData(
+                `${ENDPOINTS.userReminders}/${userId}/reminders`, 'GET', null, true,
+                {
+                    loadingElementId: 'pva-reminders-loading',
+                    resultElementId: 'pva-reminders-result',
+                    errorElementId: 'pva-reminders-error'
+                }
+            );
+        }
+
+        async function getUserDevices() {
+            const userId = document.getElementById('devices-user-id').value;
+            if (!userId) {
+                displayError('pva-devices-error', 'User ID is required.');
+                return;
+            }
+            await fetchData(
+                `${ENDPOINTS.userDevices}/${userId}/devices`, 'GET', null, true,
+                {
+                    loadingElementId: 'pva-devices-loading',
+                    resultElementId: 'pva-devices-result',
+                    errorElementId: 'pva-devices-error'
+                }
+            );
+        }
+
+        async function getUserContext() {
+            const userId = document.getElementById('context-user-id').value;
+            if (!userId) {
+                displayError('pva-context-error', 'User ID is required.');
+                return;
+            }
+            await fetchData(
+                `${ENDPOINTS.userContext}/${userId}/context`, 'GET', null, true,
+                {
+                    loadingElementId: 'pva-context-loading',
+                    resultElementId: 'pva-context-result',
+                    errorElementId: 'pva-context-error'
+                }
+            );
+        }
+
+        async function controlSmartDevice() {
+            const userId = document.getElementById('control-user-id').value;
+            const deviceId = document.getElementById('device-id').value;
+            const action = document.getElementById('device-action').value;
+            const parametersText = document.getElementById('device-parameters').value;
+
+            if (!userId || !deviceId || !action) {
+                displayError('pva-control-error', 'User ID, Device ID, and Action are required.');
+                return;
+            }
+
+            let parameters = {};
+            if (parametersText) {
+                try {
+                    parameters = JSON.parse(parametersText);
+                } catch (e) {
+                    // Handle JSON parsing error by notifying the user and stopping further execution
+                    displayError('pva-control-error', 'Invalid JSON for parameters: ' + e.message);
+                    return;
+                }
+            }
+
+            const body = { user_id: userId, device_id: deviceId, action: action, parameters: parameters };
+            await fetchData(
+                `${ENDPOINTS.controlSmartDevice}/${userId}/device/${deviceId}/control`, 'POST', body, true,
+                {
+                    loadingElementId: 'pva-control-loading',
+                    resultElementId: 'pva-control-result',
+                    errorElementId: 'pva-control-error'
+                }
+            );
+        }
+
+        async function createReminder() {
+            const userId = document.getElementById('reminder-user-id').value;
+            const title = document.getElementById('reminder-title').value;
+            const description = document.getElementById('reminder-description').value;
+            const targetTime = document.getElementById('reminder-time').value;
+
+            if (!userId || !title || !targetTime) {
+                displayError('pva-create-reminder-error', 'User ID, Title, and Target Time are required.');
+                return;
+            }
+
+            if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(targetTime)) {
+                displayError('pva-create-reminder-error', 'Target Time must be in YYYY-MM-DDTHH:MM:SS format.');
+                return;
+            }
+
+            const body = {
+                title: title,
+                description: description,
+                target_time: targetTime,
+                priority: "medium",
+                category: "general",
+                recurring: false
+            };
+
+            await fetchData(
+                `${ENDPOINTS.createReminder}/${userId}/reminder`, 'POST', body, true,
+                {
+                    loadingElementId: 'pva-create-reminder-loading',
+                    resultElementId: 'pva-create-reminder-result',
+                    errorElementId: 'pva-create-reminder-error'
+                }
+            );
+        }
+
+        async function getUserCalendar() {
+            const userId = document.getElementById('calendar-user-id').value;
+            const days = document.getElementById('calendar-days').value;
+            if (!userId || isNaN(days)) {
+                displayError('pva-calendar-error', 'User ID and number of days are required.');
+                return;
+            }
+            await fetchData(
+                `${ENDPOINTS.userCalendar}/${userId}/calendar?days=${days}`, 'GET', null, true,
+                {
+                    loadingElementId: 'pva-calendar-loading',
+                    resultElementId: 'pva-calendar-result',
+                    errorElementId: 'pva-calendar-error'
+                }
+            );
+        }
+
+        async function getWeatherInfo() {
+            const userId = document.getElementById('weather-user-id').value;
+            const location = document.getElementById('weather-location').value;
+            if (!userId) {
+                displayError('pva-weather-error', 'User ID is required.');
+                return;
+            }
+            let url = `${ENDPOINTS.weatherInfo}/${userId}/weather`;
+            if (location) {
+                url += `?location=${encodeURIComponent(location)}`;
+            }
+            await fetchData(
+                url, 'GET', null, true,
+                {
+                    loadingElementId: 'pva-weather-loading',
+                    resultElementId: 'pva-weather-result',
+                    errorElementId: 'pva-weather-error'
+                }
+            );
+        }
+
+        async function getUserTasks() {
+            const userId = document.getElementById('tasks-user-id').value;
+            const status = document.getElementById('tasks-status').value;
+            if (!userId) {
+                displayError('pva-tasks-error', 'User ID is required.');
+                return;
+            }
+            let url = `${ENDPOINTS.userTasks}/${userId}/tasks`;
+            if (status) {
+                url += `?status=${status}`;
+            }
+            await fetchData(
+                url, 'GET', null, true,
+                {
+                    loadingElementId: 'pva-tasks-loading',
+                    resultElementId: 'pva-tasks-result',
+                    errorElementId: 'pva-tasks-error'
+                }
+            );
+        }
+
+        async function getPVACapabilities() {
+            await fetchData(
+                ENDPOINTS.pvaCapabilities, 'GET', null, true,
+                {
+                    loadingElementId: 'pva-capabilities-loading',
+                    resultElementId: 'pva-capabilities-result',
+                    errorElementId: 'pva-capabilities-error'
+                }
+            );
+        }
+
+        // --- Admin Panel Functions (Analytics Dashboard) ---
+        async function getAnalyticsDashboard() {
+            await fetchData(
+                ENDPOINTS.analyticsDashboard, 'GET', null, true,
+                {
+                    loadingElementId: 'analytics-dashboard-loading',
+                    resultElementId: 'overall-analytics-content',
+                    errorElementId: 'analytics-dashboard-error',
+                    renderAsAnalytics: true
+                }
+            );
+        }
+
+        async function getTotalCustomersAnalytics() {
+            await fetchData(
+                ENDPOINTS.analyticsCustomers, 'GET', null, true,
+                {
+                    loadingElementId: 'analytics-customers-loading',
+                    resultElementId: 'customers-analytics-content',
+                    errorElementId: 'analytics-customers-error',
+                    renderAsAnalytics: true
+                }
+            );
+        }
+
+        async function getActiveCampaignsAnalytics() {
+            await fetchData(
+                ENDPOINTS.analyticsCampaigns, 'GET', null, true,
+                {
+                    loadingElementId: 'analytics-campaigns-loading',
+                    resultElementId: 'campaigns-analytics-content',
+                    errorElementId: 'analytics-campaigns-error',
+                    renderAsAnalytics: true
+                }
+            );
+        }
+
+        async function getKnowledgeBaseAnalytics() {
+            await fetchData(
+                ENDPOINTS.analyticsKnowledgeBase, 'GET', null, true,
+                {
+                    loadingElementId: 'analytics-kb-loading',
+                    resultElementId: 'knowledge-base-analytics-content',
+                    errorElementId: 'analytics-kb-error',
+                    renderAsAnalytics: true
+                }
+            );
+        }
+
+        async function getApiStatusAnalytics() {
+            await fetchData(
+                ENDPOINTS.analyticsApiStatus, 'GET', null, true,
+                {
+                    loadingElementId: 'analytics-api-loading',
+                    resultElementId: 'api-status-analytics-content',
+                    errorElementId: 'analytics-api-error',
+                    renderAsAnalytics: true
+                }
+            );
+        }
+
+        async function getCustomerSupportAgentAnalytics() {
+            await fetchData(
+                ENDPOINTS.analyticsCSAgent, 'GET', null, true,
+                {
+                    loadingElementId: 'analytics-cs-agent-loading',
+                    resultElementId: 'cs-agent-analytics-content',
+                    errorElementId: 'analytics-cs-agent-error',
+                    renderAsAnalytics: true
+                }
+            );
+        }
+
+        async function getMarketingAgentAnalytics() {
+            await fetchData(
+                ENDPOINTS.analyticsMarketingAgent, 'GET', null, true,
+                {
+                    loadingElementId: 'analytics-marketing-agent-loading',
+                    resultElementId: 'marketing-agent-analytics-content',
+                    errorElementId: 'analytics-marketing-agent-error',
+                    renderAsAnalytics: true
+                }
+            );
+        }
+
+        async function getPVAAgentAnalytics() {
+            await fetchData(
+                ENDPOINTS.analyticsPVAAgent, 'GET', null, true,
+                {
+                    loadingElementId: 'analytics-pva-agent-loading',
+                    resultElementId: 'pva-agent-analytics-content',
+                    errorElementId: 'analytics-pva-agent-error',
+                    renderAsAnalytics: true
+                }
+            );
+        }
+
+        async function getTradingBotAnalytics() {
+            await fetchData(
+                ENDPOINTS.analyticsTradingBot, 'GET', null, true,
+                {
+                    loadingElementId: 'analytics-trading-bot-loading',
+                    resultElementId: 'trading-bot-analytics-content',
+                    errorElementId: 'analytics-trading-bot-error',
+                    renderAsAnalytics: true
+                }
+            );
+        }
+
+
+        // Initialize with default tab
         document.addEventListener('DOMContentLoaded', function() {
-            // If analytics tab is active, load data
-            if (document.getElementById('analytics').classList.contains('active')) {
-                refreshAnalytics();
+            // Simulate click on the first tab to set it active and trigger any preloads
+            document.querySelector('.tab-button[data-tab="system-agent"]').click();
+
+            // Explicitly preload customer context if the customer support tab is active on load
+            // This handles cases where the page might reload on the customer support tab.
+            if (document.getElementById('customer-support-agent').classList.contains('active')) {
+                const customerIdInput = document.getElementById('context-customer-id');
+                if (customerIdInput) {
+                    customerIdInput.value = '123'; // Set default value
+                    getCustomerContext(); // Trigger context fetch
+                }
             }
         });
     </script>

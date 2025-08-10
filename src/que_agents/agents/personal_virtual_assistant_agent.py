@@ -954,7 +954,7 @@ Provide a helpful and friendly response that addresses the user's request."""
             )
         else:
             response = """🏠 Smart Home Help:
-            
+
 I can help you control your smart devices! Here's what I can do:
 • Turn devices on/off
 • Adjust brightness for lights

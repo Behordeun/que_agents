@@ -7,10 +7,10 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
 
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.utils.agent_manager import AgentManager
+from src.que_agents.utils.auth import get_verified_token
 
 
 class MarketingAgentService:
@@ -711,12 +711,6 @@ def get_marketing_service(
 ) -> MarketingAgentService:
     """Get marketing agent service instance"""
     return MarketingAgentService(agent_manager)
-
-
-# Dependency for token verification (to be imported from main auth module)
-def get_verified_token(credentials: HTTPAuthorizationCredentials = Depends()) -> str:
-    """Verify API token - placeholder for actual implementation"""
-    return credentials.credentials
 
 
 # Marketing Agent endpoints

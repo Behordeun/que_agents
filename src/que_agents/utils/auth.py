@@ -3,7 +3,7 @@
 # @Date: 2025-08-10
 # @Description: Authentication utilities for the API
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.que_agents.error_trace.errorlogger import system_logger
@@ -33,6 +33,21 @@ def verify_token(
             detail=INVALID_AUTH_TOKEN_MSG,
         )
     return credentials.credentials
+
+
+def get_verified_token(authorization: str = Header(None)) -> str:
+    """Verify API token - placeholder for actual implementation"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    try:
+        scheme, credentials = authorization.split(" ")
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+        return credentials
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
 
 
 def get_config_manager() -> ConfigManager:
