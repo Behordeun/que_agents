@@ -1054,8 +1054,6 @@ async def get_customer_insights(customer_id: int, token: str = Depends(verify_to
 
 
 # Add other missing endpoints that the HTML is trying to call
-
-
 @app.get("/api/v1/pva/user/{user_id}/reminders")
 async def get_user_reminders(user_id: str, token: str = Depends(verify_token)):
     """Get user reminders from PVA"""
