@@ -467,12 +467,22 @@ Provide risk assessment including:
                         realized_pnl=0.0,
                     )
 
-            cash_balance = float(portfolio.cash_balance) if portfolio.cash_balance is not None else 10000.0
+            cash_balance = (
+                float(portfolio.cash_balance)
+                if portfolio.cash_balance is not None
+                else 10000.0
+            )
             holdings = portfolio.holdings or {}
-            total_value, holdings_value = self._calculate_holdings_value(holdings, cash_balance)
+            total_value, holdings_value = self._calculate_holdings_value(
+                holdings, cash_balance
+            )
 
             initial_value = 10000.0  # Starting portfolio value
-            total_return = (total_value - initial_value) / initial_value if initial_value > 0 else 0.0
+            total_return = (
+                (total_value - initial_value) / initial_value
+                if initial_value > 0
+                else 0.0
+            )
 
             try:
                 portfolio.total_value = total_value
@@ -484,14 +494,17 @@ Provide risk assessment including:
                 }
                 session.commit()
             except Exception as update_error:
-                system_logger.warning(f"Failed to update portfolio in database: {update_error}")
+                system_logger.warning(
+                    f"Failed to update portfolio in database: {update_error}"
+                )
                 session.rollback()
 
             return PortfolioStatus(
                 total_value=total_value,
                 cash_balance=cash_balance,
                 holdings=holdings,
-                performance_metrics=portfolio.performance_metrics or {"total_return": total_return},
+                performance_metrics=portfolio.performance_metrics
+                or {"total_return": total_return},
                 unrealized_pnl=holdings_value,
                 realized_pnl=0.0,
             )
@@ -543,7 +556,9 @@ Provide risk assessment including:
                     holdings_value += symbol_value
                     total_value += symbol_value
                 except Exception as market_error:
-                    system_logger.warning(f"Could not get market data for {symbol}: {market_error}")
+                    system_logger.warning(
+                        f"Could not get market data for {symbol}: {market_error}"
+                    )
                     fallback_prices = {"AAPL": 150.0, "GOOGL": 2800.0, "MSFT": 300.0}
                     fallback_price = fallback_prices.get(symbol, 100.0)
                     symbol_value = quantity * fallback_price

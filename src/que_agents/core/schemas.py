@@ -61,10 +61,38 @@ class ContentGenerationRequest(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    status: str
+    """Health check response schema"""
+
+    status: str  # "healthy", "degraded", "unhealthy", "error"
     timestamp: str
-    agents: Dict[str, str]
-    system_metrics: Optional[Dict[str, Any]] = None
+    version: str
+    agents: Dict[str, bool]  # Agent name to status mapping
+    system: Dict[str, Any]  # System metrics
+    health_score: float  # Overall health score 0.0 - 1.0
+
+    class Config:
+        json_encoders = {
+            # Custom encoders if needed
+        }
+        schema_extra = {
+            "example": {
+                "status": "healthy",
+                "timestamp": "2025-08-10T12:00:00.000Z",
+                "version": "2.0.0",
+                "agents": {
+                    "customer_support": True,
+                    "marketing": True,
+                    "personal_virtual_assistant": True,
+                    "financial_trading_bot": True,
+                },
+                "system": {
+                    "uptime": "system_active",
+                    "memory_usage": "normal",
+                    "response_time": "optimal",
+                },
+                "health_score": 0.95,
+            }
+        }
 
 
 # Personal Virtual Assistant models

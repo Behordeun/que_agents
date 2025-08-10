@@ -924,11 +924,10 @@ Provide detailed audience insights and targeting recommendations."""
                 request.target_audience, industry
             )
 
-            # Fix: Handle campaign_type properly - check if it's enum or string
-            if hasattr(request.campaign_type, "value"):
-                campaign_type_value = request.campaign_type.value
-            else:
-                campaign_type_value = str(request.campaign_type)
+            # FIXED: Safe campaign type handling
+            campaign_type_value = self._get_safe_campaign_type_string(
+                request.campaign_type
+            )
 
             market_data = self.get_enhanced_market_data(request.campaign_type, industry)
             enhanced_context = self.get_enhanced_campaign_context(request, industry)
@@ -942,7 +941,7 @@ Provide detailed audience insights and targeting recommendations."""
     Duration: {request.duration_days} days
     Goals: {', '.join(request.goals)}
     Channels: {', '.join(request.channels)}
-    Content Requirements: {', '.join([ct.value if hasattr(ct, 'value') else str(ct) for ct in request.content_requirements])}
+    Content Requirements: {', '.join([self._get_safe_content_type_string(ct) for ct in request.content_requirements])}
     Priority Metrics: {self.campaign_strategies.get(campaign_type_value, {}).get('primary_metrics', [])}
     """
 
@@ -961,7 +960,7 @@ Provide detailed audience insights and targeting recommendations."""
             )
 
             system_logger.info(
-                CAMPAIGN_STRATEGY_CREATION_STATUS,
+                "Campaign strategy created successfully",
                 additional_info={
                     "campaign_type": campaign_type_value,
                     "target_audience": request.target_audience,
@@ -969,12 +968,11 @@ Provide detailed audience insights and targeting recommendations."""
             )
             return strategy
         except Exception as e:
-            # Handle campaign_type safely for error logging
-            campaign_type_value = (
-                request.campaign_type.value
-                if hasattr(request.campaign_type, "value")
-                else str(request.campaign_type)
+            # FIXED: Safe error logging
+            campaign_type_value = self._get_safe_campaign_type_string(
+                request.campaign_type
             )
+
             system_logger.error(
                 error=f"Error creating enhanced campaign strategy: {e}",
                 exc_info=True,
@@ -987,13 +985,33 @@ Provide detailed audience insights and targeting recommendations."""
             # Fallback to basic strategy
             return self._create_basic_strategy(request)
 
+    def _get_safe_content_type_string(self, content_type) -> str:
+        """Safely extract content type string from enum or string"""
+        if content_type is None:
+            return "social_media"
+
+        # If it's already a string
+        if isinstance(content_type, str):
+            return content_type
+
+        # If it has a .value attribute (enum)
+        if hasattr(content_type, "value"):
+            return str(content_type.value)
+
+        # Fallback to string conversion
+        return str(content_type)
+
     def _create_basic_strategy(self, request: CampaignRequest) -> str:
-        """Fallback basic strategy creation"""
-        # Safe campaign type access
-        campaign_type_str = (
-            request.campaign_type.value
-            if hasattr(request.campaign_type, "value")
-            else str(request.campaign_type)
+        """Fallback basic strategy creation with safe type handling"""
+        # FIXED: Safe campaign type access
+        campaign_type_str = self._get_safe_campaign_type_string(request.campaign_type)
+
+        # FIXED: Safe content requirements processing
+        content_requirements_str = ", ".join(
+            [
+                self._get_safe_content_type_string(ct)
+                for ct in request.content_requirements
+            ]
         )
 
         return f"""
@@ -1006,7 +1024,7 @@ Provide detailed audience insights and targeting recommendations."""
 
     RECOMMENDED APPROACH:
     1. Multi-channel approach across {', '.join(request.channels)}
-    2. Content mix including {', '.join([ct.value if hasattr(ct, 'value') else str(ct) for ct in request.content_requirements])}
+    2. Content mix including {content_requirements_str}
     3. Focus on {', '.join(request.goals)}
     4. Budget allocation: Equal distribution across channels
     5. Weekly performance reviews and optimizations
@@ -1277,17 +1295,24 @@ Provide detailed audience insights and targeting recommendations."""
         return min(1.0, score)
 
     def _generate_fallback_content(
-        self, platform: str, content_type: ContentType, campaign_theme: str
+        self, platform: str, content_type, campaign_theme: str
     ) -> ContentPiece:
-        """Generate fallback content when enhanced generation fails"""
+        """Generate fallback content when enhanced generation fails with safe type handling"""
+        from src.que_agents.core.schemas import ContentType
 
-        # Handle content_type safely
-        _content_type_str = (
-            content_type.value if hasattr(content_type, "value") else str(content_type)
-        )
+        # FIXED: Safe content type handling
+        if isinstance(content_type, str):
+            try:
+                content_type_enum = ContentType(content_type)
+            except ValueError:
+                content_type_enum = ContentType.SOCIAL_MEDIA
+        elif hasattr(content_type, "value"):
+            content_type_enum = content_type
+        else:
+            content_type_enum = ContentType.SOCIAL_MEDIA
 
         return ContentPiece(
-            content_type=content_type,
+            content_type=content_type_enum,
             platform=platform,
             title=f"Exciting {campaign_theme} Update",
             content=f"""
@@ -1299,7 +1324,7 @@ Provide detailed audience insights and targeting recommendations."""
 
     #Innovation #Technology #Growth
     """,
-            call_to_action=DEFAULT_CALL_TO_ACTION,
+            call_to_action="Learn more",
             hashtags=["#Innovation", "#Technology", "#Growth"],
             estimated_reach=1000,
             variations=[],
@@ -1314,11 +1339,10 @@ Provide detailed audience insights and targeting recommendations."""
     ) -> CampaignPlan:
         """Create a comprehensive campaign plan with enhanced features"""
         try:
-            # Handle campaign_type safely - check if it's already a string or enum
-            if hasattr(request.campaign_type, "value"):
-                campaign_type_str = request.campaign_type.value
-            else:
-                campaign_type_str = str(request.campaign_type)
+            # FIXED: Safe campaign_type handling
+            campaign_type_str = self._get_safe_campaign_type_string(
+                request.campaign_type
+            )
 
             system_logger.info(
                 "Creating enhanced campaign plan",
@@ -1386,12 +1410,11 @@ Provide detailed audience insights and targeting recommendations."""
             return campaign_plan
 
         except Exception as e:
-            # Handle campaign_type safely for error logging
-            campaign_type_str = (
-                request.campaign_type.value
-                if hasattr(request.campaign_type, "value")
-                else str(request.campaign_type)
+            # FIXED: Safe error logging with campaign type
+            campaign_type_str = self._get_safe_campaign_type_string(
+                request.campaign_type
             )
+
             system_logger.error(
                 error=f"Error creating enhanced campaign plan: {e}",
                 exc_info=True,
@@ -1401,6 +1424,22 @@ Provide detailed audience insights and targeting recommendations."""
                 },
             )
             return self._create_basic_campaign_plan(request)
+
+    def _get_safe_campaign_type_string(self, campaign_type) -> str:
+        """Safely extract campaign type string from enum or string"""
+        if campaign_type is None:
+            return "unknown"
+
+        # If it's already a string
+        if isinstance(campaign_type, str):
+            return campaign_type
+
+        # If it has a .value attribute (enum)
+        if hasattr(campaign_type, "value"):
+            return str(campaign_type.value)
+
+        # Fallback to string conversion
+        return str(campaign_type)
 
     def _extract_industry_string(self, industry, default=None):
         """Helper to extract industry string from list or str, with optional default."""
@@ -1547,10 +1586,8 @@ Provide detailed audience insights and targeting recommendations."""
 
         return budget_allocation
 
-    def _define_success_metrics(
-        self, campaign_type: CampaignType, goals: List[str]
-    ) -> List[str]:
-        """Define comprehensive success metrics"""
+    def _define_success_metrics(self, campaign_type, goals: List[str]) -> List[str]:
+        """Define comprehensive success metrics with safe type handling"""
         # Base metrics
         base_metrics = [
             "Reach and impressions",
@@ -1561,8 +1598,11 @@ Provide detailed audience insights and targeting recommendations."""
             "Return on ad spend",
         ]
 
+        # FIXED: Safe campaign type handling
+        campaign_type_str = self._get_safe_campaign_type_string(campaign_type)
+
         # Campaign-specific metrics
-        campaign_specific = self.campaign_strategies.get(campaign_type.value, {}).get(
+        campaign_specific = self.campaign_strategies.get(campaign_type_str, {}).get(
             "primary_metrics", []
         )
 
@@ -1620,8 +1660,20 @@ Provide detailed audience insights and targeting recommendations."""
     def _assess_campaign_risks(
         self, request: CampaignRequest, industry: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Assess campaign risks and mitigation strategies"""
-        risks = self._identify_risk_factors(request.campaign_type, industry)
+        """Assess campaign risks and mitigation strategies with safe type handling"""
+        # FIXED: Safe campaign type handling
+        campaign_type_str = self._get_safe_campaign_type_string(request.campaign_type)
+
+        # Convert string back to enum for _identify_risk_factors if needed
+        try:
+            from src.que_agents.core.schemas import CampaignType
+
+            campaign_type_enum = CampaignType(campaign_type_str)
+        except (ValueError, AttributeError):
+            # Use the original if conversion fails
+            campaign_type_enum = request.campaign_type
+
+        risks = self._identify_risk_factors(campaign_type_enum, industry)
 
         risk_assessment = {
             "high_risk": [],
@@ -1649,6 +1701,19 @@ Provide detailed audience insights and targeting recommendations."""
                 ] = "Regular monitoring and quick response protocols"
 
         return risk_assessment
+
+    def _safe_enum_to_string(self, enum_or_string, fallback: str = "unknown") -> str:
+        """Universal safe conversion from enum or string to string"""
+        if enum_or_string is None:
+            return fallback
+
+        if isinstance(enum_or_string, str):
+            return enum_or_string
+
+        if hasattr(enum_or_string, "value"):
+            return str(enum_or_string.value)
+
+        return str(enum_or_string)
 
     def _create_optimization_roadmap(self, duration_days: int) -> List[Dict[str, Any]]:
         """Create optimization roadmap with milestones"""

@@ -14,9 +14,15 @@ class LogLevel(Enum):
 
 
 class Logger:
-    def __init__(self, log_dir: str = "logs", preserve_logs: bool = True) -> None:
+    def __init__(
+        self,
+        log_dir: str = "logs",
+        preserve_logs: bool = True,
+        debug_mode: bool = False,
+    ) -> None:
         self.log_dir = Path(log_dir)
         self.preserve_logs = preserve_logs
+        self.debug_mode = debug_mode  # Control debug output
         self.log_files = {
             LogLevel.INFO: self.log_dir / "info.log",
             LogLevel.WARNING: self.log_dir / "warning.log",
@@ -25,37 +31,47 @@ class Logger:
         self._ensure_log_directory()
         self._log_cache = self._load_existing_log_hashes() if preserve_logs else set()
 
-        # Debug: Print actual paths being used
-        print(f"Logger initialized with directory: {self.log_dir.absolute()}")
-        print("Log files will be created at:")
-        for level, path in self.log_files.items():
-            print(f"  {level.value}: {path.absolute()}")
+        # Only print debug info if debug mode is enabled
+        if self.debug_mode:
+            print(f"Logger initialized with directory: {self.log_dir.absolute()}")
+            print("Log files will be created at:")
+            for level, path in self.log_files.items():
+                print(f"  {level.value}: {path.absolute()}")
 
     def _ensure_log_directory(self) -> None:
         """Create the log directory if it doesn't exist."""
         try:
             self.log_dir.mkdir(parents=True, exist_ok=True)
-            print(f"Log directory created/verified: {self.log_dir.absolute()}")
 
-            # Test write permissions
+            if self.debug_mode:
+                print(f"Log directory created/verified: {self.log_dir.absolute()}")
+
+            # Test write permissions silently
             test_file = self.log_dir / "test_write.tmp"
             try:
                 with open(test_file, "w") as f:
                     f.write("test")
                 test_file.unlink()  # Remove test file
-                print("Write permissions verified")
+
+                if self.debug_mode:
+                    print("Write permissions verified")
             except Exception as perm_error:
+                # Always show permission errors as they're critical
                 print(
                     f"Permission error in log directory: {perm_error}", file=sys.stderr
                 )
 
         except Exception as e:
+            # Always show critical directory creation errors
             print(
                 f"Failed to create log directory {self.log_dir}: {e}", file=sys.stderr
             )
+
             # Fallback to current directory
             self.log_dir = Path.cwd() / "logs"
-            print(f"Falling back to: {self.log_dir.absolute()}")
+            if self.debug_mode:
+                print(f"Falling back to: {self.log_dir.absolute()}")
+
             try:
                 self.log_dir.mkdir(parents=True, exist_ok=True)
             except Exception as fallback_error:
@@ -68,20 +84,26 @@ class Logger:
         """Load hashes of existing log entries to prevent duplicates."""
         cache = set()
         for log_file in self.log_files.values():
-            if log_file.exists():
-                try:
-                    with open(log_file, "r", encoding="utf-8") as f:
-                        content = f.read()
-                        # Split by the separator and hash each complete log entry
-                        entries = content.split("=" * 80 + "\n")
-                        for entry in entries:
-                            if entry.strip():
-                                cache.add(hash("=" * 80 + "\n" + entry.strip() + "\n"))
-                    print(f"Loaded {len(cache)} existing log entries from {log_file}")
-                except Exception as e:
-                    print(f"Warning: Could not read existing log file {log_file}: {e}")
-                    # If we can't read the file, just continue
+            self._process_log_file_for_hashes(log_file, cache)
         return cache
+
+    def _process_log_file_for_hashes(self, log_file: Path, cache: set) -> None:
+        """Helper to process a single log file and add entry hashes to cache."""
+        if not log_file.exists():
+            return
+        try:
+            with open(log_file, "r", encoding="utf-8") as f:
+                content = f.read()
+                # Split by the separator and hash each complete log entry
+                entries = content.split("=" * 80 + "\n")
+                for entry in entries:
+                    if entry.strip():
+                        cache.add(hash("=" * 80 + "\n" + entry.strip() + "\n"))
+            if self.debug_mode:
+                print(f"Loaded {len(cache)} existing log entries from {log_file}")
+        except Exception as e:
+            if self.debug_mode:
+                print(f"Warning: Could not read existing log file {log_file}: {e}")
 
     def _add_session_separator(self) -> None:
         """Add a session separator to indicate app restart."""
@@ -96,7 +118,9 @@ class Logger:
                     with open(log_file, "a", encoding="utf-8") as f:
                         f.write(separator)
                         f.flush()  # Ensure immediate write
-                    print(f"Session separator added to {log_file}")
+
+                    if self.debug_mode:
+                        print(f"Session separator added to {log_file}")
                 except Exception as e:
                     print(
                         f"Failed to add session separator to {log_file}: {e}",
@@ -190,7 +214,8 @@ class Logger:
         """Write a message to the log file with duplicate prevention."""
         log_hash = hash(message)
         if log_hash in self._log_cache:
-            print(f"Duplicate log message detected for {level.value}, skipping")
+            if self.debug_mode:
+                print(f"Duplicate log message detected for {level.value}, skipping")
             return
 
         try:
@@ -198,20 +223,24 @@ class Logger:
             self._ensure_log_directory()
 
             log_file = self.log_files[level]
-            print(f"Attempting to write to: {log_file.absolute()}")
+            if self.debug_mode:
+                print(f"Attempting to write to: {log_file.absolute()}")
 
             with open(log_file, "a", encoding="utf-8") as f:
                 f.write(message)
                 f.flush()  # Force immediate write to disk
 
             self._log_cache.add(log_hash)
-            print(f"Successfully wrote {len(message)} characters to {log_file}")
+
+            if self.debug_mode:
+                print(f"Successfully wrote {len(message)} characters to {log_file}")
 
         except Exception as e:
+            # Always show write errors as they're important
             error_msg = f"Failed to write log to {self.log_files[level]}: {e}"
             print(error_msg, file=sys.stderr)
 
-            # Try to write to stderr as fallback
+            # Try to write to stderr as fallback (only show first 200 chars to avoid spam)
             print(f"FALLBACK LOG [{level.value}]: {message[:200]}...", file=sys.stderr)
 
     def info(
@@ -260,9 +289,11 @@ class Logger:
             force: Force clearing even if preserve_logs is True
         """
         if self.preserve_logs and not force:
-            print(
-                "Log clearing is disabled. Use force=True to override.", file=sys.stderr
-            )
+            if self.debug_mode:
+                print(
+                    "Log clearing is disabled. Use force=True to override.",
+                    file=sys.stderr,
+                )
             return
 
         try:
@@ -271,10 +302,12 @@ class Logger:
                 try:
                     with open(log_file, "w", encoding="utf-8") as f:
                         f.write("")
-                    print(f"Cleared log file: {log_file}")
+                    if self.debug_mode:
+                        print(f"Cleared log file: {log_file}")
                     self._log_cache.clear()
                 except FileNotFoundError:
-                    print(f"Log file not found (already cleared): {log_file}")
+                    if self.debug_mode:
+                        print(f"Log file not found (already cleared): {log_file}")
         except Exception as e:
             print(f"Failed to clear logs: {str(e)}", file=sys.stderr)
 
@@ -292,14 +325,26 @@ class Logger:
 
                 try:
                     log_file.rename(backup_path)
-                    print(f"Rotated log file: {log_file} -> {backup_path}")
+                    if self.debug_mode:
+                        print(f"Rotated log file: {log_file} -> {backup_path}")
                     # Clear cache since we rotated the file
                     self._log_cache.clear()
                 except Exception as e:
                     print(f"Failed to rotate log {log_file}: {e}", file=sys.stderr)
 
+    def enable_debug(self) -> None:
+        """Enable debug output for troubleshooting."""
+        self.debug_mode = True
+
+    def disable_debug(self) -> None:
+        """Disable debug output for clean console."""
+        self.debug_mode = False
+
     def test_logging(self) -> None:
         """Test method to verify logging is working"""
+        original_debug = self.debug_mode
+        self.debug_mode = True  # Temporarily enable debug for testing
+
         print("Testing logging functionality...")
 
         self.info("This is a test info message", {"test": True})
@@ -314,15 +359,20 @@ class Logger:
             else:
                 print(f"❌ {level.value} log file NOT found: {log_file}")
 
+        self.debug_mode = original_debug  # Restore original debug setting
 
-# Initialize the logger with log preservation enabled
-system_logger = Logger(preserve_logs=True)
 
-# Add session separator to indicate new app session
+# Initialize the logger with log preservation enabled and debug disabled by default
+system_logger = Logger(preserve_logs=True, debug_mode=False)
+
+# Add session separator to indicate new app session (silently)
 system_logger._add_session_separator()
 
 # Test the logger if run directly
 if __name__ == "__main__":
+    # Enable debug mode for direct testing
+    system_logger.enable_debug()
+
     print("Testing the logger...")
     system_logger.test_logging()
 
@@ -338,3 +388,6 @@ if __name__ == "__main__":
         print("Logger test completed. Check the logs directory for output files.")
     except Exception as e:
         print(f"Logger test failed: {e}")
+
+    # Disable debug mode after testing
+    system_logger.disable_debug()

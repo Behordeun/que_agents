@@ -104,6 +104,7 @@ def test_api_structure():
 
         # Check routes
         from fastapi.routing import APIRoute
+
         routes = [route.path for route in app.routes if isinstance(route, APIRoute)]
         expected_routes = [
             "/health",
