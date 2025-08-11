@@ -1,0 +1,2 @@
+Customer ID,Feedback Date,Rating,Category,Subcategory,Feedback Text,Resolution Status,Agent ID,Response Time (hours),Follow Up Required,Sentiment,Priority,Product Version,Channel,Customer Tier,Escalated,Resolution Date,Satisfaction Score,Tags,Internal Notes
+123,2025-08-11,2,Technical Issues,General,My internet is not working.,In Progress,ai_agent_v2,0.1,No,Negative,Medium,v2.1,Chat,business,No,,2.0,"technical_issues,ai_response",AI confidence: 0.60
