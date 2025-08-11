@@ -33,9 +33,7 @@ class MarketingAgentService:
         return agent
 
     def create_campaign(
-        self,
-        request: Dict[str, Any],
-        token: str = Depends(get_token_from_state)
+        self, request: Dict[str, Any], token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Create a new marketing campaign with comprehensive error handling"""
         try:
@@ -151,7 +149,7 @@ class MarketingAgentService:
                     "target_audience": request.get("target_audience"),
                     "error_type": type(ve).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             raise HTTPException(
                 status_code=400, detail=f"Invalid input data: {str(ve)}"
@@ -175,9 +173,7 @@ class MarketingAgentService:
             )
 
     def generate_content(
-        self,
-        request: Dict[str, Any],
-        token: str = Depends(get_token_from_state)
+        self, request: Dict[str, Any], token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Generate marketing content with enhanced error handling"""
         try:
@@ -246,7 +242,7 @@ class MarketingAgentService:
                     "context": "Content Generation",
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
 
             return {
@@ -442,9 +438,7 @@ Don't miss this opportunity to transform your {theme} strategy.
         }
 
     def analyze_campaign_performance(
-            self,
-            campaign_id: str,
-            token: str = Depends(get_token_from_state)
+        self, campaign_id: str, token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Analyze campaign performance with fallback data"""
         try:
@@ -471,7 +465,7 @@ Don't miss this opportunity to transform your {theme} strategy.
                     "campaign_id": campaign_id,
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_fallback_performance_data(campaign_id, error=str(e))
 
@@ -541,7 +535,7 @@ Don't miss this opportunity to transform your {theme} strategy.
         self,
         status_filter: Optional[str] = None,
         limit: int = 10,
-        token: str = Depends(get_token_from_state)
+        token: str = Depends(get_token_from_state),
     ) -> Dict[str, Any]:
         """Get list of marketing campaigns"""
         try:
@@ -568,7 +562,7 @@ Don't miss this opportunity to transform your {theme} strategy.
                     "limit": limit,
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_fallback_campaign_list(status_filter, limit)
 
@@ -631,7 +625,7 @@ Don't miss this opportunity to transform your {theme} strategy.
     def get_content_templates(
         self,
         content_type: Optional[str] = None,
-        token: str = Depends(get_token_from_state)
+        token: str = Depends(get_token_from_state),
     ) -> Dict[str, Any]:
         """Get marketing content templates"""
         try:
@@ -652,7 +646,7 @@ Don't miss this opportunity to transform your {theme} strategy.
                     "content_type": content_type,
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_fallback_templates(content_type)
 
@@ -775,6 +769,7 @@ router = APIRouter(tags=["Marketing Agent"])
 def get_marketing_service() -> MarketingAgentService:
     """Get marketing agent service instance"""
     from src.que_agents.api.main import agent_manager
+
     return MarketingAgentService(agent_manager)
 
 
@@ -891,7 +886,7 @@ async def get_marketing_analytics(
                 "context": "Analytics Retrieval",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         return {
             "error": "Analytics temporarily unavailable",
@@ -963,7 +958,7 @@ async def get_audience_segments(
                 "context": "Audience Segments Retrieval",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         return {
             "segments": [],
@@ -1001,7 +996,7 @@ async def pause_campaign(
                 "context": "Campaign Pause",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         raise HTTPException(status_code=500, detail="Failed to pause campaign")
 
@@ -1035,7 +1030,7 @@ async def resume_campaign(
                 "context": "Campaign Resume",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         raise HTTPException(status_code=500, detail="Failed to resume campaign")
 
@@ -1097,7 +1092,7 @@ async def get_marketing_trends(
                 "context": "Trends Retrieval",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         return {
             "trends": [],

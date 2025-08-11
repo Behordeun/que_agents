@@ -63,7 +63,17 @@ class CustomerFeedbackManager:
     RESPONSE_TIME_COL = "Response Time (hours)"
     SATISFACTION_SCORE_COL = "Satisfaction Score"
 
-    def __init__(self, csv_path: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "semi_structured", "customer_feedback.csv")):
+    def __init__(
+        self,
+        csv_path: str = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..",
+            "..",
+            "data",
+            "semi_structured",
+            "customer_feedback.csv",
+        ),
+    ):
         self.csv_path = csv_path
         self.feedback_data: Optional[pd.DataFrame] = None
         self.load_feedback_data()

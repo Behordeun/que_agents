@@ -3,7 +3,7 @@
 # @Date: 2025-08-10
 # @Description: Authentication utilities for the API
 
-from fastapi import Depends, Header, HTTPException, status, Request
+from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.que_agents.error_trace.errorlogger import system_logger

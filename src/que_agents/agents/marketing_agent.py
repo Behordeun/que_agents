@@ -229,7 +229,9 @@ class MarketingAgent:
         """Get enhanced context from knowledge base for campaign planning"""
         try:
             # Search for campaign-specific knowledge
-            campaign_type_str = self._get_safe_campaign_type_string(request.campaign_type)
+            campaign_type_str = self._get_safe_campaign_type_string(
+                request.campaign_type
+            )
             campaign_knowledge = self.get_marketing_knowledge(
                 f"{campaign_type_str} campaign strategy {request.target_audience}"
             )
@@ -274,7 +276,9 @@ class MarketingAgent:
                 error=f"Error getting enhanced campaign context: {e}",
                 exc_info=True,
                 additional_info={
-                    "campaign_type": self._get_safe_campaign_type_string(request.campaign_type),
+                    "campaign_type": self._get_safe_campaign_type_string(
+                        request.campaign_type
+                    ),
                     "target_audience": request.target_audience,
                 },
             )
@@ -1370,7 +1374,9 @@ Provide detailed audience insights and targeting recommendations."""
                 request, content_pieces
             )
 
-            success_metrics = self._define_success_metrics(campaign_type_str, request.goals)
+            success_metrics = self._define_success_metrics(
+                campaign_type_str, request.goals
+            )
 
             industry_str = self._extract_industry_string(industry, default="technology")
             estimated_performance = self._calculate_enhanced_performance(
@@ -1807,7 +1813,8 @@ Provide detailed audience insights and targeting recommendations."""
                 try:
                     # Extract numeric part from campaign ID strings like 'campaign_001'
                     import re
-                    numeric_match = re.search(r'\d+', campaign_id)
+
+                    numeric_match = re.search(r"\d+", campaign_id)
                     if numeric_match:
                         campaign_id_int = int(numeric_match.group())
                     else:
@@ -1816,7 +1823,7 @@ Provide detailed audience insights and targeting recommendations."""
                     return f"Invalid campaign ID format: {campaign_id}. Please use a numeric campaign ID."
             else:
                 campaign_id_int = campaign_id
-            
+
             # Get campaign data
             campaign = (
                 session.query(MarketingCampaign)
@@ -2002,16 +2009,19 @@ Provide detailed audience insights and targeting recommendations."""
                 try:
                     # Extract numeric part from campaign ID strings like 'campaign_001'
                     import re
-                    numeric_match = re.search(r'\d+', campaign_id)
+
+                    numeric_match = re.search(r"\d+", campaign_id)
                     if numeric_match:
                         campaign_id_int = int(numeric_match.group())
                     else:
-                        return {"error": f"No numeric ID found in campaign ID: {campaign_id}"}
+                        return {
+                            "error": f"No numeric ID found in campaign ID: {campaign_id}"
+                        }
                 except (ValueError, AttributeError):
                     return {"error": f"Invalid campaign ID format: {campaign_id}"}
             else:
                 campaign_id_int = campaign_id
-                
+
             # Get comprehensive analysis
             analysis = self.analyze_enhanced_campaign_performance(campaign_id_int)
 
@@ -2194,7 +2204,8 @@ Provide detailed audience insights and targeting recommendations."""
                 try:
                     # Extract numeric part from campaign ID strings like 'campaign_001'
                     import re
-                    numeric_match = re.search(r'\d+', campaign_id)
+
+                    numeric_match = re.search(r"\d+", campaign_id)
                     if numeric_match:
                         campaign_id_int = int(numeric_match.group())
                     else:
@@ -2203,7 +2214,7 @@ Provide detailed audience insights and targeting recommendations."""
                     return {"error": f"Invalid campaign ID format: {campaign_id}"}
             else:
                 campaign_id_int = campaign_id
-                
+
             campaign = (
                 session.query(MarketingCampaign)
                 .filter(MarketingCampaign.id == campaign_id_int)

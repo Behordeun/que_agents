@@ -43,9 +43,7 @@ class PersonalVirtualAssistantService:
         return agent
 
     def handle_chat_request(
-        self,
-        request: PVARequest,
-        token: str = Depends(get_token_from_state)
+        self, request: PVARequest, token: str = Depends(get_token_from_state)
     ) -> PVAResponse:
         """Handle PVA chat request with enhanced error handling"""
         try:
@@ -72,7 +70,7 @@ class PersonalVirtualAssistantService:
                     suggestions=[],
                     timestamp=datetime.now().isoformat(),
                 )
-            
+
             # Handle normal dictionary response
             return PVAResponse(
                 response=result.get("response", "I'm here to help!"),
@@ -259,9 +257,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         return entities
 
     def get_user_reminders(
-        self,
-        user_id: str,
-        token: str = Depends(get_token_from_state)
+        self, user_id: str, token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get user reminders with fallback data"""
         try:
@@ -288,7 +284,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                     "context": "User Reminders Retrieval",
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_fallback_reminders(user_id, str(e))
         return self._generate_fallback_reminders(user_id, UNKNOWN_ERROR)
@@ -374,9 +370,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         return enhanced
 
     def get_user_devices(
-        self,
-        user_id: str,
-        token: str = Depends(get_token_from_state)
+        self, user_id: str, token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get user smart devices with fallback data"""
         try:
@@ -401,7 +395,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                     "context": "User Devices Retrieval",
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_fallback_devices(user_id, str(e))
         return self._generate_fallback_devices(user_id, UNKNOWN_ERROR)
@@ -522,9 +516,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         return enhanced
 
     def get_user_context(
-        self,
-        user_id: str,
-        token: str = Depends(get_token_from_state)
+        self, user_id: str, token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get user context and preferences"""
         try:
@@ -552,7 +544,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                     "context": "User Context Retrieval",
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_fallback_user_context(user_id)
 
@@ -616,7 +608,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         device_id: str,
         action: str,
         parameters: Optional[Dict[str, Any]] = None,
-        token: str = Depends(get_token_from_state)
+        token: str = Depends(get_token_from_state),
     ) -> Dict[str, Any]:
         """Control smart home devices"""
         try:
@@ -647,7 +639,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                     "context": "Device Control",
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_device_control_fallback(device_id, action, str(e))
 
@@ -695,7 +687,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         self,
         user_id: str,
         reminder_data: Dict[str, Any],
-        token: str = Depends(get_token_from_state)
+        token: str = Depends(get_token_from_state),
     ) -> Dict[str, Any]:
         """Create a new reminder"""
         try:
@@ -726,7 +718,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                     "context": "Reminder Creation",
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_reminder_creation_fallback(reminder_data, str(e))
         return self._generate_reminder_creation_fallback(reminder_data, UNKNOWN_ERROR)
@@ -778,6 +770,7 @@ router = APIRouter(tags=["Personal Virtual Assistant"])
 def get_pva_service() -> PersonalVirtualAssistantService:
     """Get PVA service instance"""
     from src.que_agents.api.main import agent_manager
+
     return PersonalVirtualAssistantService(agent_manager)
 
 
@@ -918,7 +911,7 @@ async def get_user_calendar(
                 "context": "User Calendar Retrieval",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         return {
             "events": [],
@@ -989,7 +982,7 @@ async def get_weather_info(
                 "context": "Weather Information Retrieval",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         return {
             "error": "Weather service temporarily unavailable",
@@ -1076,7 +1069,7 @@ async def get_user_tasks(
                 "context": "User Tasks Retrieval",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         return {
             "tasks": [],
@@ -1136,7 +1129,7 @@ async def get_pva_capabilities(
                 "context": "PVA Capabilities Retrieval",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         return {
             "error": "Capabilities service temporarily unavailable",

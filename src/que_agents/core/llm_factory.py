@@ -20,7 +20,14 @@ class LLMFactory:
     @classmethod
     def _load_llm_config(cls):
         if cls._llm_config is None:
-            config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "configs", "llm_config.yaml")
+            config_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "..",
+                "..",
+                "..",
+                "configs",
+                "llm_config.yaml",
+            )
             with open(config_path, "r") as f:
                 cls._llm_config = yaml.safe_load(f)
 
@@ -29,7 +36,9 @@ class LLMFactory:
         cls._load_llm_config()
 
         if cls._llm_config is None:
-            raise RuntimeError("LLM configuration could not be loaded. Please check that 'llm_config.yaml' exists and is valid.")
+            raise RuntimeError(
+                "LLM configuration could not be loaded. Please check that 'llm_config.yaml' exists and is valid."
+            )
 
         provider_name = cls._llm_config["llm"]["default_provider"]
         provider_config = cls._llm_config["llm"]["providers"][provider_name]
@@ -49,10 +58,14 @@ class LLMFactory:
             "request_timeout": timeout,
         }
 
-        return cls._get_llm_by_provider(provider_name, provider_config, common_kwargs, max_tokens)
+        return cls._get_llm_by_provider(
+            provider_name, provider_config, common_kwargs, max_tokens
+        )
 
     @classmethod
-    def _get_llm_by_provider(cls, provider_name, provider_config, common_kwargs, max_tokens):
+    def _get_llm_by_provider(
+        cls, provider_name, provider_config, common_kwargs, max_tokens
+    ):
         if provider_name == "openai":
             return cls._get_openai_llm(provider_config, common_kwargs)
         elif provider_name == "groq":
@@ -71,6 +84,7 @@ class LLMFactory:
         api_key = provider_config.get("api_key") or os.getenv("OPENAI_API_KEY")
         api_base = provider_config.get("api_base") or os.getenv("OPENAI_API_BASE")
         from pydantic import SecretStr
+
         return ChatOpenAI(
             **common_kwargs,
             api_key=SecretStr(api_key) if api_key is not None else None,
@@ -81,6 +95,7 @@ class LLMFactory:
     def _get_groq_llm(provider_config, common_kwargs):
         api_key = provider_config.get("api_key") or os.getenv("GROQ_API_KEY")
         from pydantic import SecretStr
+
         return ChatGroq(
             **common_kwargs,
             api_key=SecretStr(api_key) if api_key is not None else None,
@@ -91,6 +106,7 @@ class LLMFactory:
         api_key = provider_config.get("api_key") or os.getenv("ANTHROPIC_API_KEY")
         api_base = provider_config.get("api_base") or os.getenv("ANTHROPIC_API_BASE")
         from pydantic import SecretStr
+
         if api_key is None:
             raise RuntimeError("Anthropic API key is required but not provided.")
         return ChatAnthropic(
@@ -103,8 +119,9 @@ class LLMFactory:
     def _get_azure_openai_llm(provider_config, common_kwargs):
         api_key = provider_config.get("api_key") or os.getenv("AZURE_OPENAI_API_KEY")
         from pydantic import SecretStr
-        _azure_deployment = provider_config.get("azure_deployment") or os.getenv("AZURE_OPENAI_DEPLOYMENT")
-        _api_version = provider_config.get("api_version") or os.getenv("AZURE_OPENAI_API_VERSION")
+
+        provider_config.get("azure_deployment") or os.getenv("AZURE_OPENAI_DEPLOYMENT")
+        provider_config.get("api_version") or os.getenv("AZURE_OPENAI_API_VERSION")
         return ChatOpenAI(
             **common_kwargs,
             api_key=SecretStr(api_key) if api_key is not None else None,

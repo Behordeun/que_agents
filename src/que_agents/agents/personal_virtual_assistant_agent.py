@@ -250,7 +250,7 @@ Provide a helpful and friendly response that addresses the user's request."""
     def _create_entity_chain(self):
         """Create entity extraction chain"""
         return self.entity_prompt | self.llm | StrOutputParser()
-    
+
     def _create_response_chain_base(self):
         """Create base response generation chain"""
         return self.response_prompt | self.llm | StrOutputParser()
@@ -398,9 +398,13 @@ Provide a helpful and friendly response that addresses the user's request."""
             # First try rule-based recognition for common patterns
             rule_based_intent = self._rule_based_intent_recognition(user_message)
             if rule_based_intent:
-                confidence = self._calculate_intent_confidence(user_message, rule_based_intent)
-                return IntentResult(intent=rule_based_intent, confidence=confidence, entities={})
-            
+                confidence = self._calculate_intent_confidence(
+                    user_message, rule_based_intent
+                )
+                return IntentResult(
+                    intent=rule_based_intent, confidence=confidence, entities={}
+                )
+
             # Fallback to LLM-based recognition
             intent = (
                 self.intent_chain.invoke({"user_message": user_message}).strip().lower()
@@ -479,9 +483,11 @@ Provide a helpful and friendly response that addresses the user's request."""
                 "tomorrow at",
                 "call",
                 "meeting",
-                "appointment"
+                "appointment",
             ]
-            pattern_matches = sum(1 for pattern in reminder_patterns if pattern in message_lower)
+            pattern_matches = sum(
+                1 for pattern in reminder_patterns if pattern in message_lower
+            )
             if pattern_matches > 0:
                 return min(0.9, 0.7 + (pattern_matches * 0.1))
 
@@ -597,7 +603,11 @@ Provide a helpful and friendly response that addresses the user's request."""
         """Handle weather request with knowledge base enhancement"""
         # Safely get location with fallback
         location = entities.get("location")
-        if not location and hasattr(user_context, 'preferences') and isinstance(user_context.preferences, dict):
+        if (
+            not location
+            and hasattr(user_context, "preferences")
+            and isinstance(user_context.preferences, dict)
+        ):
             location = user_context.preferences.get("location", "New York")
         elif not location:
             location = "New York"
@@ -1043,7 +1053,9 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
         rec_type = entities.get("recommendation_type", "general")
         # Safely get location with fallback
         location = "your area"
-        if hasattr(user_context, 'preferences') and isinstance(user_context.preferences, dict):
+        if hasattr(user_context, "preferences") and isinstance(
+            user_context.preferences, dict
+        ):
             location = user_context.preferences.get("location", "your area")
 
         # Get recommendation knowledge from knowledge base
@@ -1137,12 +1149,15 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
                 session_id=session_id,
                 user_context_used=False,
             )
-        
+
         # Ensure user_context has the expected attributes
-        if not hasattr(user_context, 'preferences'):
+        if not hasattr(user_context, "preferences"):
             system_logger.error(
                 f"User context missing expected attributes: {type(user_context)}",
-                additional_info={"user_id": user_id, "context_type": str(type(user_context))},
+                additional_info={
+                    "user_id": user_id,
+                    "context_type": str(type(user_context)),
+                },
             )
             return PVAAgentResponse(
                 message="I'm having trouble accessing your information. Please try again.",
@@ -1164,7 +1179,7 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
             intent_result_tuple = self._handle_intent(
                 intent_result.intent, user_message, entities, user_context
             )
-            
+
             # Ensure we get a tuple back with robust error handling
             if isinstance(intent_result_tuple, tuple) and len(intent_result_tuple) == 2:
                 additional_info, actions_taken = intent_result_tuple
@@ -1174,17 +1189,19 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
                 if not isinstance(actions_taken, list):
                     actions_taken = [str(actions_taken)] if actions_taken else []
             else:
-                system_logger.error(f"_handle_intent returned unexpected type: {type(intent_result_tuple)}, value: {intent_result_tuple}")
+                system_logger.error(
+                    f"_handle_intent returned unexpected type: {type(intent_result_tuple)}, value: {intent_result_tuple}"
+                )
                 additional_info = "Error processing intent"
                 actions_taken = []
 
             # Safely create context string
             try:
-                user_id = getattr(user_context, 'user_id', 'unknown')
-                preferences = getattr(user_context, 'preferences', {})
-                active_reminders = getattr(user_context, 'active_reminders', [])
-                smart_devices = getattr(user_context, 'smart_devices', [])
-                
+                user_id = getattr(user_context, "user_id", "unknown")
+                preferences = getattr(user_context, "preferences", {})
+                active_reminders = getattr(user_context, "active_reminders", [])
+                smart_devices = getattr(user_context, "smart_devices", [])
+
                 context_str = f"""
 User ID: {user_id}
 Preferences: {json.dumps(preferences) if isinstance(preferences, dict) else str(preferences)}
@@ -1201,34 +1218,50 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
                 chain_input = {
                     "user_context": str(context_str),
                     "intent": str(intent_result.intent),
-                    "entities": json.dumps(entities) if isinstance(entities, dict) else str(entities),
-                    "actions_taken": ", ".join(actions_taken) if isinstance(actions_taken, list) else str(actions_taken),
+                    "entities": (
+                        json.dumps(entities)
+                        if isinstance(entities, dict)
+                        else str(entities)
+                    ),
+                    "actions_taken": (
+                        ", ".join(actions_taken)
+                        if isinstance(actions_taken, list)
+                        else str(actions_taken)
+                    ),
                     "additional_info": str(additional_info) if additional_info else "",
-                    "enhanced_context": str(enhanced_context) if enhanced_context else "",
+                    "enhanced_context": (
+                        str(enhanced_context) if enhanced_context else ""
+                    ),
                     "user_message": str(user_message),
                 }
-                
+
                 # Validate all required parameters are present
                 for key, value in chain_input.items():
                     if not isinstance(value, str):
                         chain_input[key] = str(value)
-                
+
                 response = self.response_chain.invoke(
                     chain_input,
-                    config={"configurable": {"session_id": session_id or "default_session"}}
+                    config={
+                        "configurable": {"session_id": session_id or "default_session"}
+                    },
                 )
-                
+
                 # Ensure response is a string
                 if not isinstance(response, str):
                     response = str(response)
-                    
+
             except Exception as chain_error:
                 system_logger.error(f"Response chain error: {chain_error}")
                 # Fallback to simple response based on intent
                 if intent_result.intent == "greeting":
-                    response = "Hello! I'm your personal assistant. How can I help you today?"
+                    response = (
+                        "Hello! I'm your personal assistant. How can I help you today?"
+                    )
                 elif intent_result.intent == "set_reminder":
-                    response = f"I'd be happy to help you set a reminder. {additional_info}"
+                    response = (
+                        f"I'd be happy to help you set a reminder. {additional_info}"
+                    )
                 else:
                     response = f"I understand you're asking about {intent_result.intent}. {additional_info}"
 
@@ -1411,28 +1444,44 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
             )
 
         return suggestions[:3]  # Limit to 3 suggestions
-    
+
     def _rule_based_intent_recognition(self, user_message: str) -> Optional[str]:
         """Rule-based intent recognition for high-confidence patterns"""
         message_lower = user_message.lower()
-        
+
         # High-confidence patterns for set_reminder
-        if any(pattern in message_lower for pattern in [
-            "remind me to", "set a reminder", "reminder for me to", 
-            "call john tomorrow", "tomorrow at", "remind me"
-        ]):
+        if any(
+            pattern in message_lower
+            for pattern in [
+                "remind me to",
+                "set a reminder",
+                "reminder for me to",
+                "call john tomorrow",
+                "tomorrow at",
+                "remind me",
+            ]
+        ):
             return "set_reminder"
-            
+
         # Other high-confidence patterns
-        if any(pattern in message_lower for pattern in ["turn on", "turn off", "dim", "brighten"]):
+        if any(
+            pattern in message_lower
+            for pattern in ["turn on", "turn off", "dim", "brighten"]
+        ):
             return "device_control"
-            
-        if any(pattern in message_lower for pattern in ["weather", "temperature", "forecast"]):
+
+        if any(
+            pattern in message_lower
+            for pattern in ["weather", "temperature", "forecast"]
+        ):
             return "weather"
-            
-        if any(pattern in message_lower for pattern in ["hello", "hi", "hey", "good morning"]):
+
+        if any(
+            pattern in message_lower
+            for pattern in ["hello", "hi", "hey", "good morning"]
+        ):
             return "greeting"
-            
+
         return None
 
     def log_interaction(

@@ -34,7 +34,6 @@ class FinancialTradingBotService:
             )
         return agent
 
-
     def analyze_and_make_decision(
         self,
         request: TradingAnalysisRequest,
@@ -80,7 +79,8 @@ class FinancialTradingBotService:
             )
 
     def run_trading_cycle_operation(
-        self, symbols: Optional[List[str]] = None,
+        self,
+        symbols: Optional[List[str]] = None,
         token: str = Depends(get_token_from_state),
     ) -> Dict[str, Any]:
         """Run trading cycle with specified symbols"""
@@ -146,7 +146,9 @@ class FinancialTradingBotService:
             "fallback_mode": True,
         }
 
-    def get_portfolio_status_data(self, token: str = Depends(get_token_from_state)) -> Dict[str, Any]:
+    def get_portfolio_status_data(
+        self, token: str = Depends(get_token_from_state)
+    ) -> Dict[str, Any]:
         """Get portfolio status with comprehensive error handling"""
         fallback_data = {
             "portfolio_value": 10000.0,
@@ -216,7 +218,7 @@ class FinancialTradingBotService:
                             "context": "Get Portfolio Status",
                             "error_type": type(e).__name__,
                         },
-                        exc_info=True
+                        exc_info=True,
                     )
                     return fallback_data
 
@@ -349,7 +351,7 @@ class FinancialTradingBotService:
                     "symbol": symbol,
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_fallback_market_data(symbol, error=str(e))
 
@@ -450,8 +452,7 @@ class FinancialTradingBotService:
             )
 
     def get_performance_report_data(
-            self,
-            token: str = Depends(get_token_from_state)
+        self, token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get comprehensive performance report"""
         try:
@@ -476,7 +477,7 @@ class FinancialTradingBotService:
                     "context": "Get Performance Report",
                     "error_type": type(e).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             return self._generate_fallback_performance_report(error=str(e))
 
@@ -544,6 +545,7 @@ router = APIRouter(tags=["Financial Trading Bot"])
 def get_trading_service() -> FinancialTradingBotService:
     """Get financial trading bot service instance"""
     from src.que_agents.api.main import agent_manager
+
     return FinancialTradingBotService(agent_manager)
 
 
@@ -561,6 +563,7 @@ async def analyze_and_decide(
 
 class TradingCycleRequest(BaseModel):
     symbols: Optional[List[str]] = None
+
 
 @router.post("/cycle")
 async def run_trading_cycle(
@@ -660,7 +663,7 @@ async def get_risk_assessment(
                 "context": "Get Risk Assessment",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         return {
             "overall_risk": "unknown",
@@ -708,7 +711,7 @@ async def get_watchlist(
                 "context": "Get Watchlist",
                 "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         return {
             "symbols": [],

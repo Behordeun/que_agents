@@ -106,9 +106,7 @@ class CustomerSupportService:
             )
 
     def get_customer_context_data(
-        self,
-        customer_id: int,
-        token: str = Depends(get_token_from_state)
+        self, customer_id: int, token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get enhanced customer context and information"""
         try:
@@ -289,9 +287,7 @@ class CustomerSupportService:
         }
 
     def get_debug_info(
-        self,
-        customer_id: int,
-        token: str = Depends(get_token_from_state)
+        self, customer_id: int, token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Debug customer context issues"""
         try:
@@ -350,9 +346,7 @@ class CustomerSupportService:
             return {"debug_error": str(e), "error_type": type(e).__name__}
 
     def get_customer_insights_data(
-        self,
-        customer_id: int,
-        token: str = Depends(get_token_from_state)
+        self, customer_id: int, token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get comprehensive customer insights"""
         try:
@@ -393,6 +387,7 @@ router = APIRouter(tags=["Customer Support"])
 def get_customer_support_service() -> CustomerSupportService:
     """Get customer support service instance"""
     from src.que_agents.api.main import agent_manager
+
     return CustomerSupportService(agent_manager)
 
 
