@@ -131,7 +131,16 @@ class MarketingAgentService:
         except HTTPException:
             raise  # Re-raise HTTP exceptions
         except ValueError as ve:
-            system_logger.error(f"Validation error in campaign creation: {ve}")
+            system_logger.error(
+                f"Validation error in campaign creation: {ve}",
+                additional_info={
+                    "context": "Create Marketing Campaign",
+                    "campaign_type": request.get("campaign_type"),
+                    "target_audience": request.get("target_audience"),
+                    "error_type": type(ve).__name__,
+                },
+                exc_info=True
+            )
             raise HTTPException(
                 status_code=400, detail=f"Invalid input data: {str(ve)}"
             )
@@ -216,7 +225,12 @@ class MarketingAgentService:
 
         except Exception as e:
             system_logger.error(
-                f"Critical error in content generation: {str(e)}", exc_info=True
+                f"Critical error in content generation: {str(e)}",
+                additional_info={
+                    "context": "Content Generation",
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
             )
 
             return {
@@ -428,7 +442,14 @@ Don't miss this opportunity to transform your {theme} strategy.
                 return self._generate_fallback_performance_data(campaign_id)
 
         except Exception as e:
-            system_logger.error(f"Error analyzing campaign performance: {str(e)}")
+            system_logger.error(
+                f"Error analyzing campaign performance: {str(e)}",
+                additional_info={
+                    "campaign_id": campaign_id,
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
             return self._generate_fallback_performance_data(campaign_id, error=str(e))
 
     def _generate_fallback_performance_data(
@@ -513,7 +534,16 @@ Don't miss this opportunity to transform your {theme} strategy.
                 return self._generate_fallback_campaign_list(status_filter, limit)
 
         except Exception as e:
-            system_logger.error(f"Error getting campaign list: {str(e)}")
+            system_logger.error(
+                f"Error getting campaign list: {str(e)}",
+                additional_info={
+                    "context": "Campaign List Retrieval",
+                    "status_filter": status_filter,
+                    "limit": limit,
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
             return self._generate_fallback_campaign_list(status_filter, limit)
 
     def _generate_fallback_campaign_list(
@@ -587,7 +617,15 @@ Don't miss this opportunity to transform your {theme} strategy.
             return self._generate_fallback_templates(content_type)
 
         except Exception as e:
-            system_logger.error(f"Error getting content templates: {str(e)}")
+            system_logger.error(
+                f"Error getting content templates: {str(e)}",
+                additional_info={
+                    "context": "Content Templates Retrieval",
+                    "content_type": content_type,
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
             return self._generate_fallback_templates(content_type)
 
     def _generate_fallback_templates(
@@ -820,7 +858,14 @@ async def get_marketing_analytics(
             }
 
     except Exception as e:
-        system_logger.error(f"Error getting marketing analytics: {str(e)}")
+        system_logger.error(
+            f"Error getting marketing analytics: {str(e)}",
+            additional_info={
+                "context": "Analytics Retrieval",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         return {
             "error": "Analytics temporarily unavailable",
             "message": "Please try again later",
@@ -885,7 +930,14 @@ async def get_audience_segments(
         }
 
     except Exception as e:
-        system_logger.error(f"Error getting audience segments: {str(e)}")
+        system_logger.error(
+            f"Error getting audience segments: {str(e)}",
+            additional_info={
+                "context": "Audience Segments Retrieval",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         return {
             "segments": [],
             "error": "Audience segments temporarily unavailable",
@@ -916,7 +968,14 @@ async def pause_campaign(
         }
 
     except Exception as e:
-        system_logger.error(f"Error pausing campaign: {str(e)}")
+        system_logger.error(
+            f"Error pausing campaign: {str(e)}",
+            additional_info={
+                "context": "Campaign Pause",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         raise HTTPException(status_code=500, detail="Failed to pause campaign")
 
 
@@ -943,7 +1002,14 @@ async def resume_campaign(
         }
 
     except Exception as e:
-        system_logger.error(f"Error resuming campaign: {str(e)}")
+        system_logger.error(
+            f"Error resuming campaign: {str(e)}",
+            additional_info={
+                "context": "Campaign Resume",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         raise HTTPException(status_code=500, detail="Failed to resume campaign")
 
 
@@ -998,7 +1064,14 @@ async def get_marketing_trends(
         }
 
     except Exception as e:
-        system_logger.error(f"Error getting marketing trends: {str(e)}")
+        system_logger.error(
+            f"Error getting marketing trends: {str(e)}",
+            additional_info={
+                "context": "Trends Retrieval",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         return {
             "trends": [],
             "error": "Marketing trends temporarily unavailable",

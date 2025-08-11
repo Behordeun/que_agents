@@ -198,7 +198,12 @@ class FinancialTradingBotService:
                     return fallback_data
                 except Exception as e:
                     system_logger.error(
-                        f"Error getting portfolio status from agent: {e}", exc_info=True
+                        f"Error getting portfolio status from agent: {e}",
+                        additional_info={
+                            "context": "Get Portfolio Status",
+                            "error_type": type(e).__name__,
+                        },
+                        exc_info=True
                     )
                     return fallback_data
 
@@ -327,6 +332,7 @@ class FinancialTradingBotService:
                     "symbol": symbol,
                     "error_type": type(e).__name__,
                 },
+                exc_info=True
             )
             return self._generate_fallback_market_data(symbol, error=str(e))
 
@@ -444,7 +450,14 @@ class FinancialTradingBotService:
                 return self._generate_fallback_performance_report()
 
         except Exception as e:
-            system_logger.error(f"Error generating performance report: {str(e)}")
+            system_logger.error(
+                f"Error generating performance report: {str(e)}",
+                additional_info={
+                    "context": "Get Performance Report",
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
             return self._generate_fallback_performance_report(error=str(e))
 
     def _generate_fallback_performance_report(
@@ -617,7 +630,14 @@ async def get_risk_assessment(
         }
 
     except Exception as e:
-        system_logger.error(f"Error in risk assessment: {str(e)}")
+        system_logger.error(
+            f"Error in risk assessment: {str(e)}",
+            additional_info={
+                "context": "Get Risk Assessment",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         return {
             "overall_risk": "unknown",
             "risk_score": 0.5,
@@ -658,7 +678,14 @@ async def get_watchlist(
             }
 
     except Exception as e:
-        system_logger.error(f"Error getting watchlist: {str(e)}")
+        system_logger.error(
+            f"Error getting watchlist: {str(e)}",
+            additional_info={
+                "context": "Get Watchlist",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         return {
             "symbols": [],
             "count": 0,

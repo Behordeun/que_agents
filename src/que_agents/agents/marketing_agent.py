@@ -1369,9 +1369,7 @@ Provide detailed audience insights and targeting recommendations."""
                 request, content_pieces
             )
 
-            success_metrics = self._define_success_metrics(
-                request.campaign_type, request.goals
-            )
+            success_metrics = self._define_success_metrics(campaign_type_str, request.goals)
 
             industry_str = self._extract_industry_string(industry, default="technology")
             estimated_performance = self._calculate_enhanced_performance(

@@ -79,6 +79,7 @@ class PersonalVirtualAssistantService:
     ) -> PVAResponse:
         """Generate intelligent fallback response based on user message"""
         message_lower = message.lower()
+        intent = "unknown"
 
         # Analyze message intent for better fallback responses
         if any(
@@ -252,7 +253,14 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                     )
 
         except Exception as e:
-            system_logger.error(f"Error getting user reminders: {str(e)}")
+            system_logger.error(
+                f"Error getting user reminders: {str(e)}",
+                additional_info={
+                    "context": "User Reminders Retrieval",
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
             return self._generate_fallback_reminders(user_id, str(e))
         return self._generate_fallback_reminders(user_id, UNKNOWN_ERROR)
 
@@ -354,7 +362,14 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                     )
 
         except Exception as e:
-            system_logger.error(f"Error getting user devices: {str(e)}")
+            system_logger.error(
+                f"Error getting user devices: {str(e)}",
+                additional_info={
+                    "context": "User Devices Retrieval",
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
             return self._generate_fallback_devices(user_id, str(e))
         return self._generate_fallback_devices(user_id, UNKNOWN_ERROR)
 
@@ -494,7 +509,14 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                 return self._generate_fallback_user_context(user_id)
 
         except Exception as e:
-            system_logger.error(f"Error getting user context: {str(e)}")
+            system_logger.error(
+                f"Error getting user context: {str(e)}",
+                additional_info={
+                    "context": "User Context Retrieval",
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
             return self._generate_fallback_user_context(user_id)
 
     def _generate_fallback_user_context(self, user_id: str) -> Dict[str, Any]:
@@ -581,7 +603,14 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                     device_id, action, METHOD_NOT_AVAILABLE
                 )
         except Exception as e:
-            system_logger.error(f"Error controlling smart device: {str(e)}")
+            system_logger.error(
+                f"Error controlling smart device: {str(e)}",
+                additional_info={
+                    "context": "Device Control",
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
             return self._generate_device_control_fallback(device_id, action, str(e))
 
     def _generate_device_control_fallback(
@@ -650,7 +679,14 @@ Please try again in a few minutes, or feel free to ask me anything!"""
                 )
 
         except Exception as e:
-            system_logger.error(f"Error creating reminder: {str(e)}")
+            system_logger.error(
+                f"Error creating reminder: {str(e)}",
+                additional_info={
+                    "context": "Reminder Creation",
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
             return self._generate_reminder_creation_fallback(reminder_data, str(e))
         return self._generate_reminder_creation_fallback(reminder_data, UNKNOWN_ERROR)
 
@@ -836,7 +872,14 @@ async def get_user_calendar(
         }
 
     except Exception as e:
-        system_logger.error(f"Error getting user calendar: {str(e)}")
+        system_logger.error(
+            f"Error getting user calendar: {str(e)}",
+            additional_info={
+                "context": "User Calendar Retrieval",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         return {
             "events": [],
             "error": "Calendar temporarily unavailable",
@@ -900,7 +943,14 @@ async def get_weather_info(
         }
 
     except Exception as e:
-        system_logger.error(f"Error getting weather info: {str(e)}")
+        system_logger.error(
+            f"Error getting weather info: {str(e)}",
+            additional_info={
+                "context": "Weather Information Retrieval",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         return {
             "error": "Weather service temporarily unavailable",
             "timestamp": datetime.now().isoformat(),
@@ -980,7 +1030,14 @@ async def get_user_tasks(
         }
 
     except Exception as e:
-        system_logger.error(f"Error getting user tasks: {str(e)}")
+        system_logger.error(
+            f"Error getting user tasks: {str(e)}",
+            additional_info={
+                "context": "User Tasks Retrieval",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         return {
             "tasks": [],
             "error": "Tasks service temporarily unavailable",
@@ -1033,7 +1090,14 @@ async def get_pva_capabilities(
         }
 
     except Exception as e:
-        system_logger.error(f"Error getting PVA capabilities: {str(e)}")
+        system_logger.error(
+            f"Error getting PVA capabilities: {str(e)}",
+            additional_info={
+                "context": "PVA Capabilities Retrieval",
+                "error_type": type(e).__name__,
+            },
+            exc_info=True
+        )
         return {
             "error": "Capabilities service temporarily unavailable",
             "timestamp": datetime.now().isoformat(),

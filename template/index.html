@@ -1283,7 +1283,7 @@
 
         async function getSystemStatus() {
             await fetchData(
-                ENDPOINTS.systemStatus, 'GET', null, false,
+                ENDPOINTS.systemStatus, 'GET', null,
                 {
                     loadingElementId: 'system-status-loading',
                     resultElementId: 'system-status-result',
@@ -1294,7 +1294,7 @@
 
         async function getDetailedSystemMetrics() {
             await fetchData(
-                ENDPOINTS.detailedSystemMetrics, 'GET', null, true,
+                ENDPOINTS.detailedSystemMetrics, 'GET', null,
                 {
                     loadingElementId: 'detailed-metrics-loading',
                     resultElementId: 'detailed-metrics-result',
@@ -1305,7 +1305,7 @@
 
         async function runSystemDiagnostics() {
             await fetchData(
-                ENDPOINTS.systemDiagnostics, 'GET', null, true,
+                ENDPOINTS.systemDiagnostics, 'GET', null,
                 {
                     loadingElementId: 'diagnostics-loading',
                     resultElementId: 'diagnostics-result',
@@ -1316,7 +1316,7 @@
 
         async function getHealthCheck() {
             await fetchData(
-                ENDPOINTS.healthCheck, 'GET', null, false,
+                ENDPOINTS.healthCheck, 'GET', null,
                 {
                     loadingElementId: 'health-check-loading',
                     resultElementId: 'health-check-result',
@@ -1327,7 +1327,7 @@
 
         async function listAvailableAgents() {
             await fetchData(
-                ENDPOINTS.listAgents, 'GET', null, false,
+                ENDPOINTS.listAgents, 'GET', null,
                 {
                     loadingElementId: 'list-agents-loading',
                     resultElementId: 'list-agents-result',
@@ -1352,7 +1352,7 @@
             };
 
             await fetchData(
-                ENDPOINTS.customerSupportChat, 'POST', body, false,
+                ENDPOINTS.customerSupportChat, 'POST', body,
                 {
                     loadingElementId: 'cs-chat-loading',
                     resultElementId: 'cs-chat-result',
@@ -1371,7 +1371,7 @@
 
             // Always call with auth true as per latest setup (even if initially public)
             await fetchData(
-                `${ENDPOINTS.customerContext}/${customerId}`, 'GET', null, true,
+                `${ENDPOINTS.customerContext}/${customerId}`, 'GET', null,
                 {
                     loadingElementId: 'cs-context-loading',
                     resultElementId: 'cs-context-result',
@@ -1387,7 +1387,7 @@
                 return;
             }
             await fetchData(
-                `${ENDPOINTS.debugCustomerContext}/${customerId}`, 'GET', null, true,
+                `${ENDPOINTS.debugCustomerContext}/${customerId}`, 'GET', null,
                 {
                     loadingElementId: 'cs-debug-loading',
                     resultElementId: 'cs-debug-result',
@@ -1403,7 +1403,7 @@
                 return;
             }
             await fetchData(
-                `${ENDPOINTS.customerInsights}/${customerId}/insights`, 'GET', null, true,
+                `${ENDPOINTS.customerInsights}/${customerId}/insights`, 'GET', null,
                 {
                     loadingElementId: 'cs-insights-loading',
                     resultElementId: 'cs-insights-result',
@@ -1422,7 +1422,7 @@
             }
             const body = { symbol: symbol, strategy_type: strategyType };
             await fetchData(
-                ENDPOINTS.analyzeAndDecide, 'POST', body, true, // Auth Required
+                ENDPOINTS.analyzeAndDecide, 'POST', body,
                 {
                     loadingElementId: 'ft-analyze-loading',
                     resultElementId: 'ft-analyze-result',
@@ -1439,7 +1439,7 @@
             }
             const body = symbols.length > 0 ? { symbols: symbols } : {};
             await fetchData(
-                ENDPOINTS.runTradingCycle, 'POST', body, true, // Auth Required
+                ENDPOINTS.runTradingCycle, 'POST', body,
                 {
                     loadingElementId: 'ft-cycle-loading',
                     resultElementId: 'ft-cycle-result',
@@ -1450,7 +1450,7 @@
 
         async function getPortfolioStatus() {
             await fetchData(
-                ENDPOINTS.portfolioStatus, 'GET', null, true, // Auth Required
+                ENDPOINTS.portfolioStatus, 'GET', null,
                 {
                     loadingElementId: 'ft-portfolio-loading',
                     resultElementId: 'ft-portfolio-result',
@@ -1466,7 +1466,7 @@
                 return;
             }
             await fetchData(
-                `${ENDPOINTS.marketData}/${symbol}`, 'GET', null, true, // Auth Required
+                `${ENDPOINTS.marketData}/${symbol}`, 'GET', null,
                 {
                     loadingElementId: 'ft-market-loading',
                     resultElementId: 'ft-market-result',
@@ -1477,7 +1477,7 @@
 
         async function getPerformanceReport() {
             await fetchData(
-                ENDPOINTS.performanceReport, 'GET', null, true, // Auth Required
+                ENDPOINTS.performanceReport, 'GET', null,
                 {
                     loadingElementId: 'ft-performance-loading',
                     resultElementId: 'ft-performance-result',
@@ -1488,7 +1488,7 @@
 
         async function getCurrentHoldings() {
             await fetchData(
-                ENDPOINTS.currentHoldings, 'GET', null, true, // Auth Required
+                ENDPOINTS.currentHoldings, 'GET', null,
                 {
                     loadingElementId: 'ft-holdings-loading',
                     resultElementId: 'ft-holdings-result',
@@ -1499,7 +1499,7 @@
 
         async function getRiskAssessment() {
             await fetchData(
-                ENDPOINTS.riskAssessment, 'GET', null, true, // Auth Required
+                ENDPOINTS.riskAssessment, 'GET', null,
                 {
                     loadingElementId: 'ft-risk-loading',
                     resultElementId: 'ft-risk-result',
@@ -1510,7 +1510,7 @@
 
         async function getWatchlist() {
             await fetchData(
-                ENDPOINTS.watchlist, 'GET', null, true, // Auth Required
+                ENDPOINTS.watchlist, 'GET', null,
                 {
                     loadingElementId: 'ft-watchlist-loading',
                     resultElementId: 'ft-watchlist-result',
@@ -1548,7 +1548,7 @@
             };
 
             await fetchData(
-                ENDPOINTS.createMarketingCampaign, 'POST', body, true, // Auth Required
+                ENDPOINTS.createMarketingCampaign, 'POST', body,
                 {
                     loadingElementId: 'mk-campaign-loading',
                     resultElementId: 'mk-campaign-result',
@@ -1578,7 +1578,7 @@
                 include_hashtags: true
             };
             await fetchData(
-                ENDPOINTS.generateMarketingContent, 'POST', body, true, // Auth Required
+                ENDPOINTS.generateMarketingContent, 'POST', body,
                 {
                     loadingElementId: 'mk-content-loading',
                     resultElementId: 'mk-content-result',
@@ -1594,7 +1594,7 @@
                 return;
             }
             await fetchData(
-                `${ENDPOINTS.analyzeCampaignPerformance}/${campaignId}/performance`, 'GET', null, true, // Auth Required
+                `${ENDPOINTS.analyzeCampaignPerformance}/${campaignId}/performance`, 'GET', null,
                 {
                     loadingElementId: 'mk-performance-loading',
                     resultElementId: 'mk-performance-result',
@@ -1618,7 +1618,7 @@
                 url += `?${params.toString()}`;
             }
             await fetchData(
-                url, 'GET', null, true, // Auth Required
+                url, 'GET', null,
                 {
                     loadingElementId: 'mk-list-loading',
                     resultElementId: 'mk-list-result',
@@ -1634,7 +1634,7 @@
                 url += `?content_type=${encodeURIComponent(contentType)}`;
             }
             await fetchData(
-                url, 'GET', null, true, // Auth Required
+                url, 'GET', null,
                 {
                     loadingElementId: 'mk-templates-loading',
                     resultElementId: 'mk-templates-result',
@@ -1645,7 +1645,7 @@
 
         async function getMarketingTrends() {
             await fetchData(
-                ENDPOINTS.marketingTrends, 'GET', null, true, // Auth Required
+                ENDPOINTS.marketingTrends, 'GET', null,
                 {
                     loadingElementId: 'mk-trends-loading',
                     resultElementId: 'mk-trends-result',
@@ -1656,7 +1656,7 @@
 
         async function getAudienceSegments() {
             await fetchData(
-                ENDPOINTS.audienceSegments, 'GET', null, true, // Auth Required
+                ENDPOINTS.audienceSegments, 'GET', null,
                 {
                     loadingElementId: 'mk-segments-loading',
                     resultElementId: 'mk-segments-result',
@@ -1672,7 +1672,7 @@
                 return;
             }
             await fetchData(
-                `${ENDPOINTS.pauseCampaign}/${campaignId}/pause`, 'POST', {}, true, // Auth Required
+                `${ENDPOINTS.pauseCampaign}/${campaignId}/pause`, 'POST', {},
                 {
                     loadingElementId: 'mk-pause-loading',
                     resultElementId: 'mk-action-result',
@@ -1688,7 +1688,7 @@
                 return;
             }
             await fetchData(
-                `${ENDPOINTS.resumeCampaign}/${campaignId}/resume`, 'POST', {}, true,
+                `${ENDPOINTS.resumeCampaign}/${campaignId}/resume`, 'POST', {},
                 {
                     loadingElementId: 'mk-resume-loading',
                     resultElementId: 'mk-action-result',
@@ -1713,7 +1713,7 @@
             };
 
             await fetchData(
-                ENDPOINTS.pvaChat, 'POST', body, true,
+                ENDPOINTS.pvaChat, 'POST', body,
                 {
                     loadingElementId: 'pva-chat-loading',
                     resultElementId: 'pva-chat-result',
@@ -1731,7 +1731,7 @@
             }
 
             await fetchData(
-                `${ENDPOINTS.userReminders}/${userId}/reminders`, 'GET', null, true,
+                `${ENDPOINTS.userReminders}/${userId}/reminders`, 'GET', null,
                 {
                     loadingElementId: 'pva-reminders-loading',
                     resultElementId: 'pva-reminders-result',
@@ -1747,7 +1747,7 @@
                 return;
             }
             await fetchData(
-                `${ENDPOINTS.userDevices}/${userId}/devices`, 'GET', null, true,
+                `${ENDPOINTS.userDevices}/${userId}/devices`, 'GET', null,
                 {
                     loadingElementId: 'pva-devices-loading',
                     resultElementId: 'pva-devices-result',
@@ -1763,7 +1763,7 @@
                 return;
             }
             await fetchData(
-                `${ENDPOINTS.userContext}/${userId}/context`, 'GET', null, true,
+                `${ENDPOINTS.userContext}/${userId}/context`, 'GET', null,
                 {
                     loadingElementId: 'pva-context-loading',
                     resultElementId: 'pva-context-result',
@@ -1796,7 +1796,7 @@
 
             const body = { user_id: userId, device_id: deviceId, action: action, parameters: parameters };
             await fetchData(
-                `${ENDPOINTS.controlSmartDevice}/${userId}/device/${deviceId}/control`, 'POST', body, true,
+                `${ENDPOINTS.controlSmartDevice}/${userId}/device/${deviceId}/control`, 'POST', body,
                 {
                     loadingElementId: 'pva-control-loading',
                     resultElementId: 'pva-control-result',
@@ -1831,7 +1831,7 @@
             };
 
             await fetchData(
-                `${ENDPOINTS.createReminder}/${userId}/reminder`, 'POST', body, true,
+                `${ENDPOINTS.createReminder}/${userId}/reminder`, 'POST', body,
                 {
                     loadingElementId: 'pva-create-reminder-loading',
                     resultElementId: 'pva-create-reminder-result',
@@ -1848,7 +1848,7 @@
                 return;
             }
             await fetchData(
-                `${ENDPOINTS.userCalendar}/${userId}/calendar?days=${days}`, 'GET', null, true,
+                `${ENDPOINTS.userCalendar}/${userId}/calendar?days=${days}`, 'GET', null,
                 {
                     loadingElementId: 'pva-calendar-loading',
                     resultElementId: 'pva-calendar-result',
@@ -1869,7 +1869,7 @@
                 url += `?location=${encodeURIComponent(location)}`;
             }
             await fetchData(
-                url, 'GET', null, true,
+                url, 'GET', null,
                 {
                     loadingElementId: 'pva-weather-loading',
                     resultElementId: 'pva-weather-result',
@@ -1890,7 +1890,7 @@
                 url += `?status=${status}`;
             }
             await fetchData(
-                url, 'GET', null, true,
+                url, 'GET', null,
                 {
                     loadingElementId: 'pva-tasks-loading',
                     resultElementId: 'pva-tasks-result',
@@ -1901,7 +1901,7 @@
 
         async function getPVACapabilities() {
             await fetchData(
-                ENDPOINTS.pvaCapabilities, 'GET', null, true,
+                ENDPOINTS.pvaCapabilities, 'GET', null,
                 {
                     loadingElementId: 'pva-capabilities-loading',
                     resultElementId: 'pva-capabilities-result',
@@ -1913,7 +1913,7 @@
         // --- Admin Panel Functions (Analytics Dashboard) ---
         async function getAnalyticsDashboard() {
             await fetchData(
-                ENDPOINTS.analyticsDashboard, 'GET', null, true,
+                ENDPOINTS.analyticsDashboard, 'GET', null,
                 {
                     loadingElementId: 'analytics-dashboard-loading',
                     resultElementId: 'overall-analytics-content',
@@ -1925,7 +1925,7 @@
 
         async function getTotalCustomersAnalytics() {
             await fetchData(
-                ENDPOINTS.analyticsCustomers, 'GET', null, true,
+                ENDPOINTS.analyticsCustomers, 'GET', null,
                 {
                     loadingElementId: 'analytics-customers-loading',
                     resultElementId: 'customers-analytics-content',
@@ -1937,7 +1937,7 @@
 
         async function getActiveCampaignsAnalytics() {
             await fetchData(
-                ENDPOINTS.analyticsCampaigns, 'GET', null, true,
+                ENDPOINTS.analyticsCampaigns, 'GET', null,
                 {
                     loadingElementId: 'analytics-campaigns-loading',
                     resultElementId: 'campaigns-analytics-content',
@@ -1949,7 +1949,7 @@
 
         async function getKnowledgeBaseAnalytics() {
             await fetchData(
-                ENDPOINTS.analyticsKnowledgeBase, 'GET', null, true,
+                ENDPOINTS.analyticsKnowledgeBase, 'GET', null,
                 {
                     loadingElementId: 'analytics-kb-loading',
                     resultElementId: 'knowledge-base-analytics-content',
@@ -1961,7 +1961,7 @@
 
         async function getApiStatusAnalytics() {
             await fetchData(
-                ENDPOINTS.analyticsApiStatus, 'GET', null, true,
+                ENDPOINTS.analyticsApiStatus, 'GET', null,
                 {
                     loadingElementId: 'analytics-api-loading',
                     resultElementId: 'api-status-analytics-content',
@@ -1973,7 +1973,7 @@
 
         async function getCustomerSupportAgentAnalytics() {
             await fetchData(
-                ENDPOINTS.analyticsCSAgent, 'GET', null, true,
+                ENDPOINTS.analyticsCSAgent, 'GET', null,
                 {
                     loadingElementId: 'analytics-cs-agent-loading',
                     resultElementId: 'cs-agent-analytics-content',
@@ -1985,7 +1985,7 @@
 
         async function getMarketingAgentAnalytics() {
             await fetchData(
-                ENDPOINTS.analyticsMarketingAgent, 'GET', null, true,
+                ENDPOINTS.analyticsMarketingAgent, 'GET', null,
                 {
                     loadingElementId: 'analytics-marketing-agent-loading',
                     resultElementId: 'marketing-agent-analytics-content',
@@ -1997,7 +1997,7 @@
 
         async function getPVAAgentAnalytics() {
             await fetchData(
-                ENDPOINTS.analyticsPVAAgent, 'GET', null, true,
+                ENDPOINTS.analyticsPVAAgent, 'GET', null,
                 {
                     loadingElementId: 'analytics-pva-agent-loading',
                     resultElementId: 'pva-agent-analytics-content',
@@ -2009,7 +2009,7 @@
 
         async function getTradingBotAnalytics() {
             await fetchData(
-                ENDPOINTS.analyticsTradingBot, 'GET', null, true,
+                ENDPOINTS.analyticsTradingBot, 'GET', null,
                 {
                     loadingElementId: 'analytics-trading-bot-loading',
                     resultElementId: 'trading-bot-analytics-content',

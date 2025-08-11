@@ -10,8 +10,8 @@ import yaml
 
 from src.que_agents.error_trace.errorlogger import system_logger
 
-AGENT_CONFIG_FILE = "agent_config.yaml"
-API_CONFIG_FILE = "api_config.yaml"
+AGENT_CONFIG_FILE = "./configs/agent_config.yaml"
+API_CONFIG_FILE = "./configs/api_config.yaml"
 
 
 class ConfigManager:
