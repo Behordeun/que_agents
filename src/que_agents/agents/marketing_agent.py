@@ -1877,6 +1877,9 @@ Provide detailed audience insights and targeting recommendations."""
                         market_data.get("benchmarks", {}), indent=2
                     ),
                     "analysis_insights": "Enhanced analysis with AI-powered insights",
+                    "competitive_data": json.dumps(
+                        market_data.get("competitive_landscape", {}), indent=2
+                    ),
                 }
             )
 
