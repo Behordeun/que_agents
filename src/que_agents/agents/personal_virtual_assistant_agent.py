@@ -1132,7 +1132,8 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
                     "additional_info": additional_info,
                     "enhanced_context": enhanced_context,
                     "user_message": user_message,
-                }
+                },
+                config={"configurable": {"session_id": session_id or "default_session"}}
             )
 
             # Add messages to session history
