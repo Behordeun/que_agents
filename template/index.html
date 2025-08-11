@@ -984,6 +984,14 @@
                 resultElement.innerHTML = ''; // Clear content too
                 errorElement.innerHTML = ''; // Clear content too
 
+                let authRequired = false; // Define authRequired and default to false
+                if (url.includes('/api/v1/trading/') || url.includes('/api/v1/marketing/') || url.includes('/api/v1/pva/') || url.includes('/api/v1/system/metrics') || url.includes('/api/v1/customer-support/debug') || url.includes('/api/v1/customer-support/customer')) {
+                    authRequired = true;
+                }
+
+                if (url.includes('/api/v1/customer-support/chat')) {
+                    authRequired = true;
+                }
 
                 // If authentication is required, use the hardcoded API_TOKEN
                 if (authRequired) {
@@ -1005,7 +1013,10 @@
 
                 if (!response.ok) {
                     let errorMessage = `Error ${response.status}: `;
-                    if (data.detail) {
+                    if (response.status === 503) {
+                        errorMessage = "Service Unavailable: The server is temporarily unable to handle the request. Please try again later.";
+                    }
+                    else if (data.detail) {
                         errorMessage += JSON.stringify(data.detail); // Display detail as JSON
                     } else if (data.error) {
                         errorMessage += data.error;
@@ -1013,6 +1024,7 @@
                         errorMessage += 'Unknown error';
                     }
                     displayError(errorElementId, errorMessage);
+                    console.log("URL BEING CALLED", url)
                     return;
                 }
 

@@ -23,7 +23,13 @@ class CustomerSupportService:
 
     def get_agent(self):
         """Get customer support agent"""
-        return self.agent_manager.get_agent("customer_support")
+        agent = self.agent_manager.get_agent("customer_support")
+        if not agent:
+            system_logger.error(
+                "Customer support agent is not available in AgentManager.",
+                additional_info={"context": "Customer Support Chat"},
+            )
+        return agent
 
     def handle_chat_request(
         self, request: CustomerSupportRequest
