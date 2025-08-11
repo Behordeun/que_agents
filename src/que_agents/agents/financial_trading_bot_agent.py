@@ -614,7 +614,8 @@ Provide risk assessment including:
                 },
                 exc_info=True,
             )
-            return f"Market analysis for {symbol}: Current price ${market_data.current_price:.2f}, RSI {market_data.rsi:.1f}, trending {market_data.market_sentiment}."
+            # Enhanced fallback analysis when LLM is unavailable
+            return self._generate_fallback_analysis(market_data)
 
     def make_trading_decision(
         self, symbol: str, strategy_type: str = "momentum"
@@ -674,15 +675,8 @@ Min Confidence: {self.min_confidence_threshold:.1%}
                 },
                 exc_info=True,
             )
-            return TradingDecision(
-                action="hold",
-                symbol=symbol,
-                quantity=0.0,
-                confidence=0.0,
-                reasoning="Error in decision making process",
-                risk_score=1.0,
-                expected_return=0.0,
-            )
+            # Enhanced fallback decision when LLM is unavailable
+            return self._generate_fallback_decision(symbol, market_conditions, portfolio_status)
 
     def _parse_trading_decision(
         self,
@@ -857,6 +851,92 @@ Min Confidence: {self.min_confidence_threshold:.1%}
         base_return += volatility_adjustment
 
         return base_return
+
+    def _generate_fallback_analysis(self, market_data: MarketConditions) -> str:
+        """Generate fallback market analysis when LLM is unavailable"""
+        # Technical analysis based on indicators
+        trend = "neutral"
+        if market_data.current_price > market_data.moving_avg_20 > market_data.moving_avg_50:
+            trend = "bullish"
+        elif market_data.current_price < market_data.moving_avg_20 < market_data.moving_avg_50:
+            trend = "bearish"
+        
+        rsi_signal = "neutral"
+        if market_data.rsi < 30:
+            rsi_signal = "oversold (potential buy)"
+        elif market_data.rsi > 70:
+            rsi_signal = "overbought (potential sell)"
+        
+        macd_signal = "bullish" if market_data.macd > 0 else "bearish"
+        
+        volatility_level = "high" if market_data.volatility > 0.25 else "moderate" if market_data.volatility > 0.15 else "low"
+        
+        return f"""Market analysis for {market_data.symbol}: Current price ${market_data.current_price:.2f}, RSI {market_data.rsi:.1f}, trending {market_data.market_sentiment}.
+        
+Technical Analysis:
+- Trend: {trend} (price vs moving averages)
+- RSI Signal: {rsi_signal}
+- MACD Signal: {macd_signal}
+- Volatility: {volatility_level} ({market_data.volatility:.2f})
+- Volume: {market_data.volume:,.0f}
+- 24h Change: {market_data.change_24h:.2f}%
+        
+Recommendation: Based on technical indicators, the stock shows {trend} momentum with {rsi_signal} RSI levels."""
+
+    def _generate_fallback_decision(self, symbol: str, market_conditions: MarketConditions, portfolio_status: PortfolioStatus) -> TradingDecision:
+        """Generate fallback trading decision when LLM is unavailable"""
+        # Rule-based decision making
+        action = "hold"
+        confidence = 0.5
+        reasoning = "Fallback decision due to LLM service unavailability. "
+        
+        # Simple momentum strategy
+        if market_conditions.rsi < 30 and market_conditions.market_sentiment == "bullish":
+            action = "buy"
+            confidence = 0.7
+            reasoning += "RSI oversold + bullish sentiment suggests buy opportunity."
+        elif market_conditions.rsi > 70 and market_conditions.market_sentiment == "bearish":
+            action = "sell"
+            confidence = 0.7
+            reasoning += "RSI overbought + bearish sentiment suggests sell opportunity."
+        elif market_conditions.current_price > market_conditions.moving_avg_20 > market_conditions.moving_avg_50:
+            if market_conditions.macd > 0:
+                action = "buy"
+                confidence = 0.65
+                reasoning += "Bullish trend with positive MACD suggests buy."
+        elif market_conditions.current_price < market_conditions.moving_avg_20 < market_conditions.moving_avg_50:
+            if market_conditions.macd < 0:
+                action = "sell"
+                confidence = 0.65
+                reasoning += "Bearish trend with negative MACD suggests sell."
+        else:
+            reasoning += "Mixed signals, holding position."
+        
+        # Calculate position size
+        quantity = 0.0
+        if action == "buy":
+            max_position_value = portfolio_status.total_value * self.max_position_size
+            quantity = min(
+                max_position_value / market_conditions.current_price,
+                portfolio_status.cash_balance / market_conditions.current_price * 0.95
+            )
+        elif action == "sell":
+            current_holding = portfolio_status.holdings.get(symbol, 0)
+            quantity = current_holding * 0.5  # Sell half position
+        
+        # Calculate risk and return
+        risk_score = self._calculate_risk_score(market_conditions, action, quantity)
+        expected_return = self._calculate_expected_return(market_conditions, action)
+        
+        return TradingDecision(
+            action=action,
+            symbol=symbol,
+            quantity=max(0, quantity),
+            confidence=confidence,
+            reasoning=reasoning,
+            risk_score=risk_score,
+            expected_return=expected_return,
+        )
 
     def execute_trade(
         self, decision: TradingDecision, strategy_id: Optional[int] = None

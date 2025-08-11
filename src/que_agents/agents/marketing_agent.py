@@ -229,8 +229,9 @@ class MarketingAgent:
         """Get enhanced context from knowledge base for campaign planning"""
         try:
             # Search for campaign-specific knowledge
+            campaign_type_str = self._get_safe_campaign_type_string(request.campaign_type)
             campaign_knowledge = self.get_marketing_knowledge(
-                f"{request.campaign_type.value} campaign strategy {request.target_audience}"
+                f"{campaign_type_str} campaign strategy {request.target_audience}"
             )
 
             # Search for industry-specific knowledge
@@ -273,7 +274,7 @@ class MarketingAgent:
                 error=f"Error getting enhanced campaign context: {e}",
                 exc_info=True,
                 additional_info={
-                    "campaign_type": request.campaign_type.value,
+                    "campaign_type": self._get_safe_campaign_type_string(request.campaign_type),
                     "target_audience": request.target_audience,
                 },
             )

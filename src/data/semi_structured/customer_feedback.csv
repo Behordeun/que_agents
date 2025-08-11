@@ -1,2 +1,4 @@
 Customer ID,Feedback Date,Rating,Category,Subcategory,Feedback Text,Resolution Status,Agent ID,Response Time (hours),Follow Up Required,Sentiment,Priority,Product Version,Channel,Customer Tier,Escalated,Resolution Date,Satisfaction Score,Tags,Internal Notes
-123,2025-08-11,2,Technical Issues,General,My internet is not working.,In Progress,ai_agent_v2,0.1,No,Negative,Medium,v2.1,Chat,business,No,,2.0,"technical_issues,ai_response",AI confidence: 0.60
+123,2025-08-11 00:00:00,2,Technical Issues,General,My internet is not working.,In Progress,ai_agent_v2,0.1,No,Negative,Medium,v2.1,Chat,business,No,2023-01-01 00:00:00,2.0,"technical_issues,ai_response",AI confidence: 0.60
+123,2025-08-11 00:00:00,2,Technical Issues,General,My internet is not working.,In Progress,ai_agent_v2,0.1,No,Negative,Medium,v2.1,Chat,business,No,,2.0,"technical_issues,ai_response",AI confidence: 0.50
+123,2025-08-11,1,Technical Issues,General,My internet is not working. I'll sue your organization,In Progress,ai_agent_v2,0.1,Yes,Very Negative,High,v2.1,Chat,business,Yes,,1.0,"technical_issues,ai_response",AI confidence: 0.45

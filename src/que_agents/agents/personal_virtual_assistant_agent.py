@@ -1165,11 +1165,16 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
                 intent_result.intent, user_message, entities, user_context
             )
             
-            # Ensure we get a tuple back
+            # Ensure we get a tuple back with robust error handling
             if isinstance(intent_result_tuple, tuple) and len(intent_result_tuple) == 2:
                 additional_info, actions_taken = intent_result_tuple
+                # Ensure both are the correct types
+                if not isinstance(additional_info, str):
+                    additional_info = str(additional_info)
+                if not isinstance(actions_taken, list):
+                    actions_taken = [str(actions_taken)] if actions_taken else []
             else:
-                system_logger.error(f"_handle_intent returned unexpected type: {type(intent_result_tuple)}")
+                system_logger.error(f"_handle_intent returned unexpected type: {type(intent_result_tuple)}, value: {intent_result_tuple}")
                 additional_info = "Error processing intent"
                 actions_taken = []
 
@@ -1190,20 +1195,33 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
                 system_logger.error(f"Error creating context string: {context_error}")
                 context_str = f"User ID: {user_id}\nContext creation failed"
 
-            # Temporarily bypass LangChain response chain for debugging
+            # Generate response using LangChain with robust error handling
             try:
+                # Ensure all parameters are strings and properly formatted
+                chain_input = {
+                    "user_context": str(context_str),
+                    "intent": str(intent_result.intent),
+                    "entities": json.dumps(entities) if isinstance(entities, dict) else str(entities),
+                    "actions_taken": ", ".join(actions_taken) if isinstance(actions_taken, list) else str(actions_taken),
+                    "additional_info": str(additional_info) if additional_info else "",
+                    "enhanced_context": str(enhanced_context) if enhanced_context else "",
+                    "user_message": str(user_message),
+                }
+                
+                # Validate all required parameters are present
+                for key, value in chain_input.items():
+                    if not isinstance(value, str):
+                        chain_input[key] = str(value)
+                
                 response = self.response_chain.invoke(
-                    {
-                        "user_context": context_str,
-                        "intent": intent_result.intent,
-                        "entities": json.dumps(entities),
-                        "actions_taken": ", ".join(actions_taken),
-                        "additional_info": additional_info,
-                        "enhanced_context": enhanced_context,
-                        "user_message": user_message,
-                    },
+                    chain_input,
                     config={"configurable": {"session_id": session_id or "default_session"}}
                 )
+                
+                # Ensure response is a string
+                if not isinstance(response, str):
+                    response = str(response)
+                    
             except Exception as chain_error:
                 system_logger.error(f"Response chain error: {chain_error}")
                 # Fallback to simple response based on intent

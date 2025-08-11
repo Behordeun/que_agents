@@ -732,7 +732,7 @@ async def get_system_analytics(token: str = Depends(verify_token)):
 
 
 @app.get("/api/v1/diagnostics")
-async def run_system_diagnostics(token: str = Depends(verify_token)):
+async def run_system_diagnostics():
     """Run comprehensive system diagnostics"""
     try:
         agents_dict = getattr(agent_manager, "agents", {})
