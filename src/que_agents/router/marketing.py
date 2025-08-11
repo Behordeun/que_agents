@@ -16,15 +16,27 @@ from src.que_agents.utils.auth import get_verified_token
 class MarketingAgentService:
     """Service class for marketing agent operations"""
 
+    MARKETING_AGENT_CONTEXT = "Marketing Agent"
+
     def __init__(self, agent_manager: AgentManager):
         self.agent_manager = agent_manager
         self.MARKETING_AGENT_UNAVAILABLE = "Marketing agent temporarily unavailable"
 
-    def get_agent(self):
-        """Get marketing agent"""
-        return self.agent_manager.get_agent("marketing")
+    def get_agent(self, token):
+        """Get Marketing Agent"""
+        agent = getattr(self.agent_manager, "customer_support_agent", None)
+        if agent is None:
+            system_logger.error(
+                "Customer support agent is not available in AgentManager.",
+                additional_info={"context": self.MARKETING_AGENT_CONTEXT},
+            )
+        return agent
 
-    def create_campaign(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def create_campaign(
+        self,
+        request: Dict[str, Any],
+        token: str = Depends(get_verified_token)
+    ) -> Dict[str, Any]:
         """Create a new marketing campaign with comprehensive error handling"""
         try:
             system_logger.info(
@@ -54,7 +66,7 @@ class MarketingAgentService:
                 )
 
             # Get marketing agent
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 raise HTTPException(
                     status_code=503,
@@ -162,7 +174,11 @@ class MarketingAgentService:
                 detail="Campaign creation service temporarily unavailable. Please try again in a few minutes.",
             )
 
-    def generate_content(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_content(
+        self,
+        request: Dict[str, Any],
+        token: str = Depends(get_verified_token)
+    ) -> Dict[str, Any]:
         """Generate marketing content with enhanced error handling"""
         try:
             system_logger.info(
@@ -173,7 +189,7 @@ class MarketingAgentService:
                 },
             )
 
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 # Return fallback content instead of raising exception
                 return self._generate_fallback_content(request)
@@ -400,7 +416,11 @@ The future belongs to those who act today. Don't let this opportunity pass you b
         }
 
     def _generate_generic_content(
-        self, theme: str, audience: str, _voice: str
+        self,
+        theme: str,
+        audience: str,
+        _voice: str,
+        token: str = Depends(get_verified_token)
     ) -> Dict[str, Any]:
         """Generate generic marketing content"""
         return {
@@ -425,7 +445,7 @@ Don't miss this opportunity to transform your {theme} strategy.
     def analyze_campaign_performance(self, campaign_id: str) -> Dict[str, Any]:
         """Analyze campaign performance with fallback data"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._generate_fallback_performance_data(campaign_id)
 
@@ -515,11 +535,14 @@ Don't miss this opportunity to transform your {theme} strategy.
         return enhanced
 
     def get_campaign_list(
-        self, status_filter: Optional[str] = None, limit: int = 10
+        self,
+        status_filter: Optional[str] = None,
+        limit: int = 10,
+        token: str = Depends(get_verified_token)
     ) -> Dict[str, Any]:
         """Get list of marketing campaigns"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._generate_fallback_campaign_list(status_filter, limit)
 
@@ -603,11 +626,13 @@ Don't miss this opportunity to transform your {theme} strategy.
         return enhanced
 
     def get_content_templates(
-        self, content_type: Optional[str] = None
+        self,
+        content_type: Optional[str] = None,
+        token: str = Depends(get_verified_token)
     ) -> Dict[str, Any]:
         """Get marketing content templates"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if agent and hasattr(agent, "get_content_templates"):
                 try:
                     return agent.get_content_templates(content_type)
@@ -810,7 +835,7 @@ async def get_marketing_analytics(
 ):
     """Get marketing analytics overview"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if not agent:
             # Return fallback analytics
             return {
@@ -880,7 +905,7 @@ async def get_audience_segments(
 ):
     """Get available audience segments"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if agent and hasattr(agent, "get_audience_segments"):
             return agent.get_audience_segments()
 
@@ -953,7 +978,7 @@ async def pause_campaign(
 ):
     """Pause a marketing campaign"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if agent and hasattr(agent, "pause_campaign"):
             result = agent.pause_campaign(campaign_id)
             return result
@@ -987,7 +1012,7 @@ async def resume_campaign(
 ):
     """Resume a paused marketing campaign"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if agent and hasattr(agent, "resume_campaign"):
             result = agent.resume_campaign(campaign_id)
             return result
@@ -1020,7 +1045,7 @@ async def get_marketing_trends(
 ):
     """Get current marketing trends and insights"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if agent and hasattr(agent, "get_marketing_trends"):
             return agent.get_marketing_trends()
 

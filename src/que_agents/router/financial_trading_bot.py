@@ -17,20 +17,33 @@ from src.que_agents.utils.auth import get_verified_token
 class FinancialTradingBotService:
     """Service class for financial trading bot operations"""
 
+    FINANCIAL_TRADING_BOT_CONTEXT = "Financial Trading Bot"
+
     def __init__(self, agent_manager: AgentManager):
         self.agent_manager = agent_manager
         self.TRADING_BOT_UNAVAILABLE = "Financial Trading Bot not available"
 
-    def get_agent(self):
+    def get_agent(self, token: str):
         """Get financial trading bot agent"""
-        return self.agent_manager.get_agent("financial_trading_bot")
+        agent = getattr(self.agent_manager, "financial_trading_bot", None)
+        if agent is None:
+            system_logger.error(
+                "Financial trading bot is not available in AgentManager.",
+                additional_info={"context": self.FINANCIAL_TRADING_BOT_CONTEXT},
+            )
+        # If the agent needs to use the token, you would pass it here, e.g.:
+        # agent.set_token(token)
+        return agent
+
 
     def analyze_and_make_decision(
-        self, request: TradingAnalysisRequest
+        self,
+        request: TradingAnalysisRequest,
+        token: str = Depends(get_verified_token),
     ) -> TradingDecisionResponse:
         """Analyze market and make trading decision"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 raise HTTPException(
                     status_code=503, detail=self.TRADING_BOT_UNAVAILABLE
@@ -68,11 +81,12 @@ class FinancialTradingBotService:
             )
 
     def run_trading_cycle_operation(
-        self, symbols: Optional[List[str]] = None
+        self, symbols: Optional[List[str]] = None,
+        token: str = Depends(get_verified_token),
     ) -> Dict[str, Any]:
         """Run trading cycle with specified symbols"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 raise HTTPException(
                     status_code=503, detail=self.TRADING_BOT_UNAVAILABLE
@@ -133,7 +147,7 @@ class FinancialTradingBotService:
             "fallback_mode": True,
         }
 
-    def get_portfolio_status_data(self) -> Dict[str, Any]:
+    def get_portfolio_status_data(self, token: str = Depends(get_verified_token)) -> Dict[str, Any]:
         """Get portfolio status with comprehensive error handling"""
         fallback_data = {
             "portfolio_value": 10000.0,
@@ -185,7 +199,7 @@ class FinancialTradingBotService:
         }
 
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._add_unavailable_status(fallback_data)
 
@@ -317,10 +331,14 @@ class FinancialTradingBotService:
             "timestamp": now,
         }
 
-    def get_market_data_for_symbol(self, symbol: str) -> Dict[str, Any]:
+    def get_market_data_for_symbol(
+        self,
+        symbol: str,
+        token: str = Depends(get_verified_token),
+    ) -> Dict[str, Any]:
         """Get market data for symbol with enhanced error handling"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent or not hasattr(agent, "get_market_data"):
                 return self._generate_fallback_market_data(symbol)
             return self._retrieve_and_validate_market_data(agent, symbol)
@@ -432,10 +450,13 @@ class FinancialTradingBotService:
                 getattr(market_obj, "symbol", "UNKNOWN")
             )
 
-    def get_performance_report_data(self) -> Dict[str, Any]:
+    def get_performance_report_data(
+            self,
+            token: str = Depends(get_verified_token)
+    ) -> Dict[str, Any]:
         """Get comprehensive performance report"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._generate_fallback_performance_report()
 
@@ -536,6 +557,7 @@ async def analyze_and_decide(
     token: str = Depends(get_verified_token),
 ):
     """Analyze market and make trading decision"""
+    service.get_agent(token)
     return service.analyze_and_make_decision(request)
 
 
@@ -599,7 +621,7 @@ async def get_risk_assessment(
 ):
     """Get current risk assessment"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if not agent:
             return {
                 "overall_risk": "moderate",
@@ -653,7 +675,7 @@ async def get_watchlist(
 ):
     """Get trading bot watchlist"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if not agent:
             # Return default watchlist
             default_symbols = ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA"]

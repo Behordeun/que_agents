@@ -17,26 +17,30 @@ from src.que_agents.utils.auth import get_verified_token
 class CustomerSupportService:
     """Service class for customer support operations"""
 
+    CUSTOMER_SUPPORT_CONTEXT = "Customer Support Chat"
+
     def __init__(self, agent_manager: AgentManager):
         self.agent_manager = agent_manager
         self.CUSTOMER_SUPPORT_UNAVAILABLE = "Customer support agent not available"
 
-    def get_agent(self):
+    def get_agent(self, token: str):
         """Get customer support agent"""
-        agent = self.agent_manager.get_agent("customer_support")
-        if not agent:
+        agent = getattr(self.agent_manager, "customer_support_agent", None)
+        if agent is None:
             system_logger.error(
                 "Customer support agent is not available in AgentManager.",
-                additional_info={"context": "Customer Support Chat"},
+                additional_info={"context": self.CUSTOMER_SUPPORT_CONTEXT},
             )
         return agent
 
     def handle_chat_request(
-        self, request: CustomerSupportRequest
+        self,
+        request: CustomerSupportRequest,
+        token: str = Depends(get_verified_token),
     ) -> CustomerSupportResponse:
         """Handle customer support chat request with improved error handling"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 raise HTTPException(
                     status_code=503, detail=self.CUSTOMER_SUPPORT_UNAVAILABLE
@@ -66,7 +70,7 @@ class CustomerSupportService:
             system_logger.error(
                 f"Invalid customer ID format: {ve}",
                 additional_info={
-                    "context": "Customer Support Chat",
+                    "context": self.CUSTOMER_SUPPORT_CONTEXT,
                     "customer_id": request.customer_id,
                 },
                 exc_info=True,
@@ -84,7 +88,7 @@ class CustomerSupportService:
             system_logger.error(
                 f"Error handling customer support chat: {e}",
                 additional_info={
-                    "context": "Customer Support Chat",
+                    "context": self.CUSTOMER_SUPPORT_CONTEXT,
                     "customer_id": getattr(request, "customer_id", "unknown"),
                     "error_type": type(e).__name__,
                 },
@@ -101,10 +105,14 @@ class CustomerSupportService:
                 timestamp=datetime.now().isoformat(),
             )
 
-    def get_customer_context_data(self, customer_id: int) -> Dict[str, Any]:
+    def get_customer_context_data(
+        self,
+        customer_id: int,
+        token: str = Depends(get_verified_token)
+    ) -> Dict[str, Any]:
         """Get enhanced customer context and information"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 raise HTTPException(
                     status_code=503, detail=self.CUSTOMER_SUPPORT_UNAVAILABLE
@@ -280,10 +288,14 @@ class CustomerSupportService:
             "note": "Using fallback data due to data retrieval issues",
         }
 
-    def get_debug_info(self, customer_id: int) -> Dict[str, Any]:
+    def get_debug_info(
+        self,
+        customer_id: int,
+        token: str = Depends(get_verified_token)
+    ) -> Dict[str, Any]:
         """Debug customer context issues"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return {"error": self.CUSTOMER_SUPPORT_UNAVAILABLE}
 
@@ -337,10 +349,14 @@ class CustomerSupportService:
         except Exception as e:
             return {"debug_error": str(e), "error_type": type(e).__name__}
 
-    def get_customer_insights_data(self, customer_id: int) -> Dict[str, Any]:
+    def get_customer_insights_data(
+        self,
+        customer_id: int,
+        token: str = Depends(get_verified_token)
+    ) -> Dict[str, Any]:
         """Get comprehensive customer insights"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 raise HTTPException(
                     status_code=503, detail=self.CUSTOMER_SUPPORT_UNAVAILABLE

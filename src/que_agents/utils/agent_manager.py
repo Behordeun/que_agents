@@ -8,10 +8,13 @@ from typing import Any, Dict, List
 
 import yaml
 
+from fastapi import Depends
+
 from src.que_agents.agents.personal_virtual_assistant_agent import (
     PersonalVirtualAssistantAgent,
 )
 from src.que_agents.error_trace.errorlogger import system_logger
+from src.que_agents.utils.auth import get_verified_token
 from src.que_agents.utils.config_manager import ConfigManager
 
 AGENT_INITIALIZATION_CONTEXT = "Agent Initialization"
@@ -433,9 +436,14 @@ class AgentManager:
 
         self.fallback_agents["financial_trading_bot"] = FallbackTradingBotAgent()
 
-    def get_agent(self, agent_name: str):
+    def get_agent(
+            self,
+            agent_name: str,
+            token: str = Depends(get_verified_token)
+    ):
         """Get agent or fallback agent"""
-        return self.agents.get(agent_name) or self.fallback_agents.get(agent_name)
+        agent = self.agents.get(agent_name) or self.fallback_agents.get(agent_name)
+        return agent
 
     def is_agent_active(self, agent_name: str) -> str:
         """Check agent status"""

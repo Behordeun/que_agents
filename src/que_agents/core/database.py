@@ -3,10 +3,10 @@
 # @Date: 2025-08-01 23:53:31
 # @Last Modified by:   Muhammad Abiodun SULAIMAN
 # @Last Modified time: 2025-08-01 23:53:31
-# @Description: This module contains the database models for the Que Agents application.
+# @Description: This module contains the database models for the Que Agents application.import os
 
+import os
 from datetime import datetime
-
 import yaml
 from sqlalchemy import (
     JSON,
@@ -316,7 +316,7 @@ class TradingSignal(Base):
 
 
 # Load database configuration
-with open("configs/database_config.yaml", "r") as f:
+with open("./configs/database_config.yaml", "r") as f:
     db_config = yaml.safe_load(f)
 
 DATABASE_URL = db_config["database"]["url"]

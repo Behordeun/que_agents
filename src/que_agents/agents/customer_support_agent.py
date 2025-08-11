@@ -43,7 +43,7 @@ CUSTOMER_ID = "Customer ID"
 
 # Load agent configuration
 try:
-    with open("configs/agent_config.yaml", "r") as f:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "configs", "agent_config.yaml"), "r") as f:
         agent_config = yaml.safe_load(f)
 except FileNotFoundError:
     system_logger.error("agent_config.yaml not found. Please check the file path.")
@@ -63,7 +63,7 @@ class CustomerFeedbackManager:
     RESPONSE_TIME_COL = "Response Time (hours)"
     SATISFACTION_SCORE_COL = "Satisfaction Score"
 
-    def __init__(self, csv_path: str = "data/semi_structured/customer_feedback.csv"):
+    def __init__(self, csv_path: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "semi_structured", "customer_feedback.csv")):
         self.csv_path = csv_path
         self.feedback_data: Optional[pd.DataFrame] = None
         self.load_feedback_data()

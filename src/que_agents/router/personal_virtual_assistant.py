@@ -26,18 +26,30 @@ UNKNOWN_ERROR = "Unknown error"
 class PersonalVirtualAssistantService:
     """Service class for Personal Virtual Assistant operations"""
 
+    PVA_CONTEXT = "Personal Virtual Assistant"
+
     def __init__(self, agent_manager: AgentManager):
         self.agent_manager = agent_manager
         self.PVA_UNAVAILABLE = "Personal Virtual Assistant not available"
 
-    def get_agent(self):
+    def get_agent(self, token):
         """Get Personal Virtual Assistant agent"""
-        return self.agent_manager.get_agent("personal_virtual_assistant")
+        agent = getattr(self.agent_manager, "customer_support_agent", None)
+        if agent is None:
+            system_logger.error(
+                "Customer support agent is not available in AgentManager.",
+                additional_info={"context": self.PVA_CONTEXT},
+            )
+        return agent
 
-    def handle_chat_request(self, request: PVARequest) -> PVAResponse:
+    def handle_chat_request(
+        self,
+        request: PVARequest,
+        token: str = Depends(get_verified_token)
+    ) -> PVAResponse:
         """Handle PVA chat request with enhanced error handling"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._generate_fallback_response(
                     request.user_id, request.message, PVA_AGENT_NOT_AVAILABLE
@@ -233,10 +245,14 @@ Please try again in a few minutes, or feel free to ask me anything!"""
 
         return entities
 
-    def get_user_reminders(self, user_id: str) -> Dict[str, Any]:
+    def get_user_reminders(
+        self,
+        user_id: str,
+        token: str = Depends(get_verified_token)
+    ) -> Dict[str, Any]:
         """Get user reminders with fallback data"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._generate_fallback_reminders(
                     user_id, PVA_AGENT_NOT_AVAILABLE
@@ -344,10 +360,14 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         )
         return enhanced
 
-    def get_user_devices(self, user_id: str) -> Dict[str, Any]:
+    def get_user_devices(
+        self,
+        user_id: str,
+        token: str = Depends(get_verified_token)
+    ) -> Dict[str, Any]:
         """Get user smart devices with fallback data"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._generate_fallback_devices(user_id, PVA_AGENT_NOT_AVAILABLE)
 
@@ -488,10 +508,14 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         )
         return enhanced
 
-    def get_user_context(self, user_id: str) -> Dict[str, Any]:
+    def get_user_context(
+        self,
+        user_id: str,
+        token: str = Depends(get_verified_token)
+    ) -> Dict[str, Any]:
         """Get user context and preferences"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._generate_fallback_user_context(user_id)
 
@@ -579,10 +603,11 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         device_id: str,
         action: str,
         parameters: Optional[Dict[str, Any]] = None,
+        token: str = Depends(get_verified_token)
     ) -> Dict[str, Any]:
         """Control smart home devices"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._generate_device_control_fallback(
                     device_id, action, PVA_AGENT_NOT_AVAILABLE
@@ -654,11 +679,14 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         return enhanced
 
     def create_reminder(
-        self, user_id: str, reminder_data: Dict[str, Any]
+        self,
+        user_id: str,
+        reminder_data: Dict[str, Any],
+        token: str = Depends(get_verified_token)
     ) -> Dict[str, Any]:
         """Create a new reminder"""
         try:
-            agent = self.get_agent()
+            agent = self.get_agent(token)
             if not agent:
                 return self._generate_reminder_creation_fallback(
                     reminder_data, PVA_AGENT_NOT_AVAILABLE
@@ -815,7 +843,7 @@ async def get_user_calendar(
 ):
     """Get user calendar events"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if agent and hasattr(agent, "get_user_calendar"):
             calendar_data = agent.get_user_calendar(user_id, days)
             return calendar_data
@@ -896,7 +924,7 @@ async def get_weather_info(
 ):
     """Get weather information for user"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if agent and hasattr(agent, "get_weather_info"):
             weather_data = agent.get_weather_info(user_id, location)
             return weather_data
@@ -966,7 +994,7 @@ async def get_user_tasks(
 ):
     """Get user tasks and to-do items"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if agent and hasattr(agent, "get_user_tasks"):
             tasks_data = agent.get_user_tasks(user_id, status)
             return tasks_data
@@ -1052,7 +1080,7 @@ async def get_pva_capabilities(
 ):
     """Get PVA capabilities and features"""
     try:
-        agent = service.get_agent()
+        agent = service.get_agent(token)
         if agent and hasattr(agent, "get_capabilities"):
             return agent.get_capabilities()
 
