@@ -14,7 +14,7 @@ from src.que_agents.agents.personal_virtual_assistant_agent import (
     PersonalVirtualAssistantAgent,
 )
 from src.que_agents.error_trace.errorlogger import system_logger
-from src.que_agents.utils.auth import get_verified_token
+from src.que_agents.utils.auth import get_token_from_state
 from src.que_agents.utils.config_manager import ConfigManager
 
 AGENT_INITIALIZATION_CONTEXT = "Agent Initialization"
@@ -154,25 +154,19 @@ class AgentManager:
         # Check if the agent config exists
         agent_config_key = "personal_virtual_assistant"
         if config is None or agent_config_key not in config:
-            system_logger.warning(
-                f"Configuration key '{agent_config_key}' not found in agent_config.yaml"
+            system_logger.error(
+                "Configuration key for Personal Virtual Assistant Agent not found in agent_config.yaml",
+                additional_info={
+                    "context": AGENT_INITIALIZATION_CONTEXT,
+                    "agent": "PersonalVirtualAssistantAgent",
+                    "error_type": "KeyError",
+                    "suggestion": "Check agent_config.yaml for correct key names",
+                },
+                exc_info=True,
             )
-            # Try alternative key
-            if config is None or agent_config_key not in config:
-                system_logger.error(
-                    "Configuration key for Personal Virtual Assistant Agent not found in agent_config.yaml",
-                    additional_info={
-                        "context": AGENT_INITIALIZATION_CONTEXT,
-                        "agent": "PersonalVirtualAssistantAgent",
-                        "error_type": "KeyError",
-                        "suggestion": "Check agent_config.yaml for correct key names",
-                    },
-                    exc_info=True,
-                )
-                self.agents["personal_virtual_assistant"] = None
-                self._setup_pva_fallback()
-                return
-                return
+            self.agents["personal_virtual_assistant"] = None
+            self._setup_pva_fallback()
+            return
 
         # Initialize with config
         try:
@@ -219,7 +213,9 @@ class AgentManager:
                     },
                     exc_info=True,
                 )
-                raise KeyError("No configuration found for Trading Bot agent")
+                self.agents["financial_trading_bot"] = None
+                self._setup_trading_bot_fallback()
+                return
 
             from src.que_agents.agents.financial_trading_bot_agent import (
                 FinancialTradingBotAgent,
@@ -439,7 +435,7 @@ class AgentManager:
     def get_agent(
             self,
             agent_name: str,
-            token: str = Depends(get_verified_token)
+            token: str
     ):
         """Get agent or fallback agent"""
         agent = self.agents.get(agent_name) or self.fallback_agents.get(agent_name)

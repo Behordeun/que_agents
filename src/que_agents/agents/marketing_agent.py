@@ -43,7 +43,7 @@ MONITOR_INITIAL_PERFORMANCE = "Monitor initial performance"
 
 # Load agent configuration
 try:
-    with open("configs/agent_config.yaml", "r") as f:
+    with open("./configs/agent_config.yaml", "r") as f:
         agent_config = yaml.safe_load(f)
     system_logger.info("Agent configuration loaded successfully")
 except Exception as e:

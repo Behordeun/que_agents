@@ -38,7 +38,7 @@ TURN_ON = "turn on"
 TURN_OFF = "turn off"
 
 # Load agent configuration
-with open("configs/agent_config.yaml", "r") as f:
+with open("./configs/agent_config.yaml", "r") as f:
     agent_config = yaml.safe_load(f)
 
 

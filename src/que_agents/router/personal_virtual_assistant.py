@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends
 from src.que_agents.core.schemas import PVARequest, PVAResponse
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.utils.agent_manager import AgentManager
-from src.que_agents.utils.auth import get_verified_token
+from src.que_agents.utils.auth import get_token_from_state
 
 # Constant for UTC offset replacement
 UTC_OFFSET = "+00:00"
@@ -32,7 +32,7 @@ class PersonalVirtualAssistantService:
         self.agent_manager = agent_manager
         self.PVA_UNAVAILABLE = "Personal Virtual Assistant not available"
 
-    def get_agent(self, token):
+    def get_agent(self, token: str):
         """Get Personal Virtual Assistant agent"""
         agent = getattr(self.agent_manager, "customer_support_agent", None)
         if agent is None:
@@ -45,7 +45,7 @@ class PersonalVirtualAssistantService:
     def handle_chat_request(
         self,
         request: PVARequest,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> PVAResponse:
         """Handle PVA chat request with enhanced error handling"""
         try:
@@ -248,7 +248,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
     def get_user_reminders(
         self,
         user_id: str,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get user reminders with fallback data"""
         try:
@@ -363,7 +363,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
     def get_user_devices(
         self,
         user_id: str,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get user smart devices with fallback data"""
         try:
@@ -511,7 +511,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
     def get_user_context(
         self,
         user_id: str,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get user context and preferences"""
         try:
@@ -603,7 +603,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         device_id: str,
         action: str,
         parameters: Optional[Dict[str, Any]] = None,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Control smart home devices"""
         try:
@@ -682,7 +682,7 @@ Please try again in a few minutes, or feel free to ask me anything!"""
         self,
         user_id: str,
         reminder_data: Dict[str, Any],
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Create a new reminder"""
         try:
@@ -774,7 +774,7 @@ def get_pva_service(
 async def pva_chat(
     request: PVARequest,
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Handle Personal Virtual Assistant chat request with enhanced fallback"""
     return service.handle_chat_request(request)
@@ -784,7 +784,7 @@ async def pva_chat(
 async def get_user_reminders(
     user_id: str,
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get user reminders with comprehensive fallback data"""
     return service.get_user_reminders(user_id)
@@ -794,7 +794,7 @@ async def get_user_reminders(
 async def get_user_devices(
     user_id: str,
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get user smart devices with detailed fallback data"""
     return service.get_user_devices(user_id)
@@ -804,7 +804,7 @@ async def get_user_devices(
 async def get_user_context(
     user_id: str,
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get user context and preferences"""
     return service.get_user_context(user_id)
@@ -817,7 +817,7 @@ async def control_smart_device(
     action: str,
     parameters: Optional[Dict[str, Any]] = None,
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Control smart home devices"""
     return service.control_smart_device(user_id, device_id, action, parameters)
@@ -828,7 +828,7 @@ async def create_reminder(
     user_id: str,
     reminder_data: Dict[str, Any],
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Create a new reminder for the user"""
     return service.create_reminder(user_id, reminder_data)
@@ -839,7 +839,7 @@ async def get_user_calendar(
     user_id: str,
     days: int = 7,
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get user calendar events"""
     try:
@@ -920,7 +920,7 @@ async def get_weather_info(
     user_id: str,
     location: Optional[str] = None,
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get weather information for user"""
     try:
@@ -990,7 +990,7 @@ async def get_user_tasks(
     user_id: str,
     status: Optional[str] = None,
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get user tasks and to-do items"""
     try:
@@ -1076,7 +1076,7 @@ async def get_user_tasks(
 @router.get("/capabilities")
 async def get_pva_capabilities(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get PVA capabilities and features"""
     try:

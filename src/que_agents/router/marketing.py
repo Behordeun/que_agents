@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.utils.agent_manager import AgentManager
-from src.que_agents.utils.auth import get_verified_token
+from src.que_agents.utils.auth import get_token_from_state
 
 
 class MarketingAgentService:
@@ -22,7 +22,7 @@ class MarketingAgentService:
         self.agent_manager = agent_manager
         self.MARKETING_AGENT_UNAVAILABLE = "Marketing agent temporarily unavailable"
 
-    def get_agent(self, token):
+    def get_agent(self, token: str):
         """Get Marketing Agent"""
         agent = getattr(self.agent_manager, "customer_support_agent", None)
         if agent is None:
@@ -35,7 +35,7 @@ class MarketingAgentService:
     def create_campaign(
         self,
         request: Dict[str, Any],
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Create a new marketing campaign with comprehensive error handling"""
         try:
@@ -177,7 +177,7 @@ class MarketingAgentService:
     def generate_content(
         self,
         request: Dict[str, Any],
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Generate marketing content with enhanced error handling"""
         try:
@@ -420,7 +420,6 @@ The future belongs to those who act today. Don't let this opportunity pass you b
         theme: str,
         audience: str,
         _voice: str,
-        token: str = Depends(get_verified_token)
     ) -> Dict[str, Any]:
         """Generate generic marketing content"""
         return {
@@ -442,7 +441,11 @@ Don't miss this opportunity to transform your {theme} strategy.
             "optimization_score": 0.75,
         }
 
-    def analyze_campaign_performance(self, campaign_id: str) -> Dict[str, Any]:
+    def analyze_campaign_performance(
+            self,
+            campaign_id: str,
+            token: str = Depends(get_token_from_state)
+    ) -> Dict[str, Any]:
         """Analyze campaign performance with fallback data"""
         try:
             agent = self.get_agent(token)
@@ -538,7 +541,7 @@ Don't miss this opportunity to transform your {theme} strategy.
         self,
         status_filter: Optional[str] = None,
         limit: int = 10,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get list of marketing campaigns"""
         try:
@@ -628,7 +631,7 @@ Don't miss this opportunity to transform your {theme} strategy.
     def get_content_templates(
         self,
         content_type: Optional[str] = None,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get marketing content templates"""
         try:
@@ -781,7 +784,7 @@ def get_marketing_service(
 async def create_marketing_campaign(
     request: Dict[str, Any],
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Create a new marketing campaign with comprehensive error handling"""
     return service.create_campaign(request)
@@ -791,7 +794,7 @@ async def create_marketing_campaign(
 async def generate_marketing_content(
     request: Dict[str, Any],
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Generate marketing content with enhanced error handling"""
     return service.generate_content(request)
@@ -801,7 +804,7 @@ async def generate_marketing_content(
 async def analyze_campaign_performance(
     campaign_id: str,
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Analyze campaign performance with comprehensive metrics"""
     return service.analyze_campaign_performance(campaign_id)
@@ -812,7 +815,7 @@ async def get_campaign_list(
     status: Optional[str] = None,
     limit: int = 10,
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get list of marketing campaigns with optional filtering"""
     return service.get_campaign_list(status, limit)
@@ -822,7 +825,7 @@ async def get_campaign_list(
 async def get_content_templates(
     content_type: Optional[str] = None,
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get marketing content templates"""
     return service.get_content_templates(content_type)
@@ -831,7 +834,7 @@ async def get_content_templates(
 @router.get("/analytics/overview")
 async def get_marketing_analytics(
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get marketing analytics overview"""
     try:
@@ -901,7 +904,7 @@ async def get_marketing_analytics(
 @router.get("/audience/segments")
 async def get_audience_segments(
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get available audience segments"""
     try:
@@ -974,7 +977,7 @@ async def get_audience_segments(
 async def pause_campaign(
     campaign_id: str,
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Pause a marketing campaign"""
     try:
@@ -1008,7 +1011,7 @@ async def pause_campaign(
 async def resume_campaign(
     campaign_id: str,
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Resume a paused marketing campaign"""
     try:
@@ -1041,7 +1044,7 @@ async def resume_campaign(
 @router.get("/insights/trends")
 async def get_marketing_trends(
     service: MarketingAgentService = Depends(get_marketing_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get current marketing trends and insights"""
     try:

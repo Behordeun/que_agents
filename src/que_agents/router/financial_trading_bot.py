@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from src.que_agents.core.schemas import TradingAnalysisRequest, TradingDecisionResponse
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.utils.agent_manager import AgentManager
-from src.que_agents.utils.auth import get_verified_token
+from src.que_agents.utils.auth import get_token_from_state
 
 
 class FinancialTradingBotService:
@@ -39,7 +39,7 @@ class FinancialTradingBotService:
     def analyze_and_make_decision(
         self,
         request: TradingAnalysisRequest,
-        token: str = Depends(get_verified_token),
+        token: str = Depends(get_token_from_state),
     ) -> TradingDecisionResponse:
         """Analyze market and make trading decision"""
         try:
@@ -82,7 +82,7 @@ class FinancialTradingBotService:
 
     def run_trading_cycle_operation(
         self, symbols: Optional[List[str]] = None,
-        token: str = Depends(get_verified_token),
+        token: str = Depends(get_token_from_state),
     ) -> Dict[str, Any]:
         """Run trading cycle with specified symbols"""
         try:
@@ -147,7 +147,7 @@ class FinancialTradingBotService:
             "fallback_mode": True,
         }
 
-    def get_portfolio_status_data(self, token: str = Depends(get_verified_token)) -> Dict[str, Any]:
+    def get_portfolio_status_data(self, token: str = Depends(get_token_from_state)) -> Dict[str, Any]:
         """Get portfolio status with comprehensive error handling"""
         fallback_data = {
             "portfolio_value": 10000.0,
@@ -334,7 +334,7 @@ class FinancialTradingBotService:
     def get_market_data_for_symbol(
         self,
         symbol: str,
-        token: str = Depends(get_verified_token),
+        token: str = Depends(get_token_from_state),
     ) -> Dict[str, Any]:
         """Get market data for symbol with enhanced error handling"""
         try:
@@ -452,7 +452,7 @@ class FinancialTradingBotService:
 
     def get_performance_report_data(
             self,
-            token: str = Depends(get_verified_token)
+            token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get comprehensive performance report"""
         try:
@@ -554,7 +554,7 @@ def get_trading_service(
 async def analyze_and_decide(
     request: TradingAnalysisRequest,
     service: FinancialTradingBotService = Depends(get_trading_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Analyze market and make trading decision"""
     service.get_agent(token)
@@ -565,7 +565,7 @@ async def analyze_and_decide(
 async def run_trading_cycle(
     symbols: Optional[List[str]] = None,
     service: FinancialTradingBotService = Depends(get_trading_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Run trading cycle with optional symbol list"""
     return service.run_trading_cycle_operation(symbols)
@@ -574,7 +574,7 @@ async def run_trading_cycle(
 @router.get("/portfolio")
 async def get_portfolio_status(
     service: FinancialTradingBotService = Depends(get_trading_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get comprehensive portfolio status"""
     return service.get_portfolio_status_data()
@@ -584,7 +584,7 @@ async def get_portfolio_status(
 async def get_market_data(
     symbol: str,
     service: FinancialTradingBotService = Depends(get_trading_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get market data for specific symbol"""
     return service.get_market_data_for_symbol(symbol)
@@ -593,7 +593,7 @@ async def get_market_data(
 @router.get("/performance")
 async def get_performance_report(
     service: FinancialTradingBotService = Depends(get_trading_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get comprehensive performance report"""
     return service.get_performance_report_data()
@@ -602,7 +602,7 @@ async def get_performance_report(
 @router.get("/holdings")
 async def get_current_holdings(
     service: FinancialTradingBotService = Depends(get_trading_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get current portfolio holdings"""
     portfolio_data = service.get_portfolio_status_data()
@@ -617,7 +617,7 @@ async def get_current_holdings(
 @router.get("/risk-assessment")
 async def get_risk_assessment(
     service: FinancialTradingBotService = Depends(get_trading_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get current risk assessment"""
     try:
@@ -671,7 +671,7 @@ async def get_risk_assessment(
 @router.get("/watchlist")
 async def get_watchlist(
     service: FinancialTradingBotService = Depends(get_trading_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get trading bot watchlist"""
     try:

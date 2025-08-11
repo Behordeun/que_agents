@@ -20,7 +20,7 @@ class LLMFactory:
     @classmethod
     def _load_llm_config(cls):
         if cls._llm_config is None:
-            config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "configs", "llm_config.yaml")
+            config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "configs", "llm_config.yaml")
             with open(config_path, "r") as f:
                 cls._llm_config = yaml.safe_load(f)
 

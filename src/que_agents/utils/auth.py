@@ -3,7 +3,7 @@
 # @Date: 2025-08-10
 # @Description: Authentication utilities for the API
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.que_agents.error_trace.errorlogger import system_logger
@@ -13,11 +13,12 @@ from src.que_agents.utils.config_manager import ConfigManager
 security = HTTPBearer()
 
 
-def verify_token(
+async def verify_token(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     config_manager: ConfigManager = Depends(),
-) -> str:
-    """Verify API token"""
+) -> None:
+    """Verify API token and store it in request state"""
     api_config = config_manager.get_api_config()
     expected_token = api_config["authentication"]["api_token"]
 
@@ -32,10 +33,10 @@ def verify_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=INVALID_AUTH_TOKEN_MSG,
         )
-    return credentials.credentials
+    request.state.token = credentials.credentials  # Store token in request state
 
 
-def get_verified_token(authorization: str = Header(None)) -> str:
+def get_token_from_state(authorization: str = Header(None)) -> str:
     """Verify API token - placeholder for actual implementation"""
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header missing")

@@ -54,14 +54,14 @@ def get_system_metrics() -> Dict[str, Any]:
                     system_logger.warning(
                         f"Failed to check status for agent {agent_name}: {agent_error}"
                     )
-                    agents_status[agent_name] = False
+                    agents_status[agent_name] = "not_initialized"
         else:
             # Fallback when agent_manager is not available
             agents_status = {
-                "customer_support": True,
-                "marketing": True,
-                "personal_virtual_assistant": True,
-                "financial_trading_bot": True,
+                "customer_support": "active",
+                "marketing": "active",
+                "personal_virtual_assistant": "active",
+                "financial_trading_bot": "active",
             }
 
         # Calculate health score safely
@@ -105,20 +105,11 @@ def get_system_metrics() -> Dict[str, Any]:
 def calculate_agent_health_score() -> float:
     """Calculate overall system health score based on active agents"""
     try:
-        if not agent_manager or not hasattr(agent_manager, "agent_status"):
+        if not agent_manager:
             return 0.8  # Default good health for demo
 
         if hasattr(agent_manager, "calculate_agent_health_score"):
             return agent_manager.calculate_agent_health_score()
-
-        # Fallback calculation
-        if hasattr(agent_manager, "agent_status"):
-            total_agents = len(agent_manager.agent_status)
-            if total_agents == 0:
-                return 0.8
-
-            active_agents = sum(agent_manager.agent_status.values())
-            return active_agents / total_agents
 
         return 0.8  # Default good health for demo
 

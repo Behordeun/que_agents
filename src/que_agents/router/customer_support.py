@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.que_agents.core.schemas import CustomerSupportRequest, CustomerSupportResponse
 from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.utils.agent_manager import AgentManager
-from src.que_agents.utils.auth import get_verified_token
+from src.que_agents.utils.auth import get_token_from_state
 
 
 class CustomerSupportService:
@@ -36,7 +36,7 @@ class CustomerSupportService:
     def handle_chat_request(
         self,
         request: CustomerSupportRequest,
-        token: str = Depends(get_verified_token),
+        token: str = Depends(get_token_from_state),
     ) -> CustomerSupportResponse:
         """Handle customer support chat request with improved error handling"""
         try:
@@ -108,7 +108,7 @@ class CustomerSupportService:
     def get_customer_context_data(
         self,
         customer_id: int,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get enhanced customer context and information"""
         try:
@@ -291,7 +291,7 @@ class CustomerSupportService:
     def get_debug_info(
         self,
         customer_id: int,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Debug customer context issues"""
         try:
@@ -352,7 +352,7 @@ class CustomerSupportService:
     def get_customer_insights_data(
         self,
         customer_id: int,
-        token: str = Depends(get_verified_token)
+        token: str = Depends(get_token_from_state)
     ) -> Dict[str, Any]:
         """Get comprehensive customer insights"""
         try:
@@ -402,7 +402,7 @@ def get_customer_support_service(
 async def customer_support_chat(
     request: CustomerSupportRequest,
     service: CustomerSupportService = Depends(get_customer_support_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Handle customer support chat request with improved error handling"""
     return service.handle_chat_request(request)
@@ -412,7 +412,7 @@ async def customer_support_chat(
 async def get_customer_context(
     customer_id: int,
     service: CustomerSupportService = Depends(get_customer_support_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get enhanced customer context and information"""
     return service.get_customer_context_data(customer_id)
@@ -422,7 +422,7 @@ async def get_customer_context(
 async def debug_customer_context(
     customer_id: int,
     service: CustomerSupportService = Depends(get_customer_support_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Debug customer context issues"""
     return service.get_debug_info(customer_id)
@@ -432,7 +432,7 @@ async def debug_customer_context(
 async def get_customer_insights(
     customer_id: int,
     service: CustomerSupportService = Depends(get_customer_support_service),
-    token: str = Depends(get_verified_token),
+    token: str = Depends(get_token_from_state),
 ):
     """Get comprehensive customer insights"""
     return service.get_customer_insights_data(customer_id)

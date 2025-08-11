@@ -43,7 +43,7 @@ CUSTOMER_ID = "Customer ID"
 
 # Load agent configuration
 try:
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "configs", "agent_config.yaml"), "r") as f:
+    with open("./configs/agent_config.yaml", "r") as f:
         agent_config = yaml.safe_load(f)
 except FileNotFoundError:
     system_logger.error("agent_config.yaml not found. Please check the file path.")
