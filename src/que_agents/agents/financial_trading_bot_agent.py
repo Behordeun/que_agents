@@ -879,11 +879,12 @@ Min Confidence: {self.min_confidence_threshold:.1%}
 
         macd_signal = "bullish" if market_data.macd > 0 else "bearish"
 
-        volatility_level = (
-            "high"
-            if market_data.volatility > 0.25
-            else "moderate" if market_data.volatility > 0.15 else "low"
-        )
+        if market_data.volatility > 0.25:
+            volatility_level = "high"
+        elif market_data.volatility > 0.15:
+            volatility_level = "moderate"
+        else:
+            volatility_level = "low"
 
         return f"""Market analysis for {market_data.symbol}: Current price ${market_data.current_price:.2f}, RSI {market_data.rsi:.1f}, trending {market_data.market_sentiment}.
         

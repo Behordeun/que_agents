@@ -904,7 +904,11 @@ async def get_audience_segments(
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "get_audience_segments"):
-            return agent.get_audience_segments()
+            try:
+                return agent.get_audience_segments()
+            except Exception as agent_error:
+                system_logger.warning(f"Agent segments method failed: {agent_error}")
+                # Fall through to fallback
 
         # Return fallback audience segments
         return {
@@ -1037,6 +1041,8 @@ async def resume_campaign(
 
 @router.get("/insights/trends")
 async def get_marketing_trends(
+    campaign_type: str = "general",
+    target_audience: str = "general audience",
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
@@ -1044,9 +1050,13 @@ async def get_marketing_trends(
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "get_marketing_trends"):
-            return agent.get_marketing_trends()
+            try:
+                return agent.get_marketing_trends(campaign_type, target_audience)
+            except Exception as agent_error:
+                system_logger.warning(f"Agent trends method failed: {agent_error}")
+                # Fall through to fallback
 
-        # Return fallback trends
+        # Return fallback trends with parameters
         return {
             "trends": [
                 {
@@ -1081,6 +1091,8 @@ async def get_marketing_trends(
                 "Implement dynamic personalization across channels",
                 "Integrate sustainability messaging authentically",
             ],
+            "campaign_type": campaign_type,
+            "target_audience": target_audience,
             "data_source": "fallback_trends",
             "last_updated": datetime.now().isoformat(),
         }
