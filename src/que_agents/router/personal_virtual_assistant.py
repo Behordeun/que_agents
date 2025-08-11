@@ -34,10 +34,10 @@ class PersonalVirtualAssistantService:
 
     def get_agent(self, token: str):
         """Get Personal Virtual Assistant agent"""
-        agent = getattr(self.agent_manager, "customer_support_agent", None)
+        agent = self.agent_manager.get_agent("personal_virtual_assistant", token)
         if agent is None:
             system_logger.error(
-                "Customer support agent is not available in AgentManager.",
+                "Personal Virtual Assistant agent is not available in AgentManager.",
                 additional_info={"context": self.PVA_CONTEXT},
             )
         return agent
@@ -762,10 +762,9 @@ router = APIRouter(tags=["Personal Virtual Assistant"])
 
 
 # Dependency to get PVA service
-def get_pva_service(
-    agent_manager: AgentManager = Depends(),
-) -> PersonalVirtualAssistantService:
+def get_pva_service() -> PersonalVirtualAssistantService:
     """Get PVA service instance"""
+    from src.que_agents.api.main import agent_manager
     return PersonalVirtualAssistantService(agent_manager)
 
 

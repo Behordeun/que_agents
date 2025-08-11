@@ -25,7 +25,7 @@ class CustomerSupportService:
 
     def get_agent(self, token: str):
         """Get customer support agent"""
-        agent = getattr(self.agent_manager, "customer_support_agent", None)
+        agent = self.agent_manager.get_agent("customer_support", token)
         if agent is None:
             system_logger.error(
                 "Customer support agent is not available in AgentManager.",
@@ -390,10 +390,9 @@ router = APIRouter(tags=["Customer Support"])
 
 
 # Dependency to get customer support service
-def get_customer_support_service(
-    agent_manager: AgentManager = Depends(),
-) -> CustomerSupportService:
+def get_customer_support_service() -> CustomerSupportService:
     """Get customer support service instance"""
+    from src.que_agents.api.main import agent_manager
     return CustomerSupportService(agent_manager)
 
 

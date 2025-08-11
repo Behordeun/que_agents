@@ -25,14 +25,12 @@ class FinancialTradingBotService:
 
     def get_agent(self, token: str):
         """Get financial trading bot agent"""
-        agent = getattr(self.agent_manager, "financial_trading_bot", None)
+        agent = self.agent_manager.get_agent("financial_trading_bot", token)
         if agent is None:
             system_logger.error(
                 "Financial trading bot is not available in AgentManager.",
                 additional_info={"context": self.FINANCIAL_TRADING_BOT_CONTEXT},
             )
-        # If the agent needs to use the token, you would pass it here, e.g.:
-        # agent.set_token(token)
         return agent
 
 
@@ -542,10 +540,9 @@ router = APIRouter(tags=["Financial Trading Bot"])
 
 
 # Dependency to get financial trading bot service
-def get_trading_service(
-    agent_manager: AgentManager = Depends(),
-) -> FinancialTradingBotService:
+def get_trading_service() -> FinancialTradingBotService:
     """Get financial trading bot service instance"""
+    from src.que_agents.api.main import agent_manager
     return FinancialTradingBotService(agent_manager)
 
 
