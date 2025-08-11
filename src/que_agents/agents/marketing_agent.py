@@ -1796,15 +1796,24 @@ Provide detailed audience insights and targeting recommendations."""
         )
 
     def analyze_enhanced_campaign_performance(
-        self, campaign_id: int, _include_predictive: bool = True
+        self, campaign_id, _include_predictive: bool = True
     ) -> str:
         """Analyze campaign performance with enhanced insights and predictions"""
         session = get_session()
         try:
+            # Convert string campaign_id to int if needed
+            if isinstance(campaign_id, str):
+                try:
+                    campaign_id_int = int(campaign_id.replace('campaign_', '').replace('fallback_', ''))
+                except (ValueError, AttributeError):
+                    return f"Invalid campaign ID format: {campaign_id}. Please use a numeric campaign ID."
+            else:
+                campaign_id_int = campaign_id
+            
             # Get campaign data
             campaign = (
                 session.query(MarketingCampaign)
-                .filter(MarketingCampaign.id == campaign_id)
+                .filter(MarketingCampaign.id == campaign_id_int)
                 .first()
             )
 
@@ -1814,14 +1823,14 @@ Provide detailed audience insights and targeting recommendations."""
             # Get comprehensive metrics
             metrics = (
                 session.query(CampaignMetrics)
-                .filter(CampaignMetrics.campaign_id == campaign_id)
+                .filter(CampaignMetrics.campaign_id == campaign_id_int)
                 .all()
             )
 
             # Get posts and content performance
             posts = (
                 session.query(MarketingPost)
-                .filter(MarketingPost.campaign_id == campaign_id)
+                .filter(MarketingPost.campaign_id == campaign_id_int)
                 .all()
             )
 
@@ -1874,7 +1883,7 @@ Provide detailed audience insights and targeting recommendations."""
             system_logger.info(
                 "Campaign analysis completed",
                 additional_info={
-                    "campaign_id": campaign_id,
+                    "campaign_id": campaign_id_int,
                     "campaign_name": campaign.name,
                 },
             )
@@ -1974,18 +1983,27 @@ Provide detailed audience insights and targeting recommendations."""
         }
 
     def optimize_campaign_enhanced(
-        self, campaign_id: int, optimization_goals: Optional[List[str]] = None
+        self, campaign_id, optimization_goals: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Provide enhanced campaign optimization with AI-powered recommendations"""
         try:
+            # Convert string campaign_id to int if needed
+            if isinstance(campaign_id, str):
+                try:
+                    campaign_id_int = int(campaign_id.replace('campaign_', '').replace('fallback_', ''))
+                except (ValueError, AttributeError):
+                    return {"error": f"Invalid campaign ID format: {campaign_id}"}
+            else:
+                campaign_id_int = campaign_id
+                
             # Get comprehensive analysis
-            analysis = self.analyze_enhanced_campaign_performance(campaign_id)
+            analysis = self.analyze_enhanced_campaign_performance(campaign_id_int)
 
             # Get current campaign data
             session = get_session()
             campaign = (
                 session.query(MarketingCampaign)
-                .filter(MarketingCampaign.id == campaign_id)
+                .filter(MarketingCampaign.id == campaign_id_int)
                 .first()
             )
             session.close()
@@ -2151,13 +2169,22 @@ Provide detailed audience insights and targeting recommendations."""
             "confidence_interval": "±10%",
         }
 
-    def get_campaign_insights_dashboard(self, campaign_id: int) -> Dict[str, Any]:
+    def get_campaign_insights_dashboard(self, campaign_id) -> Dict[str, Any]:
         """Generate comprehensive campaign insights dashboard"""
         session = get_session()
         try:
+            # Convert string campaign_id to int if needed
+            if isinstance(campaign_id, str):
+                try:
+                    campaign_id_int = int(campaign_id.replace('campaign_', '').replace('fallback_', ''))
+                except (ValueError, AttributeError):
+                    return {"error": f"Invalid campaign ID format: {campaign_id}"}
+            else:
+                campaign_id_int = campaign_id
+                
             campaign = (
                 session.query(MarketingCampaign)
-                .filter(MarketingCampaign.id == campaign_id)
+                .filter(MarketingCampaign.id == campaign_id_int)
                 .first()
             )
 
@@ -2170,13 +2197,13 @@ Provide detailed audience insights and targeting recommendations."""
             # Get all related data
             metrics = (
                 session.query(CampaignMetrics)
-                .filter(CampaignMetrics.campaign_id == campaign_id)
+                .filter(CampaignMetrics.campaign_id == campaign_id_int)
                 .all()
             )
 
             posts = (
                 session.query(MarketingPost)
-                .filter(MarketingPost.campaign_id == campaign_id)
+                .filter(MarketingPost.campaign_id == campaign_id_int)
                 .all()
             )
 
