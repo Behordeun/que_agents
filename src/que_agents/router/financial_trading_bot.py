@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from src.que_agents.core.schemas import TradingAnalysisRequest, TradingDecisionResponse
 from src.que_agents.error_trace.errorlogger import system_logger
@@ -558,13 +559,17 @@ async def analyze_and_decide(
     return service.analyze_and_make_decision(request)
 
 
+class TradingCycleRequest(BaseModel):
+    symbols: Optional[List[str]] = None
+
 @router.post("/cycle")
 async def run_trading_cycle(
-    symbols: Optional[List[str]] = None,
+    request: Optional[TradingCycleRequest] = None,
     service: FinancialTradingBotService = Depends(get_trading_service),
     token: str = Depends(get_token_from_state),
 ):
     """Run trading cycle with optional symbol list"""
+    symbols = request.symbols if request else None
     return service.run_trading_cycle_operation(symbols)
 
 
