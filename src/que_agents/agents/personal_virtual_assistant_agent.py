@@ -36,6 +36,7 @@ system_logger.info("Personal Virtual Assistant Agent initialized...")
 
 TURN_ON = "turn on"
 TURN_OFF = "turn off"
+REMIND_ME_TO = "remind me to"
 
 # Load agent configuration
 with open("./configs/agent_config.yaml", "r") as f:
@@ -552,11 +553,11 @@ Provide a helpful and friendly response that addresses the user's request."""
 
     def _extract_set_reminder_entities(self, user_message: str) -> Dict[str, Any]:
         """Extract set reminder-related entities"""
-        entities = {}
         entities["reminder_title"] = (
-            user_message.replace("remind me to", "")
+            user_message.replace(REMIND_ME_TO, "")
             .replace("set a reminder", "")
             .strip()
+        )
         )
         time_patterns = [
             r"at (\d{1,2}:\d{2}(?:\s*[ap]m)?)",
@@ -1449,11 +1450,10 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
         """Rule-based intent recognition for high-confidence patterns"""
         message_lower = user_message.lower()
 
-        # High-confidence patterns for set_reminder
         if any(
             pattern in message_lower
             for pattern in [
-                "remind me to",
+                REMIND_ME_TO,
                 "set a reminder",
                 "reminder for me to",
                 "call john tomorrow",
@@ -1461,6 +1461,7 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
                 "remind me",
             ]
         ):
+            return "set_reminder"
             return "set_reminder"
 
         # Other high-confidence patterns
