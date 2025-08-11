@@ -11,10 +11,10 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import yaml
-from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import RunnablePassthrough
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from src.que_agents.core.database import (
     PVAInteraction,
@@ -60,11 +60,7 @@ class PersonalVirtualAssistantAgent:
         )
 
         # Memory for conversation history
-        self.memory = ConversationBufferWindowMemory(
-            k=15,  # Keep last 15 exchanges
-            return_messages=True,
-            memory_key="chat_history",
-        )
+        self._session_histories: Dict[str, ChatMessageHistory] = {}
 
         # Supported intents
         self.supported_intents = [
@@ -90,8 +86,32 @@ class PersonalVirtualAssistantAgent:
 
         # Create chains
         self.intent_chain = self._create_intent_chain()
-        self.response_chain = self._create_response_chain()
         self.entity_chain = self._create_entity_chain()
+
+        # Base response chain
+        base_response_chain = self._create_response_chain_base()
+
+        # Wrap with RunnableWithMessageHistory to manage chat history per session
+        self.response_chain = RunnableWithMessageHistory(
+            base_response_chain,
+            get_session_history=self._get_session_history,  # called with config
+            history_messages_key="history",  # must match MessagesPlaceholder key
+            input_messages_key="user_message",  # which input field is the latest human message
+        )
+
+    def _get_session_history(self, config: Dict[str, Any]) -> ChatMessageHistory:
+        """Retrieve or create ChatMessageHistory for a given session_id.
+
+        Expects config={"configurable": {"session_id": "<id>"}} as per LangChain convention.
+        """
+        session_id = (
+            config.get("configurable", {}).get("session_id") or "default_session"
+        )
+        history = self._session_histories.get(session_id)
+        if history is None:
+            history = ChatMessageHistory()
+            self._session_histories[session_id] = history
+        return history
 
     def get_assistant_knowledge(self, query: str) -> List[Dict]:
         """Get personal assistant knowledge from knowledge base"""
@@ -129,7 +149,6 @@ class PersonalVirtualAssistantAgent:
             return ""
 
     def _create_intent_prompt(self) -> ChatPromptTemplate:
-        """Create prompt template for intent recognition"""
         system_message = f"""You are an intent recognition expert for a Personal Virtual Assistant. Your role is to identify the user's intent from their message.
 
 SUPPORTED INTENTS:
@@ -153,13 +172,11 @@ INTENT DEFINITIONS:
 User message: {{user_message}}
 
 Respond with ONLY the intent name from the supported intents list. If uncertain, use 'general_query'."""
-
         return ChatPromptTemplate.from_messages(
             [("system", system_message), ("human", "{user_message}")]
         )
 
     def _create_entity_prompt(self) -> ChatPromptTemplate:
-        """Create prompt template for entity extraction"""
         system_message = """You are an entity extraction expert. Extract relevant entities from the user message based on the identified intent.
 
 ENTITY TYPES TO EXTRACT:
@@ -180,8 +197,7 @@ Intent: {intent}
 Extract entities as a JSON object. Only include entities that are clearly present in the message. Use null for missing entities.
 
 Example format:
-{{"location": "New York", "datetime": "tomorrow 3pm", "device_name": "living room lights", "device_action": TURN_ON}}"""
-
+{"location": "New York", "datetime": "tomorrow 3pm", "device_name": "living room lights", "device_action": "turn on"}"""
         return ChatPromptTemplate.from_messages(
             [
                 ("system", system_message),
@@ -190,7 +206,6 @@ Example format:
         )
 
     def _create_response_prompt(self) -> ChatPromptTemplate:
-        """Create prompt template for response generation"""
         system_message = """You are a helpful and friendly Personal Virtual Assistant. Your role is to:
 
 1. Provide helpful responses to user requests
@@ -219,11 +234,11 @@ Enhanced Context: {enhanced_context}
 User message: {user_message}
 
 Provide a helpful and friendly response that addresses the user's request."""
-
+        # Use variable_name="history" for new LangChain memory API
         return ChatPromptTemplate.from_messages(
             [
                 ("system", system_message),
-                MessagesPlaceholder(variable_name="chat_history"),
+                MessagesPlaceholder(variable_name="history"),
                 ("human", "{user_message}"),
             ]
         )
@@ -235,17 +250,14 @@ Provide a helpful and friendly response that addresses the user's request."""
     def _create_entity_chain(self):
         """Create entity extraction chain"""
         return self.entity_prompt | self.llm | StrOutputParser()
+    
+    def _create_response_chain_base(self):
+        """Create base response generation chain"""
+        return self.response_prompt | self.llm | StrOutputParser()
 
     def _create_response_chain(self):
         """Create response generation chain"""
-        return (
-            RunnablePassthrough.assign(
-                chat_history=lambda x: self.memory.chat_memory.messages
-            )
-            | self.response_prompt
-            | self.llm
-            | StrOutputParser()
-        )
+        return self.response_prompt | self.llm | StrOutputParser()
 
     def get_user_context(self, user_id: str) -> Optional[UserContext]:
         """Retrieve user context from database"""
@@ -1123,8 +1135,12 @@ Smart Devices: {len(user_context.smart_devices)} ({', '.join([d['name'] for d in
                 }
             )
 
-            self.memory.chat_memory.add_user_message(user_message)
-            self.memory.chat_memory.add_ai_message(response)
+            # Add messages to session history
+            session_id_key = session_id or "default_session"
+            history = self._session_histories.get(session_id_key)
+            if history is not None:
+                history.add_user_message(user_message)
+                history.add_ai_message(response)
 
             suggestions = self._generate_suggestions(intent_result.intent, user_context)
 
