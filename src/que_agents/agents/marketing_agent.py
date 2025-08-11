@@ -1804,7 +1804,13 @@ Provide detailed audience insights and targeting recommendations."""
             # Convert string campaign_id to int if needed
             if isinstance(campaign_id, str):
                 try:
-                    campaign_id_int = int(campaign_id.replace('campaign_', '').replace('fallback_', ''))
+                    # Extract numeric part from campaign ID strings like 'campaign_001'
+                    import re
+                    numeric_match = re.search(r'\d+', campaign_id)
+                    if numeric_match:
+                        campaign_id_int = int(numeric_match.group())
+                    else:
+                        return f"No numeric ID found in campaign ID: {campaign_id}"
                 except (ValueError, AttributeError):
                     return f"Invalid campaign ID format: {campaign_id}. Please use a numeric campaign ID."
             else:
@@ -1993,7 +1999,13 @@ Provide detailed audience insights and targeting recommendations."""
             # Convert string campaign_id to int if needed
             if isinstance(campaign_id, str):
                 try:
-                    campaign_id_int = int(campaign_id.replace('campaign_', '').replace('fallback_', ''))
+                    # Extract numeric part from campaign ID strings like 'campaign_001'
+                    import re
+                    numeric_match = re.search(r'\d+', campaign_id)
+                    if numeric_match:
+                        campaign_id_int = int(numeric_match.group())
+                    else:
+                        return {"error": f"No numeric ID found in campaign ID: {campaign_id}"}
                 except (ValueError, AttributeError):
                     return {"error": f"Invalid campaign ID format: {campaign_id}"}
             else:
@@ -2179,7 +2191,13 @@ Provide detailed audience insights and targeting recommendations."""
             # Convert string campaign_id to int if needed
             if isinstance(campaign_id, str):
                 try:
-                    campaign_id_int = int(campaign_id.replace('campaign_', '').replace('fallback_', ''))
+                    # Extract numeric part from campaign ID strings like 'campaign_001'
+                    import re
+                    numeric_match = re.search(r'\d+', campaign_id)
+                    if numeric_match:
+                        campaign_id_int = int(numeric_match.group())
+                    else:
+                        return {"error": f"No numeric ID found in: {campaign_id}"}
                 except (ValueError, AttributeError):
                     return {"error": f"Invalid campaign ID format: {campaign_id}"}
             else:

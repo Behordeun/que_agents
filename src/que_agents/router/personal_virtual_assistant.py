@@ -61,14 +61,27 @@ class PersonalVirtualAssistantService:
                 session_id=request.session_id or "",
             )
 
+            # Handle case where result might be a string instead of dict
+            if isinstance(result, str):
+                return PVAResponse(
+                    response=result,
+                    intent="general_query",
+                    entities={},
+                    confidence=0.5,
+                    actions_taken=[],
+                    suggestions=[],
+                    timestamp=datetime.now().isoformat(),
+                )
+            
+            # Handle normal dictionary response
             return PVAResponse(
-                response=result["response"],
-                intent=result["intent"],
-                entities=result["entities"],
-                confidence=result["confidence"],
-                actions_taken=result["actions_taken"],
-                suggestions=result["suggestions"],
-                timestamp=result["timestamp"],
+                response=result.get("response", "I'm here to help!"),
+                intent=result.get("intent", "general_query"),
+                entities=result.get("entities", {}),
+                confidence=result.get("confidence", 0.5),
+                actions_taken=result.get("actions_taken", []),
+                suggestions=result.get("suggestions", []),
+                timestamp=result.get("timestamp", datetime.now().isoformat()),
             )
 
         except Exception as e:
