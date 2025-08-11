@@ -37,6 +37,7 @@ system_logger.info("Personal Virtual Assistant Agent initialized...")
 TURN_ON = "turn on"
 TURN_OFF = "turn off"
 REMIND_ME_TO = "remind me to"
+DEFAULT_LOCATION = "New York"
 
 # Load agent configuration
 with open("./configs/agent_config.yaml", "r") as f:
@@ -333,7 +334,7 @@ Provide a helpful and friendly response that addresses the user's request."""
         user_prefs = UserPreferences(
             user_id=user_id,
             preferences={
-                "location": "New York",
+                "location": DEFAULT_LOCATION,
                 "timezone": "UTC",
                 "temperature_unit": "fahrenheit",
                 "preferred_language": "english",
@@ -553,11 +554,11 @@ Provide a helpful and friendly response that addresses the user's request."""
 
     def _extract_set_reminder_entities(self, user_message: str) -> Dict[str, Any]:
         """Extract set reminder-related entities"""
+        entities = {}
         entities["reminder_title"] = (
             user_message.replace(REMIND_ME_TO, "")
             .replace("set a reminder", "")
             .strip()
-        )
         )
         time_patterns = [
             r"at (\d{1,2}:\d{2}(?:\s*[ap]m)?)",
@@ -603,14 +604,14 @@ Provide a helpful and friendly response that addresses the user's request."""
     ) -> tuple[str, List[str]]:
         """Handle weather request with knowledge base enhancement"""
         # Safely get location with fallback
-        location = entities.get("location")
         if (
             not location
             and hasattr(user_context, "preferences")
             and isinstance(user_context.preferences, dict)
         ):
-            location = user_context.preferences.get("location", "New York")
+            location = user_context.preferences.get("location", DEFAULT_LOCATION)
         elif not location:
+            location = DEFAULT_LOCATION
             location = "New York"
 
         # Get weather knowledge from knowledge base
