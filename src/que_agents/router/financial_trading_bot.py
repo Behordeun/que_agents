@@ -556,7 +556,77 @@ async def analyze_and_decide(
     service: FinancialTradingBotService = Depends(get_trading_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Analyze market and make trading decision"""
+    """
+    **Analyze Market & Make Trading Decision**
+
+    Perform comprehensive market analysis and generate AI-powered trading recommendations with risk assessment.
+
+    **Request Body:**
+    ```json
+    {
+        "symbol": "AAPL",
+        "strategy_type": "momentum"
+    }
+    ```
+
+    **Response:**
+    ```json
+    {
+        "action": "buy",
+        "symbol": "AAPL",
+        "quantity": 10,
+        "confidence": 0.85,
+        "reasoning": "Strong momentum indicators with RSI at 45, MACD showing bullish crossover, and positive earnings outlook",
+        "risk_score": 0.35,
+        "expected_return": 0.08,
+        "entry_price": 150.25,
+        "stop_loss": 142.50,
+        "take_profit": 165.00,
+        "analysis_timestamp": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Supported Strategies:**
+    - `momentum`: Trend-following based on price momentum
+    - `mean_reversion`: Contrarian approach targeting price reversals
+    - `breakout`: Trading on price breakouts from key levels
+    - `scalping`: Short-term high-frequency trading
+    - `swing`: Medium-term position trading
+    - `value`: Fundamental analysis-based decisions
+
+    **Trading Actions:**
+    - `buy`: Open long position
+    - `sell`: Open short position
+    - `hold`: Maintain current position
+    - `close`: Exit existing position
+
+    **Analysis Components:**
+    - 📈 **Technical Indicators**: RSI, MACD, Moving Averages, Bollinger Bands
+    - 📊 **Market Sentiment**: News analysis, social sentiment, institutional flow
+    - 📉 **Risk Metrics**: Volatility, correlation, drawdown analysis
+    - 💰 **Fundamental Data**: Earnings, revenue, financial ratios
+    - 🌍 **Market Context**: Sector performance, economic indicators
+
+    **Features:**
+    - 🤖 AI-powered decision making
+    - 🎯 Multi-factor analysis integration
+    - 🛡️ Risk-adjusted recommendations
+    - 📈 Confidence scoring system
+    - 📊 Expected return calculations
+    - ⚡ Real-time market data analysis
+
+    **Risk Management:**
+    - Automated stop-loss suggestions
+    - Take-profit target recommendations
+    - Position sizing based on risk tolerance
+    - Portfolio correlation analysis
+
+    **Status Codes:**
+    - `200`: Analysis completed successfully
+    - `400`: Invalid symbol or strategy type
+    - `503`: Trading bot service unavailable
+    - `500`: Market data or analysis error
+    """
     service.get_agent(token)
     return service.analyze_and_make_decision(request)
 
@@ -571,7 +641,100 @@ async def run_trading_cycle(
     service: FinancialTradingBotService = Depends(get_trading_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Run trading cycle with optional symbol list"""
+    """
+    **Run Trading Cycle**
+
+    Execute a complete trading cycle analyzing multiple symbols and making automated trading decisions.
+
+    **Request Body (Optional):**
+    ```json
+    {
+        "symbols": ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA"]
+    }
+    ```
+
+    **Response:**
+    ```json
+    {
+        "timestamp": "2024-01-15T10:30:00Z",
+        "symbols_analyzed": 5,
+        "trades_executed": 2,
+        "decisions": [
+            {
+                "symbol": "AAPL",
+                "action": "buy",
+                "confidence": 0.82,
+                "executed": true,
+                "reasoning": "Strong momentum with bullish technical indicators",
+                "quantity": 10,
+                "entry_price": 150.25
+            },
+            {
+                "symbol": "GOOGL",
+                "action": "hold",
+                "confidence": 0.65,
+                "executed": false,
+                "reasoning": "Mixed signals, awaiting clearer trend direction"
+            }
+        ],
+        "portfolio_status": {
+            "total_value": 125000.0,
+            "cash_balance": 45000.0,
+            "positions_count": 8
+        },
+        "performance_summary": {
+            "cycle_pnl": 1250.75,
+            "success_rate": 0.75,
+            "average_confidence": 0.73
+        },
+        "market_conditions": "bullish",
+        "risk_assessment": "moderate",
+        "next_cycle_time": "2024-01-15T11:30:00Z"
+    }
+    ```
+
+    **Cycle Process:**
+    1. 📈 **Market Scan**: Analyze all symbols in watchlist
+    2. 🤖 **Decision Making**: Apply AI algorithms to each symbol
+    3. 🛡️ **Risk Assessment**: Evaluate portfolio impact
+    4. ⚡ **Execution**: Execute approved trades
+    5. 📉 **Reporting**: Generate cycle summary
+
+    **Default Symbols:**
+    If no symbols provided, analyzes: AAPL, GOOGL, MSFT, TSLA, NVDA, AMZN, META
+
+    **Features:**
+    - 🔄 Automated multi-symbol analysis
+    - 🎯 Intelligent trade execution
+    - 🛡️ Portfolio risk management
+    - 📈 Performance tracking
+    - ⏰ Scheduled cycle execution
+    - 📊 Market condition assessment
+
+    **Execution Criteria:**
+    - Minimum confidence threshold (default: 0.7)
+    - Risk limits and position sizing
+    - Portfolio correlation constraints
+    - Market volatility considerations
+
+    **Risk Controls:**
+    - Maximum position size limits
+    - Daily loss limits
+    - Correlation-based diversification
+    - Volatility-adjusted position sizing
+
+    **Use Cases:**
+    - Automated trading execution
+    - Portfolio rebalancing
+    - Systematic strategy implementation
+    - Risk-managed trading operations
+
+    **Status Codes:**
+    - `200`: Trading cycle completed successfully
+    - `400`: Invalid symbol list or parameters
+    - `503`: Trading bot service unavailable
+    - `500`: Execution or market data error
+    """
     symbols = request.symbols if request else None
     return service.run_trading_cycle_operation(symbols)
 
@@ -581,7 +744,117 @@ async def get_portfolio_status(
     service: FinancialTradingBotService = Depends(get_trading_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get comprehensive portfolio status"""
+    """
+    **Get Portfolio Status**
+
+    Retrieve comprehensive portfolio information including holdings, performance metrics, and risk analysis.
+
+    **Response:**
+    ```json
+    {
+        "portfolio_value": 125000.0,
+        "cash_balance": 45000.0,
+        "unrealized_pnl": 2500.75,
+        "realized_pnl": 1850.25,
+        "holdings": {
+            "AAPL": {
+                "shares": 50.0,
+                "value": 7512.50,
+                "avg_price": 148.25,
+                "current_price": 150.25,
+                "unrealized_pnl": 100.0,
+                "weight": 0.06
+            },
+            "GOOGL": {
+                "shares": 25.0,
+                "value": 6750.0,
+                "avg_price": 268.00,
+                "current_price": 270.00,
+                "unrealized_pnl": 50.0,
+                "weight": 0.054
+            }
+        },
+        "performance_metrics": {
+            "total_return": 0.045,
+            "daily_return": 0.008,
+            "weekly_return": 0.025,
+            "monthly_return": 0.045,
+            "sharpe_ratio": 1.35,
+            "max_drawdown": -0.025,
+            "volatility": 0.18,
+            "beta": 1.12
+        },
+        "sector_allocation": {
+            "Technology": 0.65,
+            "Healthcare": 0.20,
+            "Finance": 0.15
+        },
+        "risk_metrics": {
+            "portfolio_beta": 1.12,
+            "value_at_risk_95": -0.032,
+            "expected_shortfall": -0.048,
+            "volatility": 0.18,
+            "correlation_risk": 0.25
+        },
+        "recent_trades": [
+            {
+                "symbol": "AAPL",
+                "action": "buy",
+                "quantity": 10.0,
+                "price": 150.25,
+                "timestamp": "2024-01-15T09:30:00Z",
+                "pnl": 125.0
+            }
+        ],
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Portfolio Components:**
+    - 💰 **Valuation**: Total value, cash balance, P&L
+    - 📈 **Holdings**: Individual positions with details
+    - 🎯 **Performance**: Returns, ratios, and benchmarks
+    - 🏢 **Allocation**: Sector and asset distribution
+    - 🛡️ **Risk**: VaR, volatility, correlation metrics
+    - 📉 **Activity**: Recent trades and transactions
+
+    **Performance Metrics:**
+    - **Total Return**: Overall portfolio performance
+    - **Sharpe Ratio**: Risk-adjusted return measure
+    - **Max Drawdown**: Largest peak-to-trough decline
+    - **Volatility**: Standard deviation of returns
+    - **Beta**: Market sensitivity coefficient
+
+    **Risk Metrics:**
+    - **Value at Risk (VaR)**: Potential loss at 95% confidence
+    - **Expected Shortfall**: Average loss beyond VaR
+    - **Portfolio Beta**: Overall market exposure
+    - **Correlation Risk**: Diversification effectiveness
+
+    **Holdings Details:**
+    - Current market value and position size
+    - Average cost basis and current price
+    - Unrealized profit/loss per position
+    - Portfolio weight and allocation
+
+    **Features:**
+    - 📈 Real-time portfolio valuation
+    - 🛡️ Comprehensive risk analysis
+    - 🎯 Performance attribution
+    - 🏢 Sector diversification tracking
+    - 📉 Trade history and P&L
+    - ⏰ Time-weighted returns
+
+    **Use Cases:**
+    - Portfolio management dashboards
+    - Risk monitoring and reporting
+    - Performance analysis and attribution
+    - Regulatory compliance reporting
+
+    **Status Codes:**
+    - `200`: Portfolio data retrieved successfully
+    - `500`: Portfolio service or data unavailable
+    """
     return service.get_portfolio_status_data()
 
 
@@ -591,7 +864,114 @@ async def get_market_data(
     service: FinancialTradingBotService = Depends(get_trading_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get market data for specific symbol"""
+    """
+    **Get Market Data**
+
+    Retrieve comprehensive real-time and historical market data for a specific trading symbol.
+
+    **Path Parameters:**
+    - `symbol` (str): Trading symbol (e.g., AAPL, GOOGL, MSFT)
+
+    **Response:**
+    ```json
+    {
+        "symbol": "AAPL",
+        "current_price": 150.25,
+        "change_24h": 2.15,
+        "change_percent": 1.45,
+        "volume": 45678900,
+        "market_cap": 2450000000000,
+        "technical_indicators": {
+            "rsi": 58.5,
+            "macd": 0.85,
+            "macd_signal": 0.72,
+            "moving_avg_20": 148.75,
+            "moving_avg_50": 145.20,
+            "moving_avg_200": 142.80,
+            "bollinger_upper": 152.30,
+            "bollinger_lower": 145.60
+        },
+        "price_levels": {
+            "support_1": 147.50,
+            "support_2": 145.00,
+            "resistance_1": 152.00,
+            "resistance_2": 155.50
+        },
+        "volatility": 0.22,
+        "market_sentiment": "bullish",
+        "analyst_ratings": {
+            "buy": 15,
+            "hold": 8,
+            "sell": 2,
+            "average_target": 165.00
+        },
+        "fundamental_data": {
+            "pe_ratio": 28.5,
+            "eps": 5.25,
+            "dividend_yield": 0.52,
+            "book_value": 4.15
+        },
+        "trading_session": {
+            "open": 148.10,
+            "high": 151.20,
+            "low": 147.85,
+            "previous_close": 148.10
+        },
+        "timestamp": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Market Data Components:**
+    - 📈 **Price Action**: Current price, changes, volume
+    - 📊 **Technical Indicators**: RSI, MACD, Moving Averages
+    - 🎯 **Support/Resistance**: Key price levels
+    - 📉 **Volatility**: Price movement measurements
+    - 📰 **Sentiment**: Market mood and analyst opinions
+    - 📋 **Fundamentals**: Financial ratios and metrics
+
+    **Technical Indicators:**
+    - **RSI**: Relative Strength Index (0-100)
+    - **MACD**: Moving Average Convergence Divergence
+    - **Moving Averages**: 20, 50, 200-day trends
+    - **Bollinger Bands**: Volatility-based price channels
+
+    **Price Levels:**
+    - **Support**: Price levels where buying interest emerges
+    - **Resistance**: Price levels where selling pressure increases
+    - **Breakout Levels**: Key technical thresholds
+
+    **Fundamental Metrics:**
+    - **P/E Ratio**: Price-to-earnings valuation
+    - **EPS**: Earnings per share
+    - **Dividend Yield**: Annual dividend percentage
+    - **Book Value**: Net asset value per share
+
+    **Features:**
+    - ⚡ Real-time price updates
+    - 📈 Comprehensive technical analysis
+    - 📊 Multi-timeframe indicators
+    - 🎯 Key level identification
+    - 📉 Volatility measurements
+    - 📰 Sentiment analysis integration
+
+    **Use Cases:**
+    - Trading decision support
+    - Technical analysis workflows
+    - Market research and screening
+    - Risk assessment and monitoring
+
+    **Supported Symbols:**
+    - US Stocks (NYSE, NASDAQ)
+    - Major ETFs and indices
+    - Popular cryptocurrency pairs
+    - Forex major pairs
+
+    **Status Codes:**
+    - `200`: Market data retrieved successfully
+    - `400`: Invalid or unsupported symbol
+    - `404`: Symbol not found
+    - `500`: Market data service unavailable
+    """
     return service.get_market_data_for_symbol(symbol)
 
 
@@ -600,7 +980,130 @@ async def get_performance_report(
     service: FinancialTradingBotService = Depends(get_trading_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get comprehensive performance report"""
+    """
+    **Get Performance Report**
+
+    Generate comprehensive trading performance analysis with detailed metrics, statistics, and insights.
+
+    **Response:**
+    ```json
+    {
+        "portfolio_value": 125000.0,
+        "total_return": 0.045,
+        "daily_return": 0.008,
+        "weekly_return": 0.025,
+        "monthly_return": 0.045,
+        "ytd_return": 0.045,
+        "trade_statistics": {
+            "total_trades": 156,
+            "winning_trades": 98,
+            "losing_trades": 58,
+            "win_rate": 0.628,
+            "average_win": 245.75,
+            "average_loss": -125.50,
+            "largest_win": 1250.00,
+            "largest_loss": -485.25,
+            "profit_factor": 1.92
+        },
+        "performance_metrics": {
+            "sharpe_ratio": 1.35,
+            "sortino_ratio": 1.68,
+            "calmar_ratio": 1.25,
+            "max_drawdown": -0.025,
+            "volatility": 0.18,
+            "beta": 1.12,
+            "alpha": 0.015,
+            "information_ratio": 0.85
+        },
+        "risk_metrics": {
+            "value_at_risk_95": -0.032,
+            "expected_shortfall": -0.048,
+            "downside_deviation": 0.12,
+            "maximum_consecutive_losses": 4,
+            "recovery_factor": 1.8
+        },
+        "monthly_returns": [
+            {"month": "2024-01", "return": 0.045, "trades": 23},
+            {"month": "2023-12", "return": 0.032, "trades": 28}
+        ],
+        "recent_trades": [
+            {
+                "symbol": "AAPL",
+                "action": "buy",
+                "quantity": 10,
+                "entry_price": 148.25,
+                "exit_price": 150.75,
+                "pnl": 250.0,
+                "hold_time": "2 days",
+                "timestamp": "2024-01-15T09:30:00Z"
+            }
+        ],
+        "sector_performance": {
+            "Technology": 0.052,
+            "Healthcare": 0.038,
+            "Finance": 0.041
+        },
+        "benchmark_comparison": {
+            "sp500_return": 0.035,
+            "outperformance": 0.010,
+            "correlation": 0.78
+        },
+        "report_period": {
+            "start_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-15T10:30:00Z",
+            "days": 15
+        },
+        "timestamp": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Performance Categories:**
+    - 📈 **Returns**: Total, daily, weekly, monthly performance
+    - 🎯 **Trade Stats**: Win rate, profit factor, trade analysis
+    - 🛡️ **Risk Metrics**: Drawdown, volatility, VaR analysis
+    - 📉 **Ratios**: Sharpe, Sortino, Calmar ratios
+    - 🏢 **Sector Analysis**: Performance by sector
+    - 📋 **Benchmarking**: Comparison to market indices
+
+    **Key Performance Ratios:**
+    - **Sharpe Ratio**: Risk-adjusted return measure
+    - **Sortino Ratio**: Downside risk-adjusted returns
+    - **Calmar Ratio**: Return vs maximum drawdown
+    - **Information Ratio**: Active return vs tracking error
+    - **Profit Factor**: Gross profit vs gross loss
+
+    **Risk Analysis:**
+    - **Maximum Drawdown**: Largest peak-to-trough decline
+    - **Value at Risk**: Potential loss at confidence level
+    - **Expected Shortfall**: Average loss beyond VaR
+    - **Volatility**: Standard deviation of returns
+    - **Beta**: Market sensitivity measure
+
+    **Trade Analytics:**
+    - Win/loss ratios and statistics
+    - Average profit and loss per trade
+    - Trade frequency and holding periods
+    - Consecutive win/loss streaks
+    - Profit factor and expectancy
+
+    **Features:**
+    - 📈 Comprehensive performance analysis
+    - 🛡️ Advanced risk metrics
+    - 🎯 Benchmark comparisons
+    - 📅 Time-series performance tracking
+    - 🏢 Sector attribution analysis
+    - 📉 Trade-level statistics
+
+    **Use Cases:**
+    - Performance review and analysis
+    - Risk management reporting
+    - Strategy evaluation and optimization
+    - Investor reporting and compliance
+
+    **Status Codes:**
+    - `200`: Performance report generated successfully
+    - `500`: Performance analysis service unavailable
+    """
     return service.get_performance_report_data()
 
 
@@ -609,7 +1112,108 @@ async def get_current_holdings(
     service: FinancialTradingBotService = Depends(get_trading_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get current portfolio holdings"""
+    """
+    **Get Current Holdings**
+
+    Retrieve detailed information about all current portfolio positions and cash balances.
+
+    **Response:**
+    ```json
+    {
+        "holdings": {
+            "AAPL": {
+                "shares": 50.0,
+                "value": 7512.50,
+                "avg_price": 148.25,
+                "current_price": 150.25,
+                "unrealized_pnl": 100.0,
+                "weight": 0.06,
+                "sector": "Technology",
+                "purchase_date": "2024-01-10T09:30:00Z"
+            },
+            "GOOGL": {
+                "shares": 25.0,
+                "value": 6750.0,
+                "avg_price": 268.00,
+                "current_price": 270.00,
+                "unrealized_pnl": 50.0,
+                "weight": 0.054,
+                "sector": "Technology",
+                "purchase_date": "2024-01-12T14:15:00Z"
+            }
+        },
+        "summary": {
+            "total_positions": 8,
+            "total_value": 125000.0,
+            "cash_balance": 45000.0,
+            "invested_amount": 80000.0,
+            "unrealized_pnl": 2500.75,
+            "total_return": 0.045
+        },
+        "allocation": {
+            "by_sector": {
+                "Technology": 0.65,
+                "Healthcare": 0.20,
+                "Finance": 0.15
+            },
+            "by_asset_class": {
+                "Stocks": 0.85,
+                "ETFs": 0.10,
+                "Cash": 0.05
+            }
+        },
+        "timestamp": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Holdings Details:**
+    - 📈 **Position Size**: Number of shares and market value
+    - 💰 **Cost Basis**: Average purchase price and total cost
+    - 📉 **Current Value**: Real-time market value and P&L
+    - 🎯 **Portfolio Weight**: Percentage of total portfolio
+    - 🏢 **Sector**: Industry classification
+    - 📅 **Purchase Date**: When position was initiated
+
+    **Portfolio Summary:**
+    - Total number of positions held
+    - Combined market value of all holdings
+    - Available cash balance
+    - Total invested capital
+    - Unrealized profit/loss across all positions
+    - Overall portfolio return percentage
+
+    **Allocation Breakdown:**
+    - **By Sector**: Technology, Healthcare, Finance, etc.
+    - **By Asset Class**: Stocks, ETFs, Bonds, Cash
+    - **By Geography**: Domestic vs International exposure
+    - **By Market Cap**: Large, Mid, Small cap distribution
+
+    **Features:**
+    - ⚡ Real-time position valuation
+    - 📈 Unrealized P&L calculations
+    - 🎯 Portfolio weight analysis
+    - 🏢 Sector diversification tracking
+    - 💰 Cash management monitoring
+    - 📅 Position aging analysis
+
+    **Key Metrics:**
+    - Position concentration risk
+    - Sector allocation balance
+    - Cash utilization efficiency
+    - Unrealized gains/losses
+    - Portfolio diversification score
+
+    **Use Cases:**
+    - Portfolio monitoring dashboards
+    - Position management interfaces
+    - Risk assessment and rebalancing
+    - Tax planning and harvesting
+    - Performance attribution analysis
+
+    **Status Codes:**
+    - `200`: Holdings retrieved successfully
+    - `500`: Portfolio service unavailable
+    """
     portfolio_data = service.get_portfolio_status_data()
     return {
         "holdings": portfolio_data.get("holdings", {}),
@@ -624,7 +1228,124 @@ async def get_risk_assessment(
     service: FinancialTradingBotService = Depends(get_trading_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get current risk assessment"""
+    """
+    **Get Risk Assessment**
+
+    Comprehensive portfolio risk analysis with metrics, warnings, and recommendations.
+
+    **Response:**
+    ```json
+    {
+        "overall_risk": "moderate",
+        "risk_score": 0.45,
+        "portfolio_beta": 1.12,
+        "volatility": 0.18,
+        "max_drawdown": -0.025,
+        "value_at_risk": {
+            "95_percent": -0.032,
+            "99_percent": -0.048,
+            "time_horizon": "1_day"
+        },
+        "risk_factors": {
+            "concentration_risk": {
+                "level": "medium",
+                "description": "Top 3 positions represent 45% of portfolio",
+                "recommendation": "Consider diversifying large positions"
+            },
+            "sector_concentration": {
+                "level": "high",
+                "description": "65% allocation to Technology sector",
+                "recommendation": "Reduce technology exposure"
+            },
+            "correlation_risk": {
+                "level": "medium",
+                "description": "High correlation between major holdings",
+                "recommendation": "Add uncorrelated assets"
+            }
+        },
+        "stress_test_results": {
+            "market_crash_scenario": {
+                "portfolio_impact": -0.15,
+                "worst_performers": ["AAPL", "GOOGL", "MSFT"]
+            },
+            "sector_rotation": {
+                "portfolio_impact": -0.08,
+                "affected_positions": ["Technology stocks"]
+            }
+        },
+        "recommendations": [
+            "Reduce position size in AAPL to below 10%",
+            "Add defensive sectors (Utilities, Consumer Staples)",
+            "Consider hedging with put options",
+            "Increase cash allocation to 10-15%"
+        ],
+        "risk_limits": {
+            "position_limit": 0.10,
+            "sector_limit": 0.30,
+            "daily_var_limit": 0.02,
+            "max_drawdown_limit": 0.05
+        },
+        "compliance_status": {
+            "position_limits": "compliant",
+            "sector_limits": "violation",
+            "risk_limits": "compliant"
+        },
+        "timestamp": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Risk Categories:**
+    - 🛡️ **Market Risk**: Beta, volatility, correlation exposure
+    - 🎯 **Concentration Risk**: Position and sector concentration
+    - 📉 **Drawdown Risk**: Maximum loss potential
+    - 🔄 **Liquidity Risk**: Asset liquidity and trading volume
+    - 🌍 **Systematic Risk**: Market-wide risk factors
+
+    **Risk Levels:**
+    - `low`: Minimal risk exposure (0.0-0.3)
+    - `moderate`: Balanced risk profile (0.3-0.6)
+    - `high`: Elevated risk levels (0.6-0.8)
+    - `extreme`: Very high risk exposure (0.8-1.0)
+
+    **Key Risk Metrics:**
+    - **Portfolio Beta**: Market sensitivity (1.0 = market average)
+    - **Volatility**: Standard deviation of returns
+    - **Value at Risk**: Potential loss at confidence levels
+    - **Maximum Drawdown**: Largest peak-to-trough decline
+    - **Correlation**: Inter-asset relationship strength
+
+    **Stress Testing:**
+    - Market crash scenarios (-20%, -30%, -40%)
+    - Sector rotation impacts
+    - Interest rate shock effects
+    - Currency fluctuation impacts
+    - Liquidity crisis simulations
+
+    **Risk Factors Analysis:**
+    - Position concentration warnings
+    - Sector allocation imbalances
+    - Geographic concentration risks
+    - Asset class diversification gaps
+    - Correlation clustering issues
+
+    **Features:**
+    - 📈 Multi-factor risk analysis
+    - 🛡️ Stress testing scenarios
+    - ⚠️ Risk limit monitoring
+    - 💡 Actionable recommendations
+    - 📉 Historical risk tracking
+    - 🎯 Compliance monitoring
+
+    **Use Cases:**
+    - Daily risk monitoring
+    - Portfolio rebalancing decisions
+    - Regulatory compliance reporting
+    - Investment committee presentations
+
+    **Status Codes:**
+    - `200`: Risk assessment completed successfully
+    - `500`: Risk analysis service unavailable
+    """
     try:
         agent = service.get_agent(token)
         if not agent:
@@ -678,7 +1399,132 @@ async def get_watchlist(
     service: FinancialTradingBotService = Depends(get_trading_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get trading bot watchlist"""
+    """
+    **Get Trading Watchlist**
+
+    Retrieve the curated list of symbols being monitored for trading opportunities.
+
+    **Response:**
+    ```json
+    {
+        "symbols": [
+            {
+                "symbol": "AAPL",
+                "name": "Apple Inc.",
+                "sector": "Technology",
+                "current_price": 150.25,
+                "change_24h": 2.15,
+                "change_percent": 1.45,
+                "volume": 45678900,
+                "market_cap": 2450000000000,
+                "watchlist_reason": "Strong momentum and earnings growth",
+                "added_date": "2024-01-10T09:00:00Z",
+                "priority": "high",
+                "alerts": [
+                    {
+                        "type": "price_target",
+                        "condition": "above",
+                        "value": 155.00,
+                        "status": "active"
+                    }
+                ]
+            },
+            {
+                "symbol": "GOOGL",
+                "name": "Alphabet Inc.",
+                "sector": "Technology",
+                "current_price": 270.00,
+                "change_24h": -1.50,
+                "change_percent": -0.55,
+                "volume": 28456700,
+                "market_cap": 1750000000000,
+                "watchlist_reason": "AI developments and cloud growth",
+                "added_date": "2024-01-08T14:30:00Z",
+                "priority": "medium",
+                "alerts": []
+            }
+        ],
+        "summary": {
+            "total_symbols": 12,
+            "high_priority": 4,
+            "medium_priority": 6,
+            "low_priority": 2,
+            "active_alerts": 8
+        },
+        "sector_breakdown": {
+            "Technology": 5,
+            "Healthcare": 3,
+            "Finance": 2,
+            "Consumer": 2
+        },
+        "performance_summary": {
+            "top_performer": {
+                "symbol": "NVDA",
+                "change_percent": 5.25
+            },
+            "worst_performer": {
+                "symbol": "META",
+                "change_percent": -2.15
+            },
+            "average_change": 0.85
+        },
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Watchlist Features:**
+    - 👁️ **Symbol Monitoring**: Real-time price and volume tracking
+    - 📊 **Performance Tracking**: Daily changes and trends
+    - ⚠️ **Alert System**: Price targets and technical alerts
+    - 🏷️ **Priority Levels**: High, medium, low priority classification
+    - 📅 **Historical Tracking**: Addition dates and reasons
+    - 🏢 **Sector Analysis**: Industry diversification
+
+    **Symbol Information:**
+    - Company name and sector classification
+    - Real-time price and volume data
+    - Daily price changes and percentages
+    - Market capitalization
+    - Reason for watchlist inclusion
+    - Priority level and alert status
+
+    **Alert Types:**
+    - **Price Targets**: Above/below specific prices
+    - **Volume Spikes**: Unusual trading activity
+    - **Technical Breakouts**: Chart pattern alerts
+    - **Earnings Events**: Upcoming announcements
+    - **News Catalysts**: Significant news events
+
+    **Priority Levels:**
+    - `high`: Immediate trading opportunities
+    - `medium`: Potential opportunities to monitor
+    - `low`: Long-term prospects and research
+
+    **Watchlist Management:**
+    - Dynamic symbol addition/removal
+    - Priority level adjustments
+    - Alert configuration and management
+    - Performance-based ranking
+    - Sector diversification tracking
+
+    **Features:**
+    - ⚡ Real-time market data integration
+    - 📊 Performance ranking and sorting
+    - ⚠️ Customizable alert system
+    - 🏢 Sector diversification analysis
+    - 📈 Historical performance tracking
+    - 🎯 Opportunity scoring system
+
+    **Use Cases:**
+    - Trading opportunity identification
+    - Market screening and research
+    - Alert-based trading strategies
+    - Portfolio diversification planning
+
+    **Status Codes:**
+    - `200`: Watchlist retrieved successfully
+    - `500`: Watchlist service unavailable
+    """
     try:
         agent = service.get_agent(token)
         if not agent:

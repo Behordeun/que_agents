@@ -91,14 +91,14 @@ class SimpleKnowledgeBase:
             # Try to load configuration with fallback handling
             config = kb_config.get("knowledge_base", {})
             if config:
-                self.chroma_path = config.get("chroma_path", DEFAULT_CHROMA_DB_PATH)
+                self.db_path = config.get("db_path", DEFAULT_KB_DB_PATH)
                 self.chroma_path = config.get("chroma_path", DEFAULT_CHROMA_DB_PATH)
                 self.embedding_model_name = config.get(
                     "embedding_model", "all-MiniLM-L6-v2"
                 )
             else:
                 # Use default configuration
-                self.chroma_path = DEFAULT_CHROMA_DB_PATH
+                self.db_path = DEFAULT_KB_DB_PATH
                 self.chroma_path = DEFAULT_CHROMA_DB_PATH
                 self.embedding_model_name = "all-MiniLM-L6-v2"
         except Exception as e:

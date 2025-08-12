@@ -302,8 +302,7 @@ class TestPersonalVirtualAssistantService:
 
     def test_get_user_context_success(self, service, mock_agent):
         """Test successful user context retrieval"""
-        mock_context = MagicMock()
-        mock_context.__dict__ = {"user_id": "test_user", "preferences": {}}
+        mock_context = {"user_id": "test_user", "preferences": {}}
         mock_agent.get_user_context.return_value = mock_context
         service.get_agent = MagicMock(return_value=mock_agent)
 
@@ -487,9 +486,7 @@ class TestRouterDependencies:
 
     def test_get_pva_service(self):
         """Test service dependency creation"""
-        with patch(
-            "src.que_agents.router.personal_virtual_assistant.agent_manager"
-        ) as mock_manager:
+        with patch("src.que_agents.api.main.agent_manager") as mock_manager:
             service = get_pva_service()
             assert isinstance(service, PersonalVirtualAssistantService)
             assert service.agent_manager == mock_manager

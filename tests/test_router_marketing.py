@@ -472,7 +472,7 @@ class TestRouterDependencies:
 
     def test_get_marketing_service(self):
         """Test service dependency creation"""
-        with patch("src.que_agents.router.marketing.agent_manager") as mock_manager:
+        with patch("src.que_agents.api.main.agent_manager") as mock_manager:
             service = get_marketing_service()
             assert isinstance(service, MarketingAgentService)
             assert service.agent_manager == mock_manager

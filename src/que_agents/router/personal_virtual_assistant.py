@@ -6,7 +6,7 @@
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from src.que_agents.core.schemas import PVARequest, PVAResponse
@@ -782,7 +782,70 @@ async def pva_chat(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Handle Personal Virtual Assistant chat request with enhanced fallback"""
+    """
+    **Personal Virtual Assistant Chat**
+
+    Engage in natural conversation with your AI assistant for task management, smart home control, and general assistance.
+
+    **Request Body:**
+    ```json
+    {
+        "user_id": "user_12345",
+        "message": "Turn on the living room lights and set them to 75% brightness",
+        "session_id": "session_abc123"
+    }
+    ```
+
+    **Response:**
+    ```json
+    {
+        "response": "I've turned on the living room lights and set them to 75% brightness. Is there anything else you'd like me to adjust?",
+        "intent": "smart_home_control",
+        "entities": {
+            "device": "living room lights",
+            "action": "turn_on",
+            "brightness": 75
+        },
+        "confidence": 0.95,
+        "actions_taken": ["device_control", "brightness_adjustment"],
+        "suggestions": [
+            "Set a lighting schedule",
+            "Adjust thermostat",
+            "Check other smart devices"
+        ],
+        "timestamp": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Supported Intents:**
+    - 🏠 **Smart Home**: Device control, automation, scenes
+    - 📅 **Calendar**: Scheduling, reminders, appointments
+    - ☁️ **Weather**: Current conditions, forecasts, alerts
+    - 📝 **Tasks**: To-do management, productivity
+    - 📧 **Communication**: Email, messages, calls
+    - 📰 **Information**: General queries, research
+
+    **Features:**
+    - 🤖 Natural language understanding
+    - 🎯 Context-aware responses
+    - 🔄 Multi-turn conversations
+    - ⚡ Real-time action execution
+    - 💡 Proactive suggestions
+    - 📊 Confidence scoring
+    - 🔍 Entity extraction
+
+    **Smart Home Commands:**
+    - "Turn on/off [device]"
+    - "Set [device] to [value]"
+    - "What's the temperature?"
+    - "Lock the doors"
+    - "Play music in [room]"
+
+    **Status Codes:**
+    - `200`: Response generated successfully
+    - `400`: Invalid request format
+    - `503`: PVA service temporarily unavailable
+    """
     return service.handle_chat_request(request)
 
 
@@ -792,7 +855,68 @@ async def get_user_reminders(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get user reminders with comprehensive fallback data"""
+    """
+    **Get User Reminders**
+
+    Retrieve all active reminders and scheduled tasks for a specific user.
+
+    **Path Parameters:**
+    - `user_id` (str): Unique user identifier
+
+    **Response:**
+    ```json
+    {
+        "reminders": [
+            {
+                "id": "reminder_001",
+                "title": "Daily standup meeting",
+                "description": "Weekly team standup meeting",
+                "target_time": "2024-01-15T14:00:00Z",
+                "status": "active",
+                "priority": "medium",
+                "category": "work",
+                "recurring": true,
+                "created_at": "2024-01-08T10:00:00Z"
+            }
+        ],
+        "total": 3,
+        "active_count": 2,
+        "categories": {
+            "work": 2,
+            "personal": 1
+        },
+        "upcoming_today": 1,
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Reminder Properties:**
+    - 📝 **Title & Description**: Clear reminder details
+    - ⏰ **Target Time**: When the reminder should trigger
+    - 🏷️ **Priority**: Low, medium, high urgency levels
+    - 📂 **Category**: Work, personal, health, etc.
+    - 🔄 **Recurring**: One-time or repeating reminders
+    - 🟢 **Status**: Active, completed, snoozed
+
+    **Features:**
+    - 📅 Today's upcoming reminders
+    - 📈 Category-based organization
+    - 🔄 Recurring reminder support
+    - ⏰ Time-based sorting
+    - 🏷️ Priority-based filtering
+    - 📊 Summary statistics
+
+    **Use Cases:**
+    - Reminder management interfaces
+    - Daily planning dashboards
+    - Productivity tracking
+    - Task organization systems
+
+    **Status Codes:**
+    - `200`: Reminders retrieved successfully
+    - `404`: User not found
+    - `500`: Reminder service unavailable
+    """
     return service.get_user_reminders(user_id)
 
 
@@ -802,7 +926,96 @@ async def get_user_devices(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get user smart devices with detailed fallback data"""
+    """
+    **Get Smart Home Devices**
+
+    Retrieve all connected smart home devices with current status and control capabilities.
+
+    **Path Parameters:**
+    - `user_id` (str): Unique user identifier
+
+    **Response:**
+    ```json
+    {
+        "devices": [
+            {
+                "id": "device_001",
+                "name": "Living Room Lights",
+                "type": "lighting",
+                "status": "on",
+                "location": "living_room",
+                "brightness": 75,
+                "color": "warm_white",
+                "controllable": true,
+                "last_updated": "2024-01-15T10:15:00Z",
+                "manufacturer": "Philips Hue",
+                "model": "Smart Bulb"
+            },
+            {
+                "id": "device_002",
+                "name": "Smart Thermostat",
+                "type": "climate",
+                "status": "auto",
+                "location": "hallway",
+                "current_temp": 72.5,
+                "target_temp": 73.0,
+                "mode": "heat",
+                "controllable": true,
+                "last_updated": "2024-01-15T10:25:00Z",
+                "manufacturer": "Nest",
+                "model": "Learning Thermostat"
+            }
+        ],
+        "total": 5,
+        "online": 4,
+        "offline": 1,
+        "device_types": {
+            "lighting": 2,
+            "climate": 1,
+            "security": 1,
+            "audio": 1
+        },
+        "controllable_devices": 4,
+        "last_activity": "2024-01-15T10:25:00Z",
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Device Types:**
+    - 💡 **Lighting**: Smart bulbs, switches, dimmers
+    - 🌡️ **Climate**: Thermostats, fans, HVAC systems
+    - 🔒 **Security**: Locks, cameras, sensors
+    - 🔊 **Audio**: Speakers, sound systems
+    - 📺 **Entertainment**: TVs, streaming devices
+    - 🏠 **Appliances**: Smart plugs, outlets
+
+    **Device Properties:**
+    - 🟢 **Status**: Current operational state
+    - 📍 **Location**: Room or area placement
+    - ⚙️ **Controls**: Available control options
+    - 🔋 **Connectivity**: Online/offline status
+    - 🏷️ **Metadata**: Manufacturer, model info
+    - ⏰ **Activity**: Last update timestamp
+
+    **Features:**
+    - Real-time device status monitoring
+    - Device type categorization
+    - Location-based organization
+    - Controllability indicators
+    - Connectivity status tracking
+    - Activity timeline
+
+    **Use Cases:**
+    - Smart home dashboards
+    - Device control interfaces
+    - Home automation setup
+    - Energy monitoring systems
+
+    **Status Codes:**
+    - `200`: Devices retrieved successfully
+    - `404`: User not found
+    - `500`: Smart home service unavailable
+    """
     return service.get_user_devices(user_id)
 
 
@@ -812,13 +1025,94 @@ async def get_user_context(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get user context and preferences"""
+    """
+    **Get User Context & Preferences**
+
+    Retrieve comprehensive user profile, preferences, and interaction history for personalized assistance.
+
+    **Path Parameters:**
+    - `user_id` (str): Unique user identifier
+
+    **Response:**
+    ```json
+    {
+        "user_id": "user_12345",
+        "name": "John Smith",
+        "preferences": {
+            "timezone": "America/New_York",
+            "language": "en-US",
+            "units": "imperial",
+            "notification_preference": "push",
+            "theme": "auto",
+            "voice_response": true
+        },
+        "interaction_history": {
+            "total_conversations": 47,
+            "last_interaction": "2024-01-15T07:30:00Z",
+            "most_used_features": ["weather", "reminders", "smart_home"],
+            "avg_session_length": "4.5 minutes"
+        },
+        "smart_home_setup": {
+            "total_devices": 5,
+            "connected_devices": 4,
+            "favorite_scenes": ["Good Morning", "Movie Night", "Sleep"],
+            "most_controlled": "lighting"
+        },
+        "calendar_integration": {
+            "connected": true,
+            "default_calendar": "primary",
+            "reminder_settings": "15_minutes_before"
+        },
+        "assistant_settings": {
+            "proactive_suggestions": true,
+            "learning_mode": true,
+            "privacy_mode": false,
+            "data_retention": "1_year"
+        },
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Context Categories:**
+    - 👤 **Profile**: Basic user information and identity
+    - ⚙️ **Preferences**: Language, timezone, units, themes
+    - 💬 **History**: Interaction patterns and usage statistics
+    - 🏠 **Smart Home**: Device setup and automation preferences
+    - 📅 **Calendar**: Integration status and settings
+    - 🤖 **Assistant**: AI behavior and learning preferences
+
+    **Personalization Features:**
+    - Timezone-aware scheduling
+    - Language and locale preferences
+    - Measurement unit preferences
+    - Notification delivery preferences
+    - Theme and interface customization
+    - Voice interaction settings
+
+    **Privacy Controls:**
+    - Data retention policies
+    - Learning mode toggle
+    - Privacy mode settings
+    - Interaction history management
+
+    **Use Cases:**
+    - Personalized assistant responses
+    - User interface customization
+    - Proactive suggestion systems
+    - Privacy compliance reporting
+
+    **Status Codes:**
+    - `200`: User context retrieved successfully
+    - `404`: User not found
+    - `500`: User service unavailable
+    """
     return service.get_user_context(user_id)
 
 
 class DeviceControlRequest(BaseModel):
     action: str
     parameters: Optional[Dict[str, Any]] = None
+
 
 @router.post("/user/{user_id}/device/{device_id}/control")
 async def control_smart_device(
@@ -828,8 +1122,86 @@ async def control_smart_device(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Control smart home devices"""
-    return service.control_smart_device(user_id, device_id, request.action, request.parameters)
+    """
+    **Control Smart Home Device**
+
+    Execute control commands on smart home devices with real-time feedback and status updates.
+
+    **Path Parameters:**
+    - `user_id` (str): Unique user identifier
+    - `device_id` (str): Unique device identifier
+
+    **Request Body:**
+    ```json
+    {
+        "action": "set_brightness",
+        "parameters": {
+            "brightness": 75,
+            "transition_time": 2
+        }
+    }
+    ```
+
+    **Response:**
+    ```json
+    {
+        "device_id": "device_001",
+        "action": "set_brightness",
+        "status": "success",
+        "message": "Living room lights brightness set to 75%",
+        "success": true,
+        "timestamp": "2024-01-15T10:30:00Z",
+        "data_source": "agent_control"
+    }
+    ```
+
+    **Supported Actions:**
+
+    **Lighting Controls:**
+    - `turn_on` / `turn_off`: Basic power control
+    - `set_brightness`: Adjust brightness (0-100)
+    - `set_color`: Change color (RGB/HSV values)
+    - `set_temperature`: Adjust color temperature
+
+    **Climate Controls:**
+    - `set_temperature`: Target temperature adjustment
+    - `set_mode`: Heat, cool, auto, off modes
+    - `set_fan_speed`: Fan speed control
+
+    **Security Controls:**
+    - `lock` / `unlock`: Door lock control
+    - `arm` / `disarm`: Security system control
+
+    **Audio Controls:**
+    - `play_music` / `stop_music`: Media playback
+    - `set_volume`: Volume adjustment (0-100)
+    - `next_track` / `previous_track`: Track control
+
+    **Common Parameters:**
+    - `brightness`: 0-100 percentage
+    - `temperature`: Degrees (F/C based on user preference)
+    - `volume`: 0-100 percentage
+    - `duration`: Time in seconds
+    - `transition_time`: Smooth transition duration
+
+    **Features:**
+    - ⚡ Real-time device control
+    - 🔄 Status confirmation feedback
+    - 🎯 Parameter validation
+    - 🛡️ Error handling and recovery
+    - 📈 Action logging and history
+    - 🔒 Security and permission checks
+
+    **Status Codes:**
+    - `200`: Device controlled successfully
+    - `400`: Invalid action or parameters
+    - `404`: Device or user not found
+    - `403`: Insufficient permissions
+    - `500`: Device control service unavailable
+    """
+    return service.control_smart_device(
+        user_id, device_id, request.action, request.parameters
+    )
 
 
 @router.post("/user/{user_id}/reminder")
@@ -839,7 +1211,78 @@ async def create_reminder(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Create a new reminder for the user"""
+    """
+    **Create User Reminder**
+
+    Create a new reminder or scheduled task with customizable timing and recurrence options.
+
+    **Path Parameters:**
+    - `user_id` (str): Unique user identifier
+
+    **Request Body:**
+    ```json
+    {
+        "title": "Team meeting preparation",
+        "description": "Prepare slides and agenda for weekly team meeting",
+        "target_time": "2024-01-16T09:00:00Z",
+        "priority": "high",
+        "category": "work",
+        "recurring": false,
+        "notification_methods": ["push", "email"]
+    }
+    ```
+
+    **Response:**
+    ```json
+    {
+        "reminder_id": "reminder_2024_001",
+        "title": "Team meeting preparation",
+        "description": "Prepare slides and agenda for weekly team meeting",
+        "target_time": "2024-01-16T09:00:00Z",
+        "status": "created",
+        "priority": "high",
+        "category": "work",
+        "recurring": false,
+        "success": true,
+        "message": "Reminder created successfully",
+        "created_at": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Reminder Properties:**
+    - 📝 **Title**: Brief reminder description (required)
+    - 📋 **Description**: Detailed reminder notes (optional)
+    - ⏰ **Target Time**: When to trigger the reminder (required)
+    - 🏷️ **Priority**: low, medium, high (default: medium)
+    - 📂 **Category**: work, personal, health, etc. (default: general)
+    - 🔄 **Recurring**: One-time or repeating (default: false)
+
+    **Priority Levels:**
+    - `low`: Non-urgent reminders, gentle notifications
+    - `medium`: Standard reminders with normal notifications
+    - `high`: Important reminders with prominent notifications
+
+    **Categories:**
+    - `work`: Professional tasks and meetings
+    - `personal`: Personal appointments and tasks
+    - `health`: Medical appointments, medication
+    - `finance`: Bills, payments, financial tasks
+    - `social`: Events, birthdays, social activities
+
+    **Features:**
+    - ⏰ Flexible scheduling with timezone support
+    - 🔄 Recurring reminder patterns
+    - 📢 Multiple notification methods
+    - 🏷️ Priority-based organization
+    - 📂 Category-based filtering
+    - 📱 Cross-platform synchronization
+
+    **Status Codes:**
+    - `200`: Reminder created successfully
+    - `400`: Invalid reminder data or timing
+    - `404`: User not found
+    - `500`: Reminder service unavailable
+    """
     return service.create_reminder(user_id, reminder_data)
 
 
@@ -850,7 +1293,95 @@ async def get_user_calendar(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get user calendar events"""
+    """
+    **Get User Calendar Events**
+
+    Retrieve upcoming calendar events and appointments with detailed scheduling information.
+
+    **Path Parameters:**
+    - `user_id` (str): Unique user identifier
+
+    **Query Parameters:**
+    - `days` (int): Number of days to look ahead (default: 7, max: 30)
+
+    **Response:**
+    ```json
+    {
+        "events": [
+            {
+                "id": "event_001",
+                "title": "Team Meeting",
+                "start_time": "2024-01-15T14:00:00Z",
+                "end_time": "2024-01-15T15:00:00Z",
+                "location": "Conference Room A",
+                "attendees": ["john@company.com", "sarah@company.com"],
+                "description": "Weekly team sync and project updates",
+                "status": "confirmed",
+                "meeting_type": "in_person",
+                "priority": "medium"
+            },
+            {
+                "id": "event_002",
+                "title": "Client Presentation",
+                "start_time": "2024-01-16T10:00:00Z",
+                "end_time": "2024-01-16T11:30:00Z",
+                "location": "Virtual - Zoom",
+                "attendees": ["client@company.com"],
+                "description": "Q1 project proposal presentation",
+                "status": "confirmed",
+                "meeting_type": "virtual",
+                "priority": "high"
+            }
+        ],
+        "total": 5,
+        "upcoming_today": 1,
+        "data_source": "calendar_integration",
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Event Properties:**
+    - 📝 **Title & Description**: Event details and notes
+    - ⏰ **Timing**: Start and end times with timezone
+    - 📍 **Location**: Physical or virtual meeting location
+    - 👥 **Attendees**: Participant email addresses
+    - 🟢 **Status**: Confirmed, tentative, cancelled
+    - 📹 **Type**: In-person, virtual, hybrid meetings
+    - 🏷️ **Priority**: Event importance level
+
+    **Meeting Types:**
+    - `in_person`: Physical location meetings
+    - `virtual`: Online meetings (Zoom, Teams, etc.)
+    - `hybrid`: Mixed in-person and virtual
+    - `phone`: Audio-only conferences
+
+    **Features:**
+    - 📅 Multi-day event retrieval
+    - ⏰ Today's events highlighting
+    - 👥 Attendee information
+    - 📍 Location and meeting details
+    - 🔄 Real-time calendar synchronization
+    - 🏷️ Priority-based organization
+
+    **Integration Support:**
+    - Google Calendar
+    - Microsoft Outlook
+    - Apple Calendar
+    - Exchange Server
+    - CalDAV protocols
+
+    **Use Cases:**
+    - Daily planning and scheduling
+    - Meeting preparation assistance
+    - Calendar conflict detection
+    - Automated meeting reminders
+
+    **Status Codes:**
+    - `200`: Calendar events retrieved successfully
+    - `400`: Invalid date range or parameters
+    - `404`: User not found or calendar not connected
+    - `500`: Calendar service unavailable
+    """
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "get_user_calendar"):
@@ -931,7 +1462,109 @@ async def get_weather_info(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get weather information for user"""
+    """
+    **Get Weather Information**
+
+    Retrieve current weather conditions and forecast data for the user's location or specified area.
+
+    **Path Parameters:**
+    - `user_id` (str): Unique user identifier
+
+    **Query Parameters:**
+    - `location` (optional): Specific location override (city, zip code, coordinates)
+
+    **Response:**
+    ```json
+    {
+        "location": "New York, NY",
+        "current": {
+            "temperature": 72,
+            "condition": "Partly Cloudy",
+            "humidity": 65,
+            "wind_speed": 8,
+            "wind_direction": "NW",
+            "visibility": 10,
+            "uv_index": 6,
+            "feels_like": 75,
+            "pressure": 30.15,
+            "dew_point": 58
+        },
+        "forecast": [
+            {
+                "date": "2024-01-15",
+                "high": 78,
+                "low": 65,
+                "condition": "Partly Cloudy",
+                "precipitation_chance": 20,
+                "wind_speed": 10,
+                "humidity": 60
+            },
+            {
+                "date": "2024-01-16",
+                "high": 80,
+                "low": 68,
+                "condition": "Sunny",
+                "precipitation_chance": 10,
+                "wind_speed": 8,
+                "humidity": 55
+            }
+        ],
+        "alerts": [],
+        "sunrise": "06:45",
+        "sunset": "19:30",
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Current Conditions:**
+    - 🌡️ **Temperature**: Current temperature and feels-like
+    - ☁️ **Condition**: Weather description (sunny, cloudy, rainy, etc.)
+    - 💧 **Humidity**: Relative humidity percentage
+    - 💨 **Wind**: Speed and direction information
+    - 👁️ **Visibility**: Visibility distance
+    - ☀️ **UV Index**: Sun exposure risk level
+    - 🌡️ **Pressure**: Atmospheric pressure
+
+    **Forecast Data:**
+    - 📅 **Multi-day**: 3-7 day weather outlook
+    - 🌡️ **Temperature Range**: Daily high and low temperatures
+    - ☔ **Precipitation**: Chance of rain/snow
+    - 💨 **Wind Conditions**: Expected wind patterns
+    - 💧 **Humidity Levels**: Daily humidity ranges
+
+    **Weather Alerts:**
+    - ⚠️ Severe weather warnings
+    - 🌪️ Storm and tornado watches
+    - 🌨️ Temperature extremes
+    - 💧 Flood and precipitation alerts
+
+    **Features:**
+    - 📍 Location-based weather data
+    - ⏰ Real-time condition updates
+    - 📅 Extended forecast periods
+    - ⚠️ Weather alert notifications
+    - 🌅 Sunrise and sunset times
+    - 🌡️ Temperature unit preferences
+
+    **Location Support:**
+    - User's default location
+    - City names ("New York, NY")
+    - ZIP/postal codes
+    - GPS coordinates
+    - Airport codes
+
+    **Use Cases:**
+    - Daily weather briefings
+    - Travel planning assistance
+    - Outdoor activity recommendations
+    - Clothing and preparation suggestions
+
+    **Status Codes:**
+    - `200`: Weather data retrieved successfully
+    - `400`: Invalid location format
+    - `404`: Location not found
+    - `500`: Weather service unavailable
+    """
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "get_weather_info"):
@@ -1001,7 +1634,116 @@ async def get_user_tasks(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get user tasks and to-do items"""
+    """
+    **Get User Tasks & To-Do Items**
+
+    Retrieve user's task list with progress tracking, priority management, and status filtering.
+
+    **Path Parameters:**
+    - `user_id` (str): Unique user identifier
+
+    **Query Parameters:**
+    - `status` (optional): Filter by task status (pending, in_progress, completed)
+
+    **Response:**
+    ```json
+    {
+        "tasks": [
+            {
+                "id": "task_001",
+                "title": "Complete project proposal",
+                "description": "Finish the Q4 project proposal document",
+                "status": "in_progress",
+                "priority": "high",
+                "due_date": "2024-01-17T17:00:00Z",
+                "category": "work",
+                "progress": 75,
+                "created_at": "2024-01-10T09:00:00Z",
+                "estimated_duration": "4 hours",
+                "tags": ["urgent", "client-work"]
+            },
+            {
+                "id": "task_002",
+                "title": "Buy groceries",
+                "description": "Weekly grocery shopping",
+                "status": "pending",
+                "priority": "medium",
+                "due_date": "2024-01-16T18:00:00Z",
+                "category": "personal",
+                "progress": 0,
+                "created_at": "2024-01-14T10:00:00Z",
+                "subtasks": [
+                    "Milk and eggs",
+                    "Fresh vegetables",
+                    "Cleaning supplies"
+                ]
+            }
+        ],
+        "total": 8,
+        "status_filter": null,
+        "summary": {
+            "pending": 3,
+            "in_progress": 2,
+            "completed": 3
+        },
+        "overdue_count": 1,
+        "due_today": 2,
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Task Properties:**
+    - 📝 **Title & Description**: Task details and notes
+    - 🟢 **Status**: pending, in_progress, completed
+    - 🏷️ **Priority**: low, medium, high, urgent
+    - 📅 **Due Date**: Task deadline with timezone
+    - 📂 **Category**: work, personal, health, etc.
+    - 📈 **Progress**: Completion percentage (0-100)
+    - 🏷️ **Tags**: Custom labels and keywords
+    - ⏱️ **Duration**: Estimated time to complete
+
+    **Task Statuses:**
+    - `pending`: Not yet started
+    - `in_progress`: Currently being worked on
+    - `completed`: Finished tasks
+    - `on_hold`: Temporarily paused
+    - `cancelled`: Abandoned tasks
+
+    **Priority Levels:**
+    - `low`: Nice-to-have tasks
+    - `medium`: Standard priority
+    - `high`: Important tasks
+    - `urgent`: Critical, time-sensitive tasks
+
+    **Features:**
+    - 🔍 Status-based filtering
+    - 📈 Progress tracking and visualization
+    - 📅 Due date management and alerts
+    - 🏷️ Priority-based organization
+    - 📂 Category-based grouping
+    - 🔄 Subtask support and breakdown
+    - 🏷️ Custom tagging system
+
+    **Task Categories:**
+    - `work`: Professional tasks and projects
+    - `personal`: Personal errands and activities
+    - `health`: Medical appointments, fitness goals
+    - `finance`: Bills, budgeting, financial tasks
+    - `learning`: Education, skill development
+    - `home`: Household chores and maintenance
+
+    **Use Cases:**
+    - Personal productivity management
+    - Project task tracking
+    - Daily planning and organization
+    - Goal setting and achievement
+
+    **Status Codes:**
+    - `200`: Tasks retrieved successfully
+    - `400`: Invalid status filter
+    - `404`: User not found
+    - `500`: Task service unavailable
+    """
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "get_user_tasks"):
@@ -1087,7 +1829,107 @@ async def get_pva_capabilities(
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get PVA capabilities and features"""
+    """
+    **Get PVA Capabilities & Features**
+
+    Retrieve comprehensive information about Personal Virtual Assistant capabilities, supported features, and integrations.
+
+    **Response:**
+    ```json
+    {
+        "core_features": [
+            "Natural language conversation",
+            "Smart home device control",
+            "Calendar and scheduling management",
+            "Reminder and task management",
+            "Weather information",
+            "Email and message assistance",
+            "General information queries"
+        ],
+        "smart_home_support": [
+            "Lighting control",
+            "Climate control",
+            "Audio/media devices",
+            "Security systems",
+            "Appliance control"
+        ],
+        "integrations": [
+            "Google Calendar",
+            "Microsoft Outlook",
+            "Weather services",
+            "Smart home platforms",
+            "Task management apps"
+        ],
+        "languages": ["English (US)", "English (UK)"],
+        "availability": "24/7",
+        "response_modes": ["Text", "Voice (when available)"],
+        "supported_platforms": [
+            "Web browsers",
+            "Mobile apps",
+            "Smart speakers",
+            "Desktop applications"
+        ],
+        "ai_capabilities": {
+            "natural_language_understanding": true,
+            "context_awareness": true,
+            "learning_adaptation": true,
+            "multi_turn_conversations": true,
+            "intent_recognition": true,
+            "entity_extraction": true
+        },
+        "version": "2.0.0",
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Core Capabilities:**
+    - 🤖 **Conversational AI**: Natural language understanding and generation
+    - 🏠 **Smart Home**: Device control and automation
+    - 📅 **Scheduling**: Calendar and appointment management
+    - ⏰ **Reminders**: Task and reminder creation
+    - ☁️ **Weather**: Current conditions and forecasts
+    - 📧 **Communication**: Email and messaging assistance
+    - 📰 **Information**: General knowledge and research
+
+    **Smart Home Features:**
+    - 💡 Lighting systems (Philips Hue, LIFX, etc.)
+    - 🌡️ Climate control (Nest, Ecobee, etc.)
+    - 🔊 Audio devices (Sonos, Alexa, etc.)
+    - 🔒 Security systems (locks, cameras, alarms)
+    - 🏠 Appliances (smart plugs, switches)
+
+    **Integration Ecosystem:**
+    - 📅 Calendar platforms (Google, Outlook, Apple)
+    - ☁️ Weather services (OpenWeather, AccuWeather)
+    - 🏠 Smart home hubs (SmartThings, Hubitat)
+    - 📝 Task managers (Todoist, Any.do)
+    - 📧 Email services (Gmail, Outlook)
+
+    **AI Features:**
+    - Context-aware conversations
+    - Intent recognition and classification
+    - Entity extraction from natural language
+    - Multi-turn dialogue management
+    - Personalized learning and adaptation
+    - Proactive suggestions and recommendations
+
+    **Platform Support:**
+    - Web-based interfaces
+    - Mobile applications (iOS, Android)
+    - Smart speakers and displays
+    - Desktop applications
+    - API integrations
+
+    **Use Cases:**
+    - Feature discovery and exploration
+    - Integration planning and setup
+    - Capability assessment for developers
+    - User onboarding and education
+
+    **Status Codes:**
+    - `200`: Capabilities retrieved successfully
+    - `500`: Capabilities service temporarily unavailable
+    """
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "get_capabilities"):

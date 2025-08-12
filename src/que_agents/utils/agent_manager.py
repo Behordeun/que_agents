@@ -98,6 +98,7 @@ class AgentManager:
                 test_agent.create_marketing_campaign
             ):
                 from src.que_agents.agents.marketing_agent import MarketingAgent
+
                 self.agents["marketing"] = MarketingAgent
                 self.agent_status["marketing"] = True
                 system_logger.info("Marketing Agent initialized successfully")
@@ -235,6 +236,7 @@ class AgentManager:
             from src.que_agents.agents.financial_trading_bot_agent import (
                 FinancialTradingBotAgent,
             )
+
             self.agents["financial_trading_bot"] = FinancialTradingBotAgent
             self.agent_status["financial_trading_bot"] = True
             system_logger.info("Financial Trading Bot Agent initialized successfully")
@@ -449,7 +451,7 @@ class AgentManager:
             except Exception as e:
                 system_logger.error(f"Error creating agent instance: {e}")
                 return self.fallback_agents.get(agent_name)
-        
+
         return self.fallback_agents.get(agent_name)
 
     def is_agent_active(self, agent_name: str) -> str:

@@ -1591,63 +1591,31 @@ Recent Interaction Summary:
             if not customer_context:
                 system_logger.error(f"Customer {customer_id} not found", exc_info=True)
                 return {"error": "Customer not found"}
-            
-            # Validate that customer_context is the correct type
-            if not hasattr(customer_context, 'customer_id'):
-                system_logger.error(f"Invalid customer context type: {type(customer_context)}", exc_info=True)
+            if not hasattr(customer_context, "customer_id"):
+                system_logger.error(
+                    f"Invalid customer context type: {type(customer_context)}",
+                    exc_info=True,
+                )
                 return {"error": "Invalid customer context data"}
-                
         except Exception as e:
-            system_logger.error(f"Error getting customer context for {customer_id}: {e}", exc_info=True)
+            system_logger.error(
+                f"Error getting customer context for {customer_id}: {e}", exc_info=True
+            )
             return {"error": f"Failed to retrieve customer context: {str(e)}"}
 
         session = get_session()
         try:
-            # Get interaction statistics
             interactions = (
                 session.query(CustomerInteraction)
                 .filter(CustomerInteraction.customer_id == customer_id)
                 .all()
             )
-
-            sentiment_distribution = {}
-            category_distribution = {}
-            satisfaction_scores = []
-
-            for interaction in interactions:
-                # Sentiment distribution
-                sentiment = interaction.sentiment
-                sentiment_distribution[sentiment] = (
-                    sentiment_distribution.get(sentiment, 0) + 1
-                )
-
-                # Category distribution (from metadata)
-                if interaction.metadata and "category" in interaction.metadata:
-                    category = interaction.metadata["category"]
-                    category_distribution[category] = (
-                        category_distribution.get(category, 0) + 1
-                    )
-
-                # Satisfaction scores
-                if interaction.satisfaction_score:
-                    satisfaction_scores.append(interaction.satisfaction_score)
-
-            # Get feedback data insights
             feedback_history = self.feedback_manager.get_customer_feedback_history(
                 customer_id
             )
             satisfaction_trend = self.feedback_manager.get_customer_satisfaction_trend(
                 customer_id
             )
-
-            # Calculate metrics
-            avg_satisfaction = (
-                sum(satisfaction_scores) / len(satisfaction_scores)
-                if satisfaction_scores
-                else 0.0
-            )
-
-            # Get recent tickets
             recent_tickets = (
                 session.query(SupportTicket)
                 .filter(SupportTicket.customer_id == customer_id)
@@ -1656,75 +1624,140 @@ Recent Interaction Summary:
                 .all()
             )
 
+            sentiment_distribution, category_distribution, satisfaction_scores = (
+                self._get_interaction_distributions(interactions)
+            )
+            avg_satisfaction = (
+                sum(satisfaction_scores) / len(satisfaction_scores)
+                if satisfaction_scores
+                else 0.0
+            )
             risk_indicators = self._assess_customer_risk(
                 customer_context, sentiment_distribution, satisfaction_trend
             )
 
-            # FIX: Use proper attribute access for CustomerContext object
             return {
-                "customer_context": {
-                    "customer_id": customer_context.customer_id,  # Fix: Use attribute access
-                    "name": customer_context.name,
-                    "email": customer_context.email,
-                    "tier": customer_context.tier,
-                    "company": customer_context.company,
-                    "satisfaction_score": customer_context.satisfaction_score,
-                },
-                "interaction_stats": {
-                    "total_interactions": len(interactions),
-                    "sentiment_distribution": sentiment_distribution,
-                    "category_distribution": category_distribution,
-                    "average_satisfaction": avg_satisfaction,
-                    "satisfaction_scores": satisfaction_scores[-10:],  # Last 10 scores
-                    "interaction_stats": {  # Add nested structure for API compatibility
-                        "recent_interactions": [
-                            {
-                                "type": interaction.get("type", "chat"),
-                                "message": interaction.get("message", "No message"),
-                                "sentiment": interaction.get("sentiment", "neutral"),
-                                "satisfaction": interaction.get("satisfaction", 0),
-                                "date": interaction.get(
-                                    "date", datetime.now().isoformat()
-                                ),
-                            }
-                            for interaction in (customer_context.recent_interactions if hasattr(customer_context, 'recent_interactions') and customer_context.recent_interactions else [])
-                        ][:5]
-                    },
-                },
-                "feedback_insights": {
-                    "feedback_count": len(feedback_history),
-                    "satisfaction_trend": satisfaction_trend,
-                    "recent_feedback": feedback_history[:5],  # Last 5 feedback entries
-                },
-                "support_tickets": {
-                    "total_tickets": len(recent_tickets),
-                    "open_tickets": len(customer_context.open_tickets) if hasattr(customer_context, 'open_tickets') and customer_context.open_tickets else 0,
-                    "recent_tickets": [
-                        {
-                            "id": t.id,
-                            "title": t.title,
-                            "category": t.category,
-                            "status": t.status,
-                            "priority": t.priority,
-                            "created_at": (
-                                t.created_at.isoformat() if t.created_at else None
-                            ),
-                        }
-                        for t in recent_tickets
-                    ],
-                },
-                "recommendations": self._generate_customer_recommendations(
-                    customer_context, sentiment_distribution, satisfaction_trend
-                ) if customer_context else [],
+                "customer_context": self._build_customer_context_dict(customer_context),
+                "interaction_stats": self._build_interaction_stats_dict(
+                    interactions,
+                    sentiment_distribution,
+                    category_distribution,
+                    avg_satisfaction,
+                    satisfaction_scores,
+                    customer_context,
+                ),
+                "feedback_insights": self._build_feedback_insights_dict(
+                    feedback_history, satisfaction_trend
+                ),
+                "support_tickets": self._build_support_tickets_dict(
+                    recent_tickets, customer_context
+                ),
+                "recommendations": (
+                    self._generate_customer_recommendations(
+                        customer_context, sentiment_distribution, satisfaction_trend
+                    )
+                    if customer_context
+                    else []
+                ),
                 "risk_indicators": risk_indicators,
             }
-
         except Exception as e:
             system_logger.error(f"Error getting customer insights: {e}", exc_info=True)
             return {"error": f"Failed to retrieve customer insights: {str(e)}"}
         finally:
             if session:
                 session.close()
+
+    def _get_interaction_distributions(self, interactions):
+        sentiment_distribution = {}
+        category_distribution = {}
+        satisfaction_scores = []
+        for interaction in interactions:
+            sentiment = interaction.sentiment
+            sentiment_distribution[sentiment] = (
+                sentiment_distribution.get(sentiment, 0) + 1
+            )
+            if interaction.metadata and "category" in interaction.metadata:
+                category = interaction.metadata["category"]
+                category_distribution[category] = (
+                    category_distribution.get(category, 0) + 1
+                )
+            if interaction.satisfaction_score:
+                satisfaction_scores.append(interaction.satisfaction_score)
+        return sentiment_distribution, category_distribution, satisfaction_scores
+
+    def _build_customer_context_dict(self, customer_context):
+        return {
+            "customer_id": customer_context.customer_id,
+            "name": customer_context.name,
+            "email": customer_context.email,
+            "tier": customer_context.tier,
+            "company": customer_context.company,
+            "satisfaction_score": customer_context.satisfaction_score,
+        }
+
+    def _build_interaction_stats_dict(
+        self,
+        interactions,
+        sentiment_distribution,
+        category_distribution,
+        avg_satisfaction,
+        satisfaction_scores,
+        customer_context,
+    ):
+        return {
+            "total_interactions": len(interactions),
+            "sentiment_distribution": sentiment_distribution,
+            "category_distribution": category_distribution,
+            "average_satisfaction": avg_satisfaction,
+            "satisfaction_scores": satisfaction_scores[-10:],
+            "interaction_stats": {
+                "recent_interactions": [
+                    {
+                        "type": interaction.get("type", "chat"),
+                        "message": interaction.get("message", "No message"),
+                        "sentiment": interaction.get("sentiment", "neutral"),
+                        "satisfaction": interaction.get("satisfaction", 0),
+                        "date": interaction.get("date", datetime.now().isoformat()),
+                    }
+                    for interaction in (
+                        customer_context.recent_interactions
+                        if hasattr(customer_context, "recent_interactions")
+                        and customer_context.recent_interactions
+                        else []
+                    )
+                ][:5]
+            },
+        }
+
+    def _build_feedback_insights_dict(self, feedback_history, satisfaction_trend):
+        return {
+            "feedback_count": len(feedback_history),
+            "satisfaction_trend": satisfaction_trend,
+            "recent_feedback": feedback_history[:5],
+        }
+
+    def _build_support_tickets_dict(self, recent_tickets, customer_context):
+        return {
+            "total_tickets": len(recent_tickets),
+            "open_tickets": (
+                len(customer_context.open_tickets)
+                if hasattr(customer_context, "open_tickets")
+                and customer_context.open_tickets
+                else 0
+            ),
+            "recent_tickets": [
+                {
+                    "id": t.id,
+                    "title": t.title,
+                    "category": t.category,
+                    "status": t.status,
+                    "priority": t.priority,
+                    "created_at": (t.created_at.isoformat() if t.created_at else None),
+                }
+                for t in recent_tickets
+            ],
+        }
 
     def _generate_customer_recommendations(
         self,
@@ -1735,14 +1768,20 @@ Recent Interaction Summary:
         """Generate recommendations for customer management"""
         recommendations = []
         try:
-            recommendations.extend(self._satisfaction_recommendations(satisfaction_trend))
+            recommendations.extend(
+                self._satisfaction_recommendations(satisfaction_trend)
+            )
             recommendations.extend(self._sentiment_recommendations(sentiment_dist))
             if customer_context:
                 recommendations.extend(self._tier_recommendations(customer_context))
                 recommendations.extend(self._ticket_recommendations(customer_context))
         except Exception as e:
-            system_logger.error(f"Error generating customer recommendations: {e}", exc_info=True)
-            recommendations.append("Unable to generate specific recommendations at this time")
+            system_logger.error(
+                f"Error generating customer recommendations: {e}", exc_info=True
+            )
+            recommendations.append(
+                "Unable to generate specific recommendations at this time"
+            )
         return recommendations[:5]  # Limit to top 5 recommendations
 
     def _satisfaction_recommendations(self, satisfaction_trend: Dict) -> List[str]:
@@ -1772,16 +1811,26 @@ Recent Interaction Summary:
     def _tier_recommendations(self, customer_context: CustomerContext) -> List[str]:
         recs = []
         try:
-            if not customer_context or not hasattr(customer_context, 'tier'):
+            if not customer_context or not hasattr(customer_context, "tier"):
                 return recs
-                
+
             if customer_context.tier == "enterprise":
                 recs.append("Enterprise customer - ensure dedicated support")
-                open_tickets_count = len(customer_context.open_tickets) if hasattr(customer_context, 'open_tickets') and customer_context.open_tickets else 0
+                open_tickets_count = (
+                    len(customer_context.open_tickets)
+                    if hasattr(customer_context, "open_tickets")
+                    and customer_context.open_tickets
+                    else 0
+                )
                 if open_tickets_count > 2:
                     recs.append("Multiple open tickets - escalate to account manager")
             elif customer_context.tier == "free":
-                open_tickets_count = len(customer_context.open_tickets) if hasattr(customer_context, 'open_tickets') and customer_context.open_tickets else 0
+                open_tickets_count = (
+                    len(customer_context.open_tickets)
+                    if hasattr(customer_context, "open_tickets")
+                    and customer_context.open_tickets
+                    else 0
+                )
                 if open_tickets_count > 0:
                     recs.append("Consider upgrade conversation for better support")
         except Exception as e:
@@ -1791,10 +1840,14 @@ Recent Interaction Summary:
     def _ticket_recommendations(self, customer_context: CustomerContext) -> List[str]:
         recs = []
         try:
-            if not customer_context or not hasattr(customer_context, 'open_tickets'):
+            if not customer_context or not hasattr(customer_context, "open_tickets"):
                 return recs
-                
-            open_tickets_count = len(customer_context.open_tickets) if customer_context.open_tickets else 0
+
+            open_tickets_count = (
+                len(customer_context.open_tickets)
+                if customer_context.open_tickets
+                else 0
+            )
             if open_tickets_count > 3:
                 recs.append("Multiple open issues - consolidate and prioritize")
         except Exception as e:
@@ -1888,13 +1941,19 @@ Recent Interaction Summary:
         score = 0.0
         factors = []
         try:
-            if customer_context and hasattr(customer_context, 'open_tickets') and customer_context.open_tickets:
+            if (
+                customer_context
+                and hasattr(customer_context, "open_tickets")
+                and customer_context.open_tickets
+            ):
                 open_tickets_count = len(customer_context.open_tickets)
                 if open_tickets_count > 2:
                     score += 0.1
                     factors.append("Multiple open tickets")
         except Exception as e:
-            system_logger.error(f"Error calculating ticket volume risk: {e}", exc_info=True)
+            system_logger.error(
+                f"Error calculating ticket volume risk: {e}", exc_info=True
+            )
         return score, factors
 
     def _get_risk_mitigation_actions(
@@ -2191,7 +2250,7 @@ Recent Interaction Summary:
             system_logger.error(f"Error exporting report: {e}", exc_info=True)
             return f"Error exporting report: {str(e)}"
 
-    def clear_session_history(self, session_id: str = None):
+    def clear_session_history(self, session_id: Optional[str] = None):
         """Clear conversation history for a session or all sessions"""
         if session_id:
             if session_id in self.store:

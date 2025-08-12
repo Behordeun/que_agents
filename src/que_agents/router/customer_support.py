@@ -18,6 +18,13 @@ class CustomerSupportService:
     """Service class for customer support operations"""
 
     CUSTOMER_SUPPORT_CONTEXT = "Customer Support Chat"
+    HANDLE_CUSTOMER_REQUEST_ENHANCED_ERROR = (
+        "Agent does not implement 'handle_customer_request_enhanced'."
+    )
+    CUSTOMER_SUPPORT_AGENT_MISCONFIGURED = (
+        "Customer support agent is misconfigured. Please contact support."
+    )
+    GET_CUSTOMER_INSIGHTS_ERROR = "Agent does not implement 'get_customer_insights'."
 
     def __init__(self, agent_manager: AgentManager):
         self.agent_manager = agent_manager
@@ -31,6 +38,13 @@ class CustomerSupportService:
                 "Customer support agent is not available in AgentManager.",
                 additional_info={"context": self.CUSTOMER_SUPPORT_CONTEXT},
             )
+        # Ensure the agent implements get_customer_insights
+        if not hasattr(agent, "get_customer_insights"):
+            system_logger.error(
+                self.GET_CUSTOMER_INSIGHTS_ERROR,
+                additional_info={"context": self.CUSTOMER_SUPPORT_CONTEXT},
+            )
+            return None
         return agent
 
     def handle_chat_request(
@@ -53,8 +67,25 @@ class CustomerSupportService:
                 if isinstance(request.customer_id, str)
                 else request.customer_id
             )
+            # Ensure agent is not a plain 'object' and implements the required method
+            if (
+                agent is None
+                or type(agent) is object
+                or not hasattr(agent, "handle_customer_request_enhanced")
+                or not callable(
+                    getattr(agent, "handle_customer_request_enhanced", None)
+                )
+            ):
+                system_logger.error(
+                    self.HANDLE_CUSTOMER_REQUEST_ENHANCED_ERROR,
+                    additional_info={"context": self.CUSTOMER_SUPPORT_CONTEXT},
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail=self.CUSTOMER_SUPPORT_AGENT_MISCONFIGURED,
+                )
 
-            result = agent.handle_customer_request_enhanced(
+            result = getattr(agent, "handle_customer_request_enhanced")(
                 customer_id=customer_id, message=request.message
             )
 
@@ -117,7 +148,50 @@ class CustomerSupportService:
                     status_code=503, detail=self.CUSTOMER_SUPPORT_UNAVAILABLE
                 )
 
-            # Get comprehensive customer insights instead of basic context
+            if (
+                agent is None
+                or type(agent) is object
+                or not hasattr(agent, "get_customer_insights")
+                or not callable(getattr(agent, "get_customer_insights", None))
+            ):
+                system_logger.error(
+                    self.GET_CUSTOMER_INSIGHTS_ERROR,
+                    additional_info={"context": self.CUSTOMER_SUPPORT_CONTEXT},
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail=self.CUSTOMER_SUPPORT_AGENT_MISCONFIGURED,
+                )
+
+            if (
+                agent is None
+                or type(agent) is object
+                or not hasattr(agent, "get_customer_insights")
+                or not callable(getattr(agent, "get_customer_insights", None))
+            ):
+                system_logger.error(
+                    self.GET_CUSTOMER_INSIGHTS_ERROR,
+                    additional_info={"context": self.CUSTOMER_SUPPORT_CONTEXT},
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail=self.CUSTOMER_SUPPORT_AGENT_MISCONFIGURED,
+                )
+
+            if (
+                agent is None
+                or type(agent) is object
+                or not hasattr(agent, "get_customer_insights")
+                or not callable(getattr(agent, "get_customer_insights", None))
+            ):
+                system_logger.error(
+                    self.GET_CUSTOMER_INSIGHTS_ERROR,
+                    additional_info={"context": self.CUSTOMER_SUPPORT_CONTEXT},
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail=self.CUSTOMER_SUPPORT_AGENT_MISCONFIGURED,
+                )
             customer_insights = agent.get_customer_insights(customer_id)
 
             if "error" in customer_insights:

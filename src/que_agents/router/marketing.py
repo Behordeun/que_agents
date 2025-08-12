@@ -782,7 +782,83 @@ async def create_marketing_campaign(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Create a new marketing campaign with comprehensive error handling"""
+    """
+    **Create Marketing Campaign**
+
+    Generate a comprehensive marketing campaign with AI-powered strategy, content, and scheduling.
+
+    **Request Body:**
+    ```json
+    {
+        "campaign_type": "social_media",
+        "target_audience": "tech professionals aged 25-45",
+        "budget": 5000.0,
+        "duration_days": 30,
+        "goals": ["increase_awareness", "generate_leads"],
+        "channels": ["social_media", "email", "content_marketing"],
+        "industry": "technology",
+        "brand_voice": "professional",
+        "geographic_focus": "north_america",
+        "competitor_analysis": true,
+        "ab_testing": true
+    }
+    ```
+
+    **Response:**
+    ```json
+    {
+        "success": true,
+        "campaign_id": "camp_2024_001",
+        "message": "Campaign created successfully",
+        "campaign_plan": {
+            "strategy": "Multi-channel approach targeting tech professionals",
+            "key_messages": ["Innovation", "Efficiency", "Growth"],
+            "budget_allocation": {
+                "social_media": 2000,
+                "email": 1500,
+                "content": 1500
+            }
+        },
+        "schedule": [
+            {
+                "date": "2024-01-15",
+                "activity": "Campaign launch",
+                "channel": "social_media"
+            }
+        ],
+        "content_pieces": [
+            {
+                "type": "social_post",
+                "title": "Innovative Solutions for Modern Businesses",
+                "content": "Transform your workflow with cutting-edge technology..."
+            }
+        ],
+        "estimated_reach": 50000,
+        "projected_roi": 3.2,
+        "timestamp": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Features:**
+    - 🎯 AI-powered audience targeting
+    - 📊 Budget optimization and allocation
+    - 📅 Automated scheduling and timeline
+    - 📝 Content generation and planning
+    - 🔍 Competitor analysis integration
+    - 🧪 A/B testing recommendations
+    - 📈 ROI projections and metrics
+
+    **Required Fields:**
+    - `campaign_type`: Type of campaign (social_media, email, ppc, content)
+    - `target_audience`: Description of target audience
+    - `budget`: Campaign budget in USD
+    - `duration_days`: Campaign duration in days
+
+    **Status Codes:**
+    - `200`: Campaign created successfully
+    - `400`: Missing required fields or invalid data
+    - `503`: Marketing agent temporarily unavailable
+    """
     return service.create_campaign(request)
 
 
@@ -792,7 +868,72 @@ async def generate_marketing_content(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Generate marketing content with enhanced error handling"""
+    """
+    **Generate Marketing Content**
+
+    Create engaging, platform-optimized marketing content using AI-powered generation.
+
+    **Request Body:**
+    ```json
+    {
+        "platform": "social_media",
+        "content_type": "social_media",
+        "campaign_theme": "product_launch",
+        "target_audience": "tech professionals",
+        "key_messages": ["innovative", "efficient", "scalable"],
+        "brand_voice": "professional",
+        "call_to_action": "Learn more",
+        "include_hashtags": true,
+        "max_length": 280,
+        "urgency_level": "medium"
+    }
+    ```
+
+    **Response:**
+    ```json
+    {
+        "success": true,
+        "content": {
+            "title": "🚀 Revolutionary Tech Innovation",
+            "content": "Discover cutting-edge technology that's transforming how professionals work...",
+            "call_to_action": "Get started today",
+            "hashtags": ["#TechInnovation", "#DigitalTransformation"],
+            "platform": "social_media",
+            "estimated_reach": 3200,
+            "optimization_score": 0.8,
+            "engagement_prediction": "high"
+        },
+        "generation_method": "agent",
+        "timestamp": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Supported Platforms:**
+    - `social_media`: Facebook, LinkedIn, Twitter-optimized content
+    - `email`: Email marketing campaigns and newsletters
+    - `blog`: Long-form blog posts and articles
+    - `ppc`: Pay-per-click ad copy and headlines
+
+    **Features:**
+    - 🎨 Platform-specific optimization
+    - 📝 AI-powered copywriting
+    - 🎯 Audience-tailored messaging
+    - 📈 Engagement prediction scoring
+    - 🔗 SEO-friendly content structure
+    - 📱 Mobile-optimized formatting
+    - ⚡ Real-time content generation
+
+    **Content Types:**
+    - Social media posts and captions
+    - Email subject lines and body content
+    - Blog post outlines and full articles
+    - Ad headlines and descriptions
+
+    **Status Codes:**
+    - `200`: Content generated successfully
+    - `400`: Invalid platform or content type
+    - `500`: Content generation service unavailable
+    """
     return service.generate_content(request)
 
 
@@ -802,7 +943,79 @@ async def analyze_campaign_performance(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Analyze campaign performance with comprehensive metrics"""
+    """
+    **Analyze Campaign Performance**
+
+    Get comprehensive performance analytics and insights for a specific marketing campaign.
+
+    **Path Parameters:**
+    - `campaign_id` (str): Unique campaign identifier
+
+    **Response:**
+    ```json
+    {
+        "campaign_id": "camp_2024_001",
+        "status": "active",
+        "performance_metrics": {
+            "impressions": 52500,
+            "clicks": 2625,
+            "conversions": 131,
+            "click_through_rate": 0.05,
+            "conversion_rate": 0.05,
+            "cost_per_click": 1.52,
+            "return_on_ad_spend": 3.45
+        },
+        "engagement_metrics": {
+            "likes": 1250,
+            "shares": 156,
+            "comments": 78,
+            "engagement_rate": 0.085
+        },
+        "audience_insights": {
+            "top_demographics": ["25-34", "35-44", "45-54"],
+            "top_locations": ["United States", "United Kingdom", "Canada"],
+            "device_breakdown": {
+                "mobile": 68,
+                "desktop": 27,
+                "tablet": 5
+            }
+        },
+        "performance_trend": "improving",
+        "recommendations": [
+            "Increase budget for high-performing ad sets",
+            "A/B test new creative variations",
+            "Expand to similar audiences"
+        ],
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Key Metrics:**
+    - 📈 **Performance**: Impressions, clicks, conversions, CTR
+    - 💰 **Financial**: Cost per click, ROAS, budget utilization
+    - 👥 **Engagement**: Likes, shares, comments, engagement rate
+    - 🌍 **Audience**: Demographics, locations, device usage
+    - 📉 **Trends**: Performance trajectory and patterns
+
+    **Features:**
+    - Real-time performance tracking
+    - Audience demographic analysis
+    - Device and platform breakdown
+    - AI-powered optimization recommendations
+    - Historical trend analysis
+    - Competitive benchmarking
+
+    **Use Cases:**
+    - Campaign optimization decisions
+    - Budget reallocation strategies
+    - Audience targeting refinement
+    - Performance reporting dashboards
+
+    **Status Codes:**
+    - `200`: Performance data retrieved successfully
+    - `404`: Campaign not found
+    - `500`: Analytics service unavailable
+    """
     return service.analyze_campaign_performance(campaign_id)
 
 
@@ -813,7 +1026,70 @@ async def get_campaign_list(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get list of marketing campaigns with optional filtering"""
+    """
+    **Get Campaign List**
+
+    Retrieve a list of marketing campaigns with optional status filtering and pagination.
+
+    **Query Parameters:**
+    - `status` (optional): Filter by campaign status (active, paused, completed, draft)
+    - `limit` (optional): Maximum number of campaigns to return (default: 10)
+
+    **Response:**
+    ```json
+    {
+        "campaigns": [
+            {
+                "campaign_id": "camp_2024_001",
+                "name": "Q1 Product Launch",
+                "type": "social_media",
+                "status": "active",
+                "budget": 5000,
+                "spent": 2800,
+                "start_date": "2024-01-01T00:00:00Z",
+                "end_date": "2024-01-31T23:59:59Z",
+                "performance": {
+                    "impressions": 15000,
+                    "clicks": 750,
+                    "conversions": 35,
+                    "ctr": 0.05,
+                    "roas": 3.2
+                },
+                "target_audience": "Tech Professionals",
+                "created_date": "2023-12-15T10:00:00Z"
+            }
+        ],
+        "total_count": 8,
+        "status_filter": "active",
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Campaign Statuses:**
+    - `active`: Currently running campaigns
+    - `paused`: Temporarily stopped campaigns
+    - `completed`: Finished campaigns
+    - `draft`: Campaigns in preparation
+
+    **Features:**
+    - 🔍 Status-based filtering
+    - 📈 Performance metrics summary
+    - 📅 Date range information
+    - 💰 Budget and spend tracking
+    - 🎯 Audience targeting details
+    - 📄 Pagination support
+
+    **Use Cases:**
+    - Campaign management dashboards
+    - Performance overview screens
+    - Campaign selection interfaces
+    - Reporting and analytics
+
+    **Status Codes:**
+    - `200`: Campaign list retrieved successfully
+    - `400`: Invalid status filter
+    - `500`: Campaign service unavailable
+    """
     return service.get_campaign_list(status, limit)
 
 
@@ -823,7 +1099,74 @@ async def get_content_templates(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get marketing content templates"""
+    """
+    **Get Content Templates**
+
+    Retrieve pre-built marketing content templates for various platforms and use cases.
+
+    **Query Parameters:**
+    - `content_type` (optional): Filter by content type (social_media, email, blog)
+
+    **Response:**
+    ```json
+    {
+        "templates": {
+            "social_media": [
+                {
+                    "id": "social_001",
+                    "name": "Product Launch",
+                    "description": "Template for announcing new products",
+                    "template": "🚀 Exciting news! Introducing {product_name} - {key_benefit}. Perfect for {target_audience}. {call_to_action} #Innovation #NewProduct",
+                    "variables": ["product_name", "key_benefit", "target_audience", "call_to_action"]
+                }
+            ],
+            "email": [
+                {
+                    "id": "email_001",
+                    "name": "Welcome Email",
+                    "description": "Welcome new subscribers",
+                    "template": {
+                        "subject": "Welcome to {company_name}!",
+                        "content": "Hi {first_name}, Welcome to our community..."
+                    },
+                    "variables": ["company_name", "first_name"]
+                }
+            ]
+        },
+        "total_count": 15,
+        "content_types": ["social_media", "email", "blog"],
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Template Categories:**
+    - 📱 **Social Media**: Posts, stories, captions
+    - 📧 **Email**: Newsletters, welcome series, promotions
+    - 📝 **Blog**: Articles, how-to guides, case studies
+    - 📺 **Ads**: PPC headlines, display ad copy
+
+    **Features:**
+    - 🎨 Customizable variable placeholders
+    - 📄 Platform-optimized formatting
+    - 🔄 Reusable template structure
+    - 🎯 Industry-specific variations
+    - ⚡ Quick content generation
+    - 📊 Performance-tested templates
+
+    **Template Variables:**
+    Common variables include: `{company_name}`, `{product_name}`, `{target_audience}`, `{call_to_action}`, `{first_name}`, `{key_benefit}`
+
+    **Use Cases:**
+    - Rapid content creation
+    - Brand consistency maintenance
+    - Campaign template libraries
+    - Content automation workflows
+
+    **Status Codes:**
+    - `200`: Templates retrieved successfully
+    - `400`: Invalid content type
+    - `500`: Template service unavailable
+    """
     return service.get_content_templates(content_type)
 
 
@@ -832,7 +1175,62 @@ async def get_marketing_analytics(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get marketing analytics overview"""
+    """
+    **Get Marketing Analytics Overview**
+
+    Retrieve comprehensive marketing performance analytics and key metrics across all campaigns.
+
+    **Response:**
+    ```json
+    {
+        "total_campaigns": 15,
+        "active_campaigns": 7,
+        "total_impressions": 325000,
+        "total_clicks": 16250,
+        "total_conversions": 812,
+        "average_ctr": 0.05,
+        "average_conversion_rate": 0.05,
+        "total_spend": 19500.00,
+        "total_revenue": 62400.00,
+        "roi": 220.0,
+        "top_performing_channels": [
+            {"channel": "Social Media", "performance": 85},
+            {"channel": "Email", "performance": 78},
+            {"channel": "PPC", "performance": 72}
+        ],
+        "monthly_trend": {
+            "impressions": [45000, 48000, 52000, 55000],
+            "clicks": [2250, 2400, 2600, 2750],
+            "conversions": [112, 120, 130, 138]
+        },
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Key Metrics:**
+    - 📈 **Performance**: Total impressions, clicks, conversions
+    - 💰 **Financial**: Spend, revenue, ROI calculations
+    - 🎯 **Efficiency**: CTR, conversion rates, cost metrics
+    - 📉 **Trends**: Monthly performance trajectories
+    - 🏆 **Rankings**: Top performing channels and campaigns
+
+    **Features:**
+    - Real-time analytics aggregation
+    - Cross-campaign performance comparison
+    - Channel effectiveness analysis
+    - Historical trend visualization
+    - ROI and profitability tracking
+
+    **Use Cases:**
+    - Executive dashboards
+    - Performance reporting
+    - Budget allocation decisions
+    - Strategic planning insights
+
+    **Status Codes:**
+    - `200`: Analytics retrieved successfully
+    - `500`: Analytics service temporarily unavailable
+    """
     try:
         agent = service.get_agent(token)
         if not agent:
@@ -902,7 +1300,69 @@ async def get_audience_segments(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get available audience segments"""
+    """
+    **Get Audience Segments**
+
+    Retrieve available audience segments with demographics, size, and engagement metrics.
+
+    **Response:**
+    ```json
+    {
+        "segments": [
+            {
+                "id": "tech_professionals",
+                "name": "Tech Professionals",
+                "description": "Software developers, engineers, and IT professionals",
+                "size": 45000,
+                "engagement_rate": 0.08,
+                "demographics": {
+                    "age_range": "25-45",
+                    "locations": ["US", "UK", "CA"],
+                    "interests": ["technology", "innovation", "programming"]
+                }
+            },
+            {
+                "id": "business_leaders",
+                "name": "Business Leaders",
+                "description": "CEOs, managers, and decision-makers",
+                "size": 32000,
+                "engagement_rate": 0.06,
+                "demographics": {
+                    "age_range": "30-55",
+                    "locations": ["US", "UK", "DE"],
+                    "interests": ["business", "leadership", "strategy"]
+                }
+            }
+        ],
+        "total_segments": 3,
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Segment Information:**
+    - 👥 **Demographics**: Age ranges, locations, interests
+    - 📈 **Size**: Total addressable audience count
+    - 🎯 **Engagement**: Historical engagement rates
+    - 📝 **Description**: Detailed segment characteristics
+    - 🌍 **Geography**: Primary geographic markets
+
+    **Features:**
+    - Pre-defined audience segments
+    - Engagement rate benchmarks
+    - Geographic distribution data
+    - Interest and behavior profiles
+    - Segment size estimations
+
+    **Use Cases:**
+    - Campaign audience selection
+    - Targeting strategy development
+    - Market size analysis
+    - Personalization strategies
+
+    **Status Codes:**
+    - `200`: Audience segments retrieved successfully
+    - `500`: Audience service temporarily unavailable
+    """
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "get_audience_segments"):
@@ -979,7 +1439,52 @@ async def pause_campaign(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Pause a marketing campaign"""
+    """
+    **Pause Marketing Campaign**
+
+    Temporarily pause an active marketing campaign while preserving all settings and data.
+
+    **Path Parameters:**
+    - `campaign_id` (str): Unique campaign identifier
+
+    **Response:**
+    ```json
+    {
+        "campaign_id": "camp_2024_001",
+        "status": "paused",
+        "message": "Campaign paused successfully",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "method": "agent"
+    }
+    ```
+
+    **Features:**
+    - ⏸️ Immediate campaign suspension
+    - 💾 Data and settings preservation
+    - 🔄 Easy resume capability
+    - 📈 Performance tracking continuation
+    - 💰 Budget spend protection
+
+    **Effects of Pausing:**
+    - Stops all active ad delivery
+    - Preserves campaign configuration
+    - Maintains historical performance data
+    - Prevents further budget spend
+    - Allows for campaign modifications
+
+    **Use Cases:**
+    - Budget management and control
+    - Campaign optimization periods
+    - Seasonal campaign adjustments
+    - Emergency campaign stops
+    - A/B testing intervals
+
+    **Status Codes:**
+    - `200`: Campaign paused successfully
+    - `404`: Campaign not found
+    - `400`: Campaign cannot be paused (already paused/completed)
+    - `500`: Campaign management service unavailable
+    """
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "pause_campaign"):
@@ -1013,7 +1518,58 @@ async def resume_campaign(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Resume a paused marketing campaign"""
+    """
+    **Resume Marketing Campaign**
+
+    Reactivate a paused marketing campaign with all original settings and targeting.
+
+    **Path Parameters:**
+    - `campaign_id` (str): Unique campaign identifier
+
+    **Response:**
+    ```json
+    {
+        "campaign_id": "camp_2024_001",
+        "status": "active",
+        "message": "Campaign resumed successfully",
+        "timestamp": "2024-01-15T10:30:00Z",
+        "method": "agent"
+    }
+    ```
+
+    **Features:**
+    - ▶️ Instant campaign reactivation
+    - 🔄 Original settings restoration
+    - 🎯 Targeting configuration preservation
+    - 📈 Continuous performance tracking
+    - 💰 Budget allocation resumption
+
+    **Resume Effects:**
+    - Restarts ad delivery immediately
+    - Maintains all campaign settings
+    - Continues from previous performance baseline
+    - Resumes budget spending
+    - Reactivates all targeting parameters
+
+    **Prerequisites:**
+    - Campaign must be in 'paused' status
+    - Sufficient remaining budget
+    - Valid campaign end date
+    - Active targeting audiences
+
+    **Use Cases:**
+    - Post-optimization campaign restart
+    - Seasonal campaign reactivation
+    - Budget availability resumption
+    - Strategic timing adjustments
+    - Performance improvement implementations
+
+    **Status Codes:**
+    - `200`: Campaign resumed successfully
+    - `404`: Campaign not found
+    - `400`: Campaign cannot be resumed (not paused/expired)
+    - `500`: Campaign management service unavailable
+    """
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "resume_campaign"):
@@ -1048,7 +1604,77 @@ async def get_marketing_trends(
     service: MarketingAgentService = Depends(get_marketing_service),
     token: str = Depends(get_token_from_state),
 ):
-    """Get current marketing trends and insights"""
+    """
+    **Get Marketing Trends & Insights**
+
+    Retrieve current marketing trends, industry insights, and strategic recommendations.
+
+    **Query Parameters:**
+    - `campaign_type` (optional): Campaign type filter (social_media, email, ppc, content)
+    - `target_audience` (optional): Audience segment filter
+
+    **Response:**
+    ```json
+    {
+        "trends": [
+            {
+                "trend": "AI-Powered Personalization",
+                "description": "Using AI to create personalized customer experiences",
+                "impact_score": 9.2,
+                "adoption_rate": 0.67,
+                "categories": ["technology", "personalization", "ai"]
+            },
+            {
+                "trend": "Video-First Content Strategy",
+                "description": "Prioritizing video content across all marketing channels",
+                "impact_score": 8.8,
+                "adoption_rate": 0.72,
+                "categories": ["content", "video", "engagement"]
+            }
+        ],
+        "insights": [
+            "Video content generates 1200% more shares than text and images combined",
+            "Personalized campaigns see 26% higher click-through rates",
+            "68% of consumers prefer brands that demonstrate social responsibility"
+        ],
+        "recommendations": [
+            "Invest in video production capabilities",
+            "Implement dynamic personalization across channels",
+            "Integrate sustainability messaging authentically"
+        ],
+        "campaign_type": "general",
+        "target_audience": "general audience",
+        "last_updated": "2024-01-15T10:30:00Z"
+    }
+    ```
+
+    **Trend Categories:**
+    - 🤖 **Technology**: AI, automation, martech innovations
+    - 📱 **Platforms**: Social media, emerging channels
+    - 🎨 **Content**: Video, interactive, user-generated
+    - 👥 **Audience**: Behavior shifts, preferences
+    - 📈 **Analytics**: Measurement, attribution, insights
+
+    **Features:**
+    - Real-time trend analysis
+    - Impact scoring and adoption rates
+    - Industry-specific insights
+    - Actionable recommendations
+    - Competitive intelligence
+    - Future-focused predictions
+
+    **Use Cases:**
+    - Strategic planning sessions
+    - Campaign ideation workshops
+    - Competitive analysis
+    - Innovation roadmapping
+    - Industry benchmarking
+
+    **Status Codes:**
+    - `200`: Trends retrieved successfully
+    - `400`: Invalid campaign type or audience
+    - `500`: Trends service temporarily unavailable
+    """
     try:
         agent = service.get_agent(token)
         if agent and hasattr(agent, "get_marketing_trends"):
