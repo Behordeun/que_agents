@@ -442,6 +442,7 @@ Provide a helpful and friendly response that addresses the user's request."""
                 "sunny",
                 "cloudy",
                 "forecast",
+            ],
             "set_reminder": [
                 "remind",
                 "reminder",
@@ -452,7 +453,6 @@ Provide a helpful and friendly response that addresses the user's request."""
                 "call",
                 "tomorrow",
                 "at",
-            ],
             ],
             "list_reminders": [
                 "reminders",
@@ -1102,7 +1102,7 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
             )
 
             if reminder:
-                reminder.status = "cancelled"
+                setattr(reminder, "status", "cancelled")
                 session.commit()
 
                 actions_taken = [f"Cancelled reminder: {reminder.title}"]
@@ -1138,39 +1138,10 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
         start_time = datetime.now()
 
         user_context = self.get_user_context(user_id)
-        if not user_context:
-            system_logger.warning(
-                f"User context not found for user_id: {user_id}",
-                additional_info={"user_id": user_id, "session_id": session_id},
-            )
-            return PVAAgentResponse(
-                message="I'm having trouble accessing your information. Please try again.",
-                confidence=0.0,
-                intent="error",
-                entities={},
-                actions_taken=[],
-                suggestions=[],
-                session_id=session_id,
-                user_context_used=False,
-            )
-
-        # Ensure user_context has the expected attributes
-        if not hasattr(user_context, "preferences"):
-            system_logger.error(
-                f"User context missing expected attributes: {type(user_context)}",
-                additional_info={
-                    "user_id": user_id,
-                    "context_type": str(type(user_context)),
-                },
-            )
-            return PVAAgentResponse(
-                message="I'm having trouble accessing your information. Please try again.",
-                confidence=0.0,
-                intent="error",
-                entities={},
-                actions_taken=[],
-                suggestions=[],
-                session_id=session_id,
+        if not self._is_valid_user_context(user_context, user_id, session_id):
+            return self._error_response(
+                "I'm having trouble accessing your information. Please try again.",
+                session_id,
                 user_context_used=False,
             )
 
@@ -1180,104 +1151,22 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
         knowledge_base_used = bool(enhanced_context)
 
         try:
-            intent_result_tuple = self._handle_intent(
-                intent_result.intent, user_message, entities, user_context
+            additional_info, actions_taken = self._get_intent_result_tuple(
+                intent_result, user_message, entities, user_context
             )
-
-            # Ensure we get a tuple back with robust error handling
-            if isinstance(intent_result_tuple, tuple) and len(intent_result_tuple) == 2:
-                additional_info, actions_taken = intent_result_tuple
-                # Ensure both are the correct types
-                if not isinstance(additional_info, str):
-                    additional_info = str(additional_info)
-                if not isinstance(actions_taken, list):
-                    actions_taken = [str(actions_taken)] if actions_taken else []
-            else:
-                system_logger.error(
-                    f"_handle_intent returned unexpected type: {type(intent_result_tuple)}, value: {intent_result_tuple}"
-                )
-                additional_info = "Error processing intent"
-                actions_taken = []
-
-            # Safely create context string
-            try:
-                user_id = getattr(user_context, "user_id", "unknown")
-                preferences = getattr(user_context, "preferences", {})
-                active_reminders = getattr(user_context, "active_reminders", [])
-                smart_devices = getattr(user_context, "smart_devices", [])
-
-                context_str = f"""
-User ID: {user_id}
-Preferences: {json.dumps(preferences) if isinstance(preferences, dict) else str(preferences)}
-Active Reminders: {len(active_reminders) if isinstance(active_reminders, list) else 0}
-Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({', '.join([d.get('name', 'unknown') if isinstance(d, dict) else str(d) for d in smart_devices[:3]])})
-"""
-            except Exception as context_error:
-                system_logger.error(f"Error creating context string: {context_error}")
-                context_str = f"User ID: {user_id}\nContext creation failed"
-
-            # Generate response using LangChain with robust error handling
-            try:
-                # Ensure all parameters are strings and properly formatted
-                chain_input = {
-                    "user_context": str(context_str),
-                    "intent": str(intent_result.intent),
-                    "entities": (
-                        json.dumps(entities)
-                        if isinstance(entities, dict)
-                        else str(entities)
-                    ),
-                    "actions_taken": (
-                        ", ".join(actions_taken)
-                        if isinstance(actions_taken, list)
-                        else str(actions_taken)
-                    ),
-                    "additional_info": str(additional_info) if additional_info else "",
-                    "enhanced_context": (
-                        str(enhanced_context) if enhanced_context else ""
-                    ),
-                    "user_message": str(user_message),
-                }
-
-                # Validate all required parameters are present
-                for key, value in chain_input.items():
-                    if not isinstance(value, str):
-                        chain_input[key] = str(value)
-
-                response = self.response_chain.invoke(
-                    chain_input,
-                    config={
-                        "configurable": {"session_id": session_id or "default_session"}
-                    },
-                )
-
-                # Ensure response is a string
-                if not isinstance(response, str):
-                    response = str(response)
-
-            except Exception as chain_error:
-                system_logger.error(f"Response chain error: {chain_error}")
-                # Fallback to simple response based on intent
-                if intent_result.intent == "greeting":
-                    response = (
-                        "Hello! I'm your personal assistant. How can I help you today?"
-                    )
-                elif intent_result.intent == "set_reminder":
-                    response = (
-                        f"I'd be happy to help you set a reminder. {additional_info}"
-                    )
-                else:
-                    response = f"I understand you're asking about {intent_result.intent}. {additional_info}"
-
-            # Add messages to session history
-            session_id_key = session_id or "default_session"
-            history = self._session_histories.get(session_id_key)
-            if history is not None:
-                history.add_user_message(user_message)
-                history.add_ai_message(response)
-
-            suggestions = self._generate_suggestions(intent_result.intent, user_context)
-
+            context_str = self._build_context_str(user_context)
+            response = self._generate_response(
+                intent_result, entities, actions_taken, additional_info,
+                enhanced_context, user_message, context_str, session_id
+            )
+            self._update_session_history(session_id, user_message, response)
+            suggestions = self._generate_suggestions(intent_result.intent, user_context if user_context is not None else UserContext(
+                user_id="unknown",
+                preferences={},
+                learned_behaviors={},
+                active_reminders=[],
+                smart_devices=[],
+            ))
             pva_response = PVAAgentResponse(
                 message=response,
                 confidence=intent_result.confidence,
@@ -1289,37 +1178,165 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
                 user_context_used=True,
                 knowledge_base_used=knowledge_base_used,
             )
-
             self._track_interactions(intent_result.intent, actions_taken, pva_response)
-
             return pva_response
 
         except Exception as e:
-            processing_time = (datetime.now() - start_time).total_seconds() * 1000
+            return self._handle_processing_exception(
+                e, start_time, user_id, user_message, intent_result, entities, session_id, knowledge_base_used
+            )
+
+    def _is_valid_user_context(self, user_context, user_id, session_id):
+        if not user_context:
+            system_logger.warning(
+                f"User context not found for user_id: {user_id}",
+                additional_info={"user_id": user_id, "session_id": session_id},
+            )
+            return False
+        if not hasattr(user_context, "preferences"):
             system_logger.error(
-                f"Error processing request: {e}",
+                f"User context missing expected attributes: {type(user_context)}",
                 additional_info={
                     "user_id": user_id,
-                    "user_message": user_message,
-                    "intent": intent_result.intent,
-                    "entities": entities,
-                    "actions_taken": [],
-                    "session_id": session_id,
-                    "processing_time_ms": processing_time,
+                    "context_type": str(type(user_context)),
                 },
-                exc_info=True,
             )
-            return PVAAgentResponse(
-                message="I'm sorry, I encountered an error while processing your request. Please try again.",
-                confidence=0.0,
-                intent=intent_result.intent,
-                entities=entities,
-                actions_taken=[],
-                suggestions=[],
-                session_id=session_id,
-                user_context_used=True,
-                knowledge_base_used=knowledge_base_used,
+            return False
+        return True
+
+    def _error_response(self, message, session_id, user_context_used):
+        return PVAAgentResponse(
+            message=message,
+            confidence=0.0,
+            intent="error",
+            entities={},
+            actions_taken=[],
+            suggestions=[],
+            session_id=session_id,
+            user_context_used=user_context_used,
+        )
+
+    def _get_intent_result_tuple(self, intent_result, user_message, entities, user_context):
+        intent_result_tuple = self._handle_intent(
+            intent_result.intent, user_message, entities, user_context
+        )
+        if isinstance(intent_result_tuple, tuple) and len(intent_result_tuple) == 2:
+            additional_info, actions_taken = intent_result_tuple
+            if not isinstance(additional_info, str):
+                additional_info = str(additional_info)
+            if not isinstance(actions_taken, list):
+                actions_taken = [str(actions_taken)] if actions_taken else []
+        else:
+            system_logger.error(
+                f"_handle_intent returned unexpected type: {type(intent_result_tuple)}, value: {intent_result_tuple}"
             )
+            additional_info = "Error processing intent"
+            actions_taken = []
+        return additional_info, actions_taken
+
+    def _build_context_str(self, user_context):
+        user_id = "unknown"
+        try:
+            user_id = getattr(user_context, "user_id", "unknown")
+            preferences = getattr(user_context, "preferences", {})
+            active_reminders = getattr(user_context, "active_reminders", [])
+            smart_devices = getattr(user_context, "smart_devices", [])
+            context_str = f"""
+User ID: {user_id}
+Preferences: {json.dumps(preferences) if isinstance(preferences, dict) else str(preferences)}
+Active Reminders: {len(active_reminders) if isinstance(active_reminders, list) else 0}
+Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({', '.join([d.get('name', 'unknown') if isinstance(d, dict) else str(d) for d in smart_devices[:3]])})
+"""
+        except Exception as context_error:
+            system_logger.error(f"Error creating context string: {context_error}")
+            context_str = f"User ID: {user_id}\nContext creation failed"
+        return context_str
+
+    def _generate_response(
+        self, intent_result, entities, actions_taken, additional_info,
+        enhanced_context, user_message, context_str, session_id
+    ):
+        try:
+            chain_input = {
+                "user_context": str(context_str),
+                "intent": str(intent_result.intent),
+                "entities": (
+                    json.dumps(entities)
+                    if isinstance(entities, dict)
+                    else str(entities)
+                ),
+                "actions_taken": (
+                    ", ".join(actions_taken)
+                    if isinstance(actions_taken, list)
+                    else str(actions_taken)
+                ),
+                "additional_info": str(additional_info) if additional_info else "",
+                "enhanced_context": (
+                    str(enhanced_context) if enhanced_context else ""
+                ),
+                "user_message": str(user_message),
+            }
+            for key, value in chain_input.items():
+                if not isinstance(value, str):
+                    chain_input[key] = str(value)
+            response = self.response_chain.invoke(
+                chain_input,
+                config={
+                    "configurable": {"session_id": session_id or "default_session"}
+                },
+            )
+            if not isinstance(response, str):
+                response = str(response)
+        except Exception as chain_error:
+            system_logger.error(f"Response chain error: {chain_error}")
+            # Fallback to simple response based on intent
+            if intent_result.intent == "greeting":
+                response = (
+                    "Hello! I'm your personal assistant. How can I help you today?"
+                )
+            elif intent_result.intent == "set_reminder":
+                response = (
+                    f"I'd be happy to help you set a reminder. {additional_info}"
+                )
+            else:
+                response = f"I understand you're asking about {intent_result.intent}. {additional_info}"
+        return response
+
+    def _update_session_history(self, session_id, user_message, response):
+        session_id_key = session_id or "default_session"
+        history = self._session_histories.get(session_id_key)
+        if history is not None:
+            history.add_user_message(user_message)
+            history.add_ai_message(response)
+
+    def _handle_processing_exception(
+        self, e, start_time, user_id, user_message, intent_result, entities, session_id, knowledge_base_used
+    ):
+        processing_time = (datetime.now() - start_time).total_seconds() * 1000
+        system_logger.error(
+            f"Error processing request: {e}",
+            additional_info={
+                "user_id": user_id,
+                "user_message": user_message,
+                "intent": getattr(intent_result, 'intent', 'unknown'),
+                "entities": entities,
+                "actions_taken": [],
+                "session_id": session_id,
+                "processing_time_ms": processing_time,
+            },
+            exc_info=True,
+        )
+        return PVAAgentResponse(
+            message="I'm sorry, I encountered an error while processing your request. Please try again.",
+            confidence=0.0,
+            intent=getattr(intent_result, 'intent', 'error'),
+            entities=entities,
+            actions_taken=[],
+            suggestions=[],
+            session_id=session_id,
+            user_context_used=True,
+            knowledge_base_used=knowledge_base_used,
+        )
 
     def _handle_intent(
         self,
