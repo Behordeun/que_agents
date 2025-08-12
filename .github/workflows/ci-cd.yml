@@ -37,27 +37,56 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
         cache: 'pip'
 
+    - name: Upgrade pip and build tools
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade setuptools wheel
+
     - name: Install dependencies
       run: |
+        # Fix numpy version compatibility issue
+        pip install "numpy>=1.24.0,<2.0.0"
         pip install -r requirements.txt
-        pip install pytest pytest-cov
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
 
     - name: Run tests
       env:
-        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/test_db
+        TESTING: "true"
+        # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       run: |
-        python -m pytest tests/ -v --cov=src --cov-report=xml
+        # Create test directory if it doesn't exist
+        mkdir -p tests
+        
+        # Run tests with proper coverage
+        python -m pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --tb=short
 
-    - name: Upload coverage
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
+        fail_ci_if_error: false
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: |
+          coverage.xml
+          htmlcov/
 
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && success()
 
     steps:
     - uses: actions/checkout@v4
@@ -93,16 +122,21 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        build-args: |
+          PYTHON_VERSION=${{ env.PYTHON_VERSION }}
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && success()
+    environment: "production"
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Deploy to staging
+    - name: Deploy to production
       run: |
         echo "Deployment step - configure your deployment here"
         # Add your deployment commands here
+        # Example: kubectl apply -f k8s/
+        # Example: helm upgrade --install que-agents ./helm-chart

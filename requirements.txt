@@ -37,6 +37,7 @@ python-dateutil
 pytest
 pytest-asyncio
 pytest-cov
+pytest-html
 
 # Utility Dependencies
 python-dotenv
