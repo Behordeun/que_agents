@@ -30,7 +30,7 @@ services:
     container_name: que_agents_app
     environment:
       # Database Configuration
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/que_agents
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/que_agents
       
       # API Keys (set these in .env file)
       OPENAI_API_KEY: ${OPENAI_API_KEY}

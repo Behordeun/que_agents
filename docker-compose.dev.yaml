@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: que_agents_dev
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     ports:
@@ -24,7 +24,7 @@ services:
       target: builder
     container_name: que_agents_app_dev
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/que_agents_dev
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/que_agents_dev
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GROQ_API_KEY: ${GROQ_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
