@@ -557,9 +557,7 @@ Provide a helpful and friendly response that addresses the user's request."""
         """Extract set reminder-related entities"""
         entities = {}
         entities["reminder_title"] = (
-            user_message.replace(REMIND_ME_TO, "")
-            .replace(SET_A_REMINDER, "")
-            .strip()
+            user_message.replace(REMIND_ME_TO, "").replace(SET_A_REMINDER, "").strip()
         )
         time_patterns = [
             r"at (\d{1,2}:\d{2}(?:\s*[ap]m)?)",
@@ -1156,17 +1154,30 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
             )
             context_str = self._build_context_str(user_context)
             response = self._generate_response(
-                intent_result, entities, actions_taken, additional_info,
-                enhanced_context, user_message, context_str, session_id
+                intent_result,
+                entities,
+                actions_taken,
+                additional_info,
+                enhanced_context,
+                user_message,
+                context_str,
+                session_id,
             )
             self._update_session_history(session_id, user_message, response)
-            suggestions = self._generate_suggestions(intent_result.intent, user_context if user_context is not None else UserContext(
-                user_id="unknown",
-                preferences={},
-                learned_behaviors={},
-                active_reminders=[],
-                smart_devices=[],
-            ))
+            suggestions = self._generate_suggestions(
+                intent_result.intent,
+                (
+                    user_context
+                    if user_context is not None
+                    else UserContext(
+                        user_id="unknown",
+                        preferences={},
+                        learned_behaviors={},
+                        active_reminders=[],
+                        smart_devices=[],
+                    )
+                ),
+            )
             pva_response = PVAAgentResponse(
                 message=response,
                 confidence=intent_result.confidence,
@@ -1183,7 +1194,14 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
 
         except Exception as e:
             return self._handle_processing_exception(
-                e, start_time, user_id, user_message, intent_result, entities, session_id, knowledge_base_used
+                e,
+                start_time,
+                user_id,
+                user_message,
+                intent_result,
+                entities,
+                session_id,
+                knowledge_base_used,
             )
 
     def _is_valid_user_context(self, user_context, user_id, session_id):
@@ -1216,7 +1234,9 @@ Try setting a reminder: "Remind me to take a break in 1 hour"
             user_context_used=user_context_used,
         )
 
-    def _get_intent_result_tuple(self, intent_result, user_message, entities, user_context):
+    def _get_intent_result_tuple(
+        self, intent_result, user_message, entities, user_context
+    ):
         intent_result_tuple = self._handle_intent(
             intent_result.intent, user_message, entities, user_context
         )
@@ -1253,8 +1273,15 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
         return context_str
 
     def _generate_response(
-        self, intent_result, entities, actions_taken, additional_info,
-        enhanced_context, user_message, context_str, session_id
+        self,
+        intent_result,
+        entities,
+        actions_taken,
+        additional_info,
+        enhanced_context,
+        user_message,
+        context_str,
+        session_id,
     ):
         try:
             chain_input = {
@@ -1271,9 +1298,7 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
                     else str(actions_taken)
                 ),
                 "additional_info": str(additional_info) if additional_info else "",
-                "enhanced_context": (
-                    str(enhanced_context) if enhanced_context else ""
-                ),
+                "enhanced_context": (str(enhanced_context) if enhanced_context else ""),
                 "user_message": str(user_message),
             }
             for key, value in chain_input.items():
@@ -1295,9 +1320,7 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
                     "Hello! I'm your personal assistant. How can I help you today?"
                 )
             elif intent_result.intent == "set_reminder":
-                response = (
-                    f"I'd be happy to help you set a reminder. {additional_info}"
-                )
+                response = f"I'd be happy to help you set a reminder. {additional_info}"
             else:
                 response = f"I understand you're asking about {intent_result.intent}. {additional_info}"
         return response
@@ -1310,7 +1333,15 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
             history.add_ai_message(response)
 
     def _handle_processing_exception(
-        self, e, start_time, user_id, user_message, intent_result, entities, session_id, knowledge_base_used
+        self,
+        e,
+        start_time,
+        user_id,
+        user_message,
+        intent_result,
+        entities,
+        session_id,
+        knowledge_base_used,
     ):
         processing_time = (datetime.now() - start_time).total_seconds() * 1000
         system_logger.error(
@@ -1318,7 +1349,7 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
             additional_info={
                 "user_id": user_id,
                 "user_message": user_message,
-                "intent": getattr(intent_result, 'intent', 'unknown'),
+                "intent": getattr(intent_result, "intent", "unknown"),
                 "entities": entities,
                 "actions_taken": [],
                 "session_id": session_id,
@@ -1329,7 +1360,7 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
         return PVAAgentResponse(
             message="I'm sorry, I encountered an error while processing your request. Please try again.",
             confidence=0.0,
-            intent=getattr(intent_result, 'intent', 'error'),
+            intent=getattr(intent_result, "intent", "error"),
             entities=entities,
             actions_taken=[],
             suggestions=[],

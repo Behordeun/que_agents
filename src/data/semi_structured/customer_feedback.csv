@@ -1,4 +1,14 @@
 Customer ID,Feedback Date,Rating,Category,Subcategory,Feedback Text,Resolution Status,Agent ID,Response Time (hours),Follow Up Required,Sentiment,Priority,Product Version,Channel,Customer Tier,Escalated,Resolution Date,Satisfaction Score,Tags,Internal Notes
 123,2025-08-11 00:00:00,2,Technical Issues,General,My internet is not working.,In Progress,ai_agent_v2,0.1,No,Negative,Medium,v2.1,Chat,business,No,2023-01-01 00:00:00,2.0,"technical_issues,ai_response",AI confidence: 0.60
-123,2025-08-11 00:00:00,2,Technical Issues,General,My internet is not working.,In Progress,ai_agent_v2,0.1,No,Negative,Medium,v2.1,Chat,business,No,,2.0,"technical_issues,ai_response",AI confidence: 0.50
-123,2025-08-11,1,Technical Issues,General,My internet is not working. I'll sue your organization,In Progress,ai_agent_v2,0.1,Yes,Very Negative,High,v2.1,Chat,business,Yes,,1.0,"technical_issues,ai_response",AI confidence: 0.45
+123,2025-08-11 00:00:00,2,Technical Issues,General,My internet is not working.,In Progress,ai_agent_v2,0.1,No,Negative,Medium,v2.1,Chat,business,No,2023-01-01 00:00:00,2.0,"technical_issues,ai_response",AI confidence: 0.50
+123,2025-08-11 00:00:00,1,Technical Issues,General,My internet is not working. I'll sue your organization,In Progress,ai_agent_v2,0.1,Yes,Very Negative,High,v2.1,Chat,business,Yes,2023-01-01 00:00:00,1.0,"technical_issues,ai_response",AI confidence: 0.45
+1,2024-01-01 00:00:00,4,Billing,Payment,Good service,Resolved,agent1,2.5,No,Positive,Medium,v1.0,Chat,Business,No,2024-01-02 00:00:00,4.0,billing,
+2,2024-01-02 00:00:00,2,Technical,Bug,System slow,In Progress,agent2,1.0,Yes,Negative,High,v1.0,Email,Enterprise,Yes,2023-01-01 00:00:00,2.0,technical,Escalated
+1,2024-01-01 00:00:00,4,Billing,Payment,Good service,Resolved,agent1,2.5,No,Positive,Medium,v1.0,Chat,Business,No,2024-01-02 00:00:00,4.0,billing,
+2,2024-01-02 00:00:00,2,Technical,Bug,System slow,In Progress,agent2,1.0,Yes,Negative,High,v1.0,Email,Enterprise,Yes,2023-01-01 00:00:00,2.0,technical,Escalated
+1,2024-01-01 00:00:00,4,Billing,Payment,Good service,Resolved,agent1,2.5,No,Positive,Medium,v1.0,Chat,Business,No,2024-01-02 00:00:00,4.0,billing,
+2,2024-01-02 00:00:00,2,Technical,Bug,System slow,In Progress,agent2,1.0,Yes,Negative,High,v1.0,Email,Enterprise,Yes,2023-01-01 00:00:00,2.0,technical,Escalated
+1,2024-01-01 00:00:00,4,Billing,Payment,Good service,Resolved,agent1,2.5,No,Positive,Medium,v1.0,Chat,Business,No,2024-01-02 00:00:00,4.0,billing,
+2,2024-01-02 00:00:00,2,Technical,Bug,System slow,In Progress,agent2,1.0,Yes,Negative,High,v1.0,Email,Enterprise,Yes,2023-01-01 00:00:00,2.0,technical,Escalated
+1,2024-01-01,4,Billing,Payment,Good service,Resolved,agent1,2.5,No,Positive,Medium,v1.0,Chat,Business,No,2024-01-02,4.0,billing,
+2,2024-01-02,2,Technical,Bug,System slow,In Progress,agent2,1.0,Yes,Negative,High,v1.0,Email,Enterprise,Yes,,2.0,technical,Escalated
