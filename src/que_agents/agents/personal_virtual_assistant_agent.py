@@ -37,6 +37,7 @@ system_logger.info("Personal Virtual Assistant Agent initialized...")
 TURN_ON = "turn on"
 TURN_OFF = "turn off"
 REMIND_ME_TO = "remind me to"
+SET_A_REMINDER = "set a reminder"
 DEFAULT_LOCATION = "New York"
 
 # Load agent configuration
@@ -441,17 +442,17 @@ Provide a helpful and friendly response that addresses the user's request."""
                 "sunny",
                 "cloudy",
                 "forecast",
-            ],
             "set_reminder": [
                 "remind",
                 "reminder",
                 "schedule",
                 "appointment",
                 "meeting",
-                "set a reminder",
+                SET_A_REMINDER,
                 "call",
                 "tomorrow",
                 "at",
+            ],
             ],
             "list_reminders": [
                 "reminders",
@@ -557,7 +558,7 @@ Provide a helpful and friendly response that addresses the user's request."""
         entities = {}
         entities["reminder_title"] = (
             user_message.replace(REMIND_ME_TO, "")
-            .replace("set a reminder", "")
+            .replace(SET_A_REMINDER, "")
             .strip()
         )
         time_patterns = [
@@ -600,9 +601,11 @@ Provide a helpful and friendly response that addresses the user's request."""
         return entities
 
     def handle_weather_request(
-        self, entities: Dict[str, Any], user_context: UserContext
+        self, _entities: Dict[str, Any], user_context: UserContext
     ) -> tuple[str, List[str]]:
         """Handle weather request with knowledge base enhancement"""
+        # Extract location from entities
+        location = _entities.get("location")
         # Safely get location with fallback
         if (
             not location
@@ -612,7 +615,6 @@ Provide a helpful and friendly response that addresses the user's request."""
             location = user_context.preferences.get("location", DEFAULT_LOCATION)
         elif not location:
             location = DEFAULT_LOCATION
-            location = "New York"
 
         # Get weather knowledge from knowledge base
         weather_knowledge = self.get_assistant_knowledge(
@@ -1450,19 +1452,17 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
     def _rule_based_intent_recognition(self, user_message: str) -> Optional[str]:
         """Rule-based intent recognition for high-confidence patterns"""
         message_lower = user_message.lower()
-
         if any(
             pattern in message_lower
             for pattern in [
                 REMIND_ME_TO,
-                "set a reminder",
+                SET_A_REMINDER,
                 "reminder for me to",
                 "call john tomorrow",
                 "tomorrow at",
                 "remind me",
             ]
         ):
-            return "set_reminder"
             return "set_reminder"
 
         # Other high-confidence patterns

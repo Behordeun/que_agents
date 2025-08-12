@@ -1,14 +1,14 @@
 # Multi-stage build for Que Agents
-FROM python:3.11-slim as builder
+FROM python:3.11-slim-bullseye AS builder
 
 # Set build arguments
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies for building
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     build-essential \
-    gcc \
     g++ \
+    gcc \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -22,18 +22,16 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Production stage
-FROM python:3.11-slim
+FROM python:3.11-slim-bullseye
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app/src
 
-# Create non-root user
-RUN groupadd -r queagents && useradd -r -g queagents queagents
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
+# Create non-root user and install runtime dependencies
+RUN groupadd -r queagents && useradd -r -g queagents queagents && \
+    apt-get update && apt-get upgrade -y && apt-get install -y \
     libpq5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
