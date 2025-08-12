@@ -6,6 +6,7 @@
 # @Description: This module contains the database models for the Que Agents application.import os
 
 from datetime import datetime
+from pathlib import Path
 
 import yaml
 from sqlalchemy import (
@@ -316,9 +317,39 @@ class TradingSignal(Base):
 
 
 # Load database configuration
-with open("./configs/database_config.yaml", "r") as f:
-    db_config = yaml.safe_load(f)
+def load_database_config():
+    """Load database configuration with fallback for testing"""
+    # Try multiple possible config paths
+    possible_paths = [
+        Path(__file__).parent.parent.parent.parent / "configs" / "database_config.yaml",
+        Path("configs/database_config.yaml"),
+        Path("./configs/database_config.yaml"),
+    ]
 
+    for config_path in possible_paths:
+        try:
+            if config_path.exists():
+                with open(config_path, "r") as f:
+                    config = yaml.safe_load(f)
+                    if config and "database" in config:
+                        return config
+        except Exception:
+            continue
+
+    # Fallback configuration for testing
+    return {
+        "database": {
+            "url": "sqlite:///test.db",
+            "echo": False,
+            "pool_size": 10,
+            "max_overflow": 20,
+            "pool_timeout": 30,
+            "pool_recycle": 3600,
+        }
+    }
+
+
+db_config = load_database_config()
 DATABASE_URL = db_config["database"]["url"]
 ECHO_SQL = db_config["database"].get("echo", False)
 POOL_SIZE = db_config["database"].get("pool_size", 10)

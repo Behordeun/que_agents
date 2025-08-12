@@ -39,12 +39,13 @@ class CustomerSupportService:
         token: str = Depends(get_token_from_state),
     ) -> CustomerSupportResponse:
         """Handle customer support chat request with improved error handling"""
+        agent = self.get_agent(token)
+        if not agent:
+            raise HTTPException(
+                status_code=503, detail=self.CUSTOMER_SUPPORT_UNAVAILABLE
+            )
+
         try:
-            agent = self.get_agent(token)
-            if not agent:
-                raise HTTPException(
-                    status_code=503, detail=self.CUSTOMER_SUPPORT_UNAVAILABLE
-                )
 
             # Ensure customer_id is an integer
             customer_id = (

@@ -193,7 +193,7 @@ class Logger:
 
         # Add default + custom context
         default_context = {
-            "backend_engineer": "Muhammad",
+            "ai_engineer": "Muhammad",
             "environment": "production",
         }
         if additional_info:

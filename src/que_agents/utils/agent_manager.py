@@ -6,8 +6,6 @@
 from datetime import datetime
 from typing import Any, Dict, List
 
-import yaml
-
 from src.que_agents.agents.personal_virtual_assistant_agent import (
     PersonalVirtualAssistantAgent,
 )
@@ -15,6 +13,7 @@ from src.que_agents.error_trace.errorlogger import system_logger
 from src.que_agents.utils.config_manager import ConfigManager
 
 AGENT_INITIALIZATION_CONTEXT = "Agent Initialization"
+AGENT_CONFIG_FILENAME = "agent_config.yaml"
 
 
 class AgentManager:
@@ -22,6 +21,7 @@ class AgentManager:
 
     def __init__(self):
         self.agents = {}
+        self.agent_configs = {}
         self.agent_status = {
             "customer_support": False,
             "marketing": False,
@@ -30,6 +30,7 @@ class AgentManager:
         }
         self.fallback_agents = {}
         self.config_manager = ConfigManager()
+        self._load_agent_configs()
 
     def initialize_agents(self):
         """Initialize all agents with comprehensive error handling"""
@@ -67,7 +68,8 @@ class AgentManager:
                 CustomerSupportAgent,
             )
 
-            self.agents["customer_support"] = CustomerSupportAgent()
+            # Store as a class reference, not an instance
+            self.agents["customer_support"] = CustomerSupportAgent
             self.agent_status["customer_support"] = True
             system_logger.info("Customer Support Agent initialized successfully")
         except Exception as e:
@@ -95,7 +97,8 @@ class AgentManager:
             if hasattr(test_agent, "create_marketing_campaign") and callable(
                 test_agent.create_marketing_campaign
             ):
-                self.agents["marketing"] = test_agent
+                from src.que_agents.agents.marketing_agent import MarketingAgent
+                self.agents["marketing"] = MarketingAgent
                 self.agent_status["marketing"] = True
                 system_logger.info("Marketing Agent initialized successfully")
             else:
@@ -115,11 +118,8 @@ class AgentManager:
             self._setup_marketing_fallback()
 
     def _initialize_pva_agent(self):
-        """Initialize Personal Virtual Assistant Agent with Groq configuration"""
-        config = self.config_manager.load_config("agent_config.yaml")
         try:
-            with open("configs/agent_config.yaml", "r") as f:
-                config = yaml.safe_load(f)
+            config = self.config_manager.load_config(AGENT_CONFIG_FILENAME)
         except FileNotFoundError as e:
             system_logger.error(
                 "Failed to load agent configuration file for Personal Virtual Assistant Agent",
@@ -133,6 +133,7 @@ class AgentManager:
             )
             self.agents["personal_virtual_assistant"] = None
             self._setup_pva_fallback()
+            return
         except Exception as e:
             system_logger.error(
                 "Failed to initialize Personal Virtual Assistant Agent",
@@ -145,7 +146,6 @@ class AgentManager:
             )
             self.agents["personal_virtual_assistant"] = None
             self._setup_pva_fallback()
-            return
             return
 
         # Check if the agent config exists
@@ -175,7 +175,7 @@ class AgentManager:
                 if not hasattr(test_agent, method):
                     raise AttributeError(f"Agent missing required method: {method}")
 
-            self.agents["personal_virtual_assistant"] = test_agent
+            self.agents["personal_virtual_assistant"] = PersonalVirtualAssistantAgent
             self.agent_status["personal_virtual_assistant"] = True
             system_logger.info(
                 f"Personal Virtual Assistant Agent initialized successfully with {config[agent_config_key].get('model_name', 'default')} model"
@@ -232,7 +232,10 @@ class AgentManager:
                         f"Agent missing method: {method}, but continuing initialization"
                     )
 
-            self.agents["financial_trading_bot"] = test_agent
+            from src.que_agents.agents.financial_trading_bot_agent import (
+                FinancialTradingBotAgent,
+            )
+            self.agents["financial_trading_bot"] = FinancialTradingBotAgent
             self.agent_status["financial_trading_bot"] = True
             system_logger.info("Financial Trading Bot Agent initialized successfully")
         except Exception as e:
@@ -431,8 +434,23 @@ class AgentManager:
 
     def get_agent(self, agent_name: str, token: str):
         """Get agent or fallback agent"""
-        agent = self.agents.get(agent_name) or self.fallback_agents.get(agent_name)
-        return agent
+        if not self._is_agent_enabled(agent_name):
+            return None
+
+        # If agent class exists, create instance
+        if agent_name in self.agents and self.agents[agent_name] is not None:
+            try:
+                # Create new instance of the agent class
+                agent_class = self.agents[agent_name]
+                if callable(agent_class):
+                    return agent_class()
+                else:
+                    return agent_class
+            except Exception as e:
+                system_logger.error(f"Error creating agent instance: {e}")
+                return self.fallback_agents.get(agent_name)
+        
+        return self.fallback_agents.get(agent_name)
 
     def is_agent_active(self, agent_name: str) -> str:
         """Check agent status"""
@@ -455,3 +473,122 @@ class AgentManager:
         # Active agents get full score, fallback agents get partial score
         score = (active_agents + (fallback_agents * 0.5)) / total_agents
         return round(min(score, 1.0), 2)
+
+    def _load_agent_configs(self):
+        """Load agent configurations"""
+        try:
+            config = self.config_manager.load_config(AGENT_CONFIG_FILENAME)
+            self.agent_configs = config.get("agents", {})
+        except Exception:
+            self.agent_configs = {}
+
+    def _create_agent(self, agent_type: str):
+        """Create agent instance"""
+        try:
+            if agent_type == "customer_support":
+                from src.que_agents.agents.customer_support_agent import (
+                    CustomerSupportAgent,
+                )
+
+                return CustomerSupportAgent()
+            elif agent_type == "marketing":
+                from src.que_agents.agents.marketing_agent import MarketingAgent
+
+                return MarketingAgent()
+            elif agent_type == "financial_trading_bot":
+                from src.que_agents.agents.financial_trading_bot_agent import (
+                    FinancialTradingBotAgent,
+                )
+
+                return FinancialTradingBotAgent()
+            elif agent_type == "personal_virtual_assistant":
+                return PersonalVirtualAssistantAgent()
+            return None
+        except Exception:
+            return None
+
+    def remove_agent(self, agent_type: str, token: str) -> bool:
+        """Remove agent instance"""
+        try:
+            if agent_type in self.agents and token in self.agents[agent_type]:
+                del self.agents[agent_type][token]
+                return True
+            return False
+        except Exception:
+            return False
+
+    def list_agents(self) -> Dict[str, Any]:
+        """List all agents"""
+        return {
+            agent_type: list(instances.keys())
+            for agent_type, instances in self.agents.items()
+        }
+
+    def get_agent_status(self, agent_type: str, token: str) -> str:
+        """Get agent status"""
+        if agent_type in self.agents and token in self.agents[agent_type]:
+            return "active"
+        return "not_found"
+
+    def cleanup_agents(self) -> int:
+        """Cleanup agents"""
+        cleaned = 0
+        try:
+            for agent_type in self.agents.keys():
+                for token in self.agents[agent_type].keys():
+                    try:
+                        agent = self.agents[agent_type][token]
+                        if hasattr(agent, "cleanup"):
+                            agent.cleanup()
+                        del self.agents[agent_type][token]
+                        cleaned += 1
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        return cleaned
+
+    def get_system_stats(self) -> Dict[str, Any]:
+        """Get system statistics"""
+        total_agents = sum(len(instances) for instances in self.agents.values())
+        return {
+            "total_agents": total_agents,
+            "agent_types": len(self.agents),
+            "health_score": self.calculate_agent_health_score(),
+        }
+
+    def health_check(self) -> Dict[str, Any]:
+        """Perform health check"""
+        total_agents = sum(len(instances) for instances in self.agents.values())
+        return {
+            "status": "healthy" if total_agents > 0 else "no_agents",
+            "total_agents": total_agents,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    def reload_configs(self) -> bool:
+        """Reload configurations"""
+        try:
+            self._load_agent_configs()
+            return True
+        except Exception:
+            return False
+
+    def _validate_agent_type(self, agent_type: str) -> bool:
+        """Validate agent type"""
+        valid_types = [
+            "customer_support",
+            "marketing",
+            "financial_trading_bot",
+            "personal_virtual_assistant",
+        ]
+        return agent_type in valid_types
+
+    def _get_agent_config(self, agent_type: str) -> Dict[str, Any]:
+        """Get agent configuration"""
+        return self.agent_configs.get(agent_type, {})
+
+    def _is_agent_enabled(self, agent_type: str) -> bool:
+        """Check if agent is enabled"""
+        config = self._get_agent_config(agent_type)
+        return config.get("enabled", True)

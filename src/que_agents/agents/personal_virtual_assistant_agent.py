@@ -8,6 +8,7 @@
 import json
 import re
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
@@ -40,21 +41,61 @@ REMIND_ME_TO = "remind me to"
 SET_A_REMINDER = "set a reminder"
 DEFAULT_LOCATION = "New York"
 
-# Load agent configuration
-with open("./configs/agent_config.yaml", "r") as f:
-    agent_config = yaml.safe_load(f)
+
+# Load agent configuration with fallback
+def load_agent_config():
+    """Load agent configuration with fallback"""
+    possible_paths = [
+        Path(__file__).parent.parent.parent.parent / "configs" / "agent_config.yaml",
+        Path("configs/agent_config.yaml"),
+        Path("./configs/agent_config.yaml"),
+    ]
+
+    for config_path in possible_paths:
+        try:
+            if config_path.exists():
+                with open(config_path, "r") as f:
+                    return yaml.safe_load(f)
+        except Exception:
+            continue
+
+    # Fallback configuration
+    return {
+        "personal_virtual_assistant": {
+            "model_name": "gpt-3.5-turbo",
+            "temperature": 0.7,
+            "max_tokens": 600,
+        }
+    }
+
+
+agent_config = load_agent_config()
 
 
 class PersonalVirtualAssistantAgent:
     """Personal Virtual Assistant Agent using LangChain"""
 
     def __init__(self):
-        # Try different config key names
+        # Try different config key names with fallback handling
         config_key = "personal_virtual_assistant"
         if config_key not in agent_config:
-            config_key = "personal_virtual_assistant"
+            config_key = "personal_assistant"
 
-        config = agent_config[config_key]
+        if config_key in agent_config:
+            config = agent_config[config_key]
+        else:
+            # Use default configuration
+            config = {
+                "model_name": "gpt-4",
+                "temperature": 0.7,
+                "max_tokens": 500,
+                "capabilities": [
+                    "weather",
+                    "reminders",
+                    "device_control",
+                    "general_queries",
+                ],
+            }
         self.llm = LLMFactory.get_llm(
             agent_type="personal_virtual_assistant",
             model_name=config["model_name"],
@@ -1313,7 +1354,7 @@ Smart Devices: {len(smart_devices) if isinstance(smart_devices, list) else 0} ({
             if not isinstance(response, str):
                 response = str(response)
         except Exception as chain_error:
-            system_logger.error(f"Response chain error: {chain_error}")
+            system_logger.error(f"Response chain error: {chain_error}", exc_info=True)
             # Fallback to simple response based on intent
             if intent_result.intent == "greeting":
                 response = (

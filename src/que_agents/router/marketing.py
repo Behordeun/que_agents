@@ -105,7 +105,9 @@ class MarketingAgentService:
                         "retry_recommended": True,
                     }
                 else:
-                    raise HTTPException(status_code=400, detail=result["message"])
+                    raise HTTPException(
+                        status_code=400, detail=result.get("error", "Agent error")
+                    )
 
             # Successful campaign creation
             response_data = {

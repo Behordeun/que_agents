@@ -274,6 +274,10 @@ class RiskManagement:
     ) -> Dict[str, Any]:
         """Assess overall portfolio risk"""
         try:
+            # Validate input types
+            if not isinstance(portfolio_value, (int, float)):
+                raise ValueError("Invalid portfolio_value type")
+
             position_values, total_position_value = (
                 RiskManagement._extract_position_values(positions)
             )

@@ -14,27 +14,103 @@ from typing import Dict, List, Optional
 
 import chromadb
 import yaml
-from sentence_transformers import SentenceTransformer
 
 from src.que_agents.core.database import KnowledgeBase, get_session
 
-# Load knowledge base configuration
-with open("configs/knowledge_base_config.yaml", "r") as f:
-    kb_config = yaml.safe_load(f)
+DEFAULT_KB_DB_PATH = "knowledge_base.db"
+DEFAULT_CHROMA_DB_PATH = "./chroma_db"
 
-# Load LLM configuration
-with open("configs/llm_config.yaml", "r") as f:
-    llm_config = yaml.safe_load(f)
+try:
+    from sentence_transformers import SentenceTransformer
+
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except (ImportError, KeyError):
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
+    SentenceTransformer = None
+
+
+# Load knowledge base configuration
+def load_kb_config():
+    """Load knowledge base configuration with fallback"""
+    possible_paths = [
+        Path(__file__).parent.parent.parent.parent
+        / "configs"
+        / "knowledge_base_config.yaml",
+        Path("configs/knowledge_base_config.yaml"),
+        Path("./configs/knowledge_base_config.yaml"),
+    ]
+
+    for config_path in possible_paths:
+        try:
+            if config_path.exists():
+                with open(config_path, "r") as f:
+                    return yaml.safe_load(f)
+        except Exception:
+            continue
+
+    # Fallback configuration
+    return {
+        "knowledge_base": {
+            "db_path": "test_knowledge_base.db",
+            "chroma_path": "./test_chroma_db",
+            "embedding_model": "all-MiniLM-L6-v2",
+            "agents": {},
+        }
+    }
+
+
+def load_llm_config():
+    """Load LLM configuration with fallback"""
+    possible_paths = [
+        Path(__file__).parent.parent.parent.parent / "configs" / "llm_config.yaml",
+        Path("configs/llm_config.yaml"),
+        Path("./configs/llm_config.yaml"),
+    ]
+
+    for config_path in possible_paths:
+        try:
+            if config_path.exists():
+                with open(config_path, "r") as f:
+                    return yaml.safe_load(f)
+        except Exception:
+            continue
+
+    # Fallback configuration
+    return {"llm": {"default_provider": "openai"}}
+
+
+kb_config = load_kb_config()
+llm_config = load_llm_config()
 
 
 class SimpleKnowledgeBase:
     """Simple knowledge base implementation using SQLite for vector storage simulation"""
 
     def __init__(self):
-        self.db_path = kb_config["knowledge_base"]["db_path"]
-        self.chroma_path = kb_config["knowledge_base"]["chroma_path"]
-        self.embedding_model_name = kb_config["knowledge_base"]["embedding_model"]
-        self.embedding_model = SentenceTransformer(self.embedding_model_name)
+        try:
+            # Try to load configuration with fallback handling
+            config = kb_config.get("knowledge_base", {})
+            if config:
+                self.chroma_path = config.get("chroma_path", DEFAULT_CHROMA_DB_PATH)
+                self.chroma_path = config.get("chroma_path", DEFAULT_CHROMA_DB_PATH)
+                self.embedding_model_name = config.get(
+                    "embedding_model", "all-MiniLM-L6-v2"
+                )
+            else:
+                # Use default configuration
+                self.chroma_path = DEFAULT_CHROMA_DB_PATH
+                self.chroma_path = DEFAULT_CHROMA_DB_PATH
+                self.embedding_model_name = "all-MiniLM-L6-v2"
+        except Exception as e:
+            print(f"Error loading knowledge base config: {e}")
+            # Use default configuration
+            self.db_path = DEFAULT_KB_DB_PATH
+            self.chroma_path = DEFAULT_CHROMA_DB_PATH
+            self.embedding_model_name = "all-MiniLM-L6-v2"
+        if SENTENCE_TRANSFORMERS_AVAILABLE and SentenceTransformer is not None:
+            self.embedding_model = SentenceTransformer(self.embedding_model_name)
+        else:
+            self.embedding_model = None
         self.init_db()
 
     def init_db(self):
@@ -93,20 +169,21 @@ class SimpleKnowledgeBase:
 
         # Generate embedding and add to ChromaDB
         document_text = f"{title}. {content}"
-        embedding = self.embedding_model.encode(document_text).tolist()
-        self.chroma_collection.add(
-            embeddings=[embedding],
-            documents=[document_text],
-            metadatas=[
-                {
-                    "doc_id": doc_id,
-                    "title": title,
-                    "source_type": source_type,
-                    "category": category or "",
-                }
-            ],
-            ids=[str(doc_id)],
-        )
+        if self.embedding_model:
+            embedding = self.embedding_model.encode(document_text).tolist()
+            self.chroma_collection.add(
+                embeddings=[embedding],
+                documents=[document_text],
+                metadatas=[
+                    {
+                        "doc_id": doc_id,
+                        "title": title,
+                        "source_type": source_type,
+                        "category": category or "",
+                    }
+                ],
+                ids=[str(doc_id)],
+            )
 
         conn.commit()
         conn.close()
@@ -119,6 +196,8 @@ class SimpleKnowledgeBase:
             return []
 
         try:
+            if not self.embedding_model:
+                return []
             query_embedding = self.embedding_model.encode(query).tolist()
             results = self.chroma_collection.query(
                 query_embeddings=[query_embedding],
@@ -252,7 +331,10 @@ class AgentKnowledgeBase:
     def __init__(self, agent_type: str, base_kb: SimpleKnowledgeBase):
         self.agent_type = agent_type
         self.base_kb = base_kb
-        self.config = kb_config["knowledge_base"]["agents"].get(agent_type, {})
+        try:
+            self.config = kb_config["knowledge_base"]["agents"].get(agent_type, {})
+        except (KeyError, TypeError):
+            self.config = {}
 
     def load_agent_data(self):
         """Load agent-specific data into knowledge base"""

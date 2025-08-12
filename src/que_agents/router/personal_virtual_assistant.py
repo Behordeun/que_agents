@@ -6,7 +6,8 @@
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
+from pydantic import BaseModel
 
 from src.que_agents.core.schemas import PVARequest, PVAResponse
 from src.que_agents.error_trace.errorlogger import system_logger
@@ -815,17 +816,20 @@ async def get_user_context(
     return service.get_user_context(user_id)
 
 
+class DeviceControlRequest(BaseModel):
+    action: str
+    parameters: Optional[Dict[str, Any]] = None
+
 @router.post("/user/{user_id}/device/{device_id}/control")
 async def control_smart_device(
     user_id: str,
     device_id: str,
-    action: str,
-    parameters: Optional[Dict[str, Any]] = None,
+    request: DeviceControlRequest,
     service: PersonalVirtualAssistantService = Depends(get_pva_service),
     token: str = Depends(get_token_from_state),
 ):
     """Control smart home devices"""
-    return service.control_smart_device(user_id, device_id, action, parameters)
+    return service.control_smart_device(user_id, device_id, request.action, request.parameters)
 
 
 @router.post("/user/{user_id}/reminder")

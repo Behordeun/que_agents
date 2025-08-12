@@ -927,6 +927,115 @@ async def list_available_agents():
     }
 
 
+# Knowledge Base endpoints
+@app.get("/api/v1/knowledge-base/search")
+async def search_knowledge_base_endpoint(
+    query: str, limit: int = 5, token: str = Depends(verify_token)
+):
+    """Search knowledge base for relevant documents"""
+    try:
+        from src.que_agents.knowledge_base.kb_manager import search_knowledge_base
+
+        if not query or not query.strip():
+            raise HTTPException(status_code=400, detail="Query parameter is required")
+
+        results = search_knowledge_base(query, limit=limit)
+
+        return {
+            "query": query,
+            "results": results,
+            "count": len(results),
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        system_logger.error(f"Knowledge base search error: {e}")
+        raise HTTPException(status_code=500, detail="Knowledge base search failed")
+
+
+# Database endpoints
+@app.get("/api/v1/customers")
+async def list_customers(
+    limit: int = 10, offset: int = 0, token: str = Depends(verify_token)
+):
+    """List customers from database"""
+    try:
+        from src.que_agents.core.database import Customer, get_session
+
+        session = get_session()
+        try:
+            customers = session.query(Customer).offset(offset).limit(limit).all()
+
+            return {
+                "customers": [
+                    {
+                        "id": customer.id,
+                        "name": customer.name,
+                        "email": customer.email,
+                        "tier": customer.tier,
+                        "company": customer.company,
+                        "created_at": (
+                            customer.created_at.isoformat()
+                            if customer.created_at
+                            else None
+                        ),
+                    }
+                    for customer in customers
+                ],
+                "count": len(customers),
+                "offset": offset,
+                "limit": limit,
+                "timestamp": datetime.now().isoformat(),
+            }
+        finally:
+            session.close()
+    except Exception as e:
+        system_logger.error(f"Database customers error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve customers")
+
+
+@app.get("/api/v1/campaigns")
+async def list_campaigns(
+    limit: int = 10, offset: int = 0, token: str = Depends(verify_token)
+):
+    """List marketing campaigns from database"""
+    try:
+        from src.que_agents.core.database import MarketingCampaign, get_session
+
+        session = get_session()
+        try:
+            campaigns = (
+                session.query(MarketingCampaign).offset(offset).limit(limit).all()
+            )
+
+            return {
+                "campaigns": [
+                    {
+                        "id": campaign.id,
+                        "name": campaign.name,
+                        "campaign_type": campaign.campaign_type,
+                        "status": campaign.status,
+                        "budget": float(campaign.budget) if campaign.budget else 0.0,
+                        "target_audience": campaign.target_audience,
+                        "created_at": (
+                            campaign.created_at.isoformat()
+                            if campaign.created_at
+                            else None
+                        ),
+                    }
+                    for campaign in campaigns
+                ],
+                "count": len(campaigns),
+                "offset": offset,
+                "limit": limit,
+                "timestamp": datetime.now().isoformat(),
+            }
+        finally:
+            session.close()
+    except Exception as e:
+        system_logger.error(f"Database campaigns error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve campaigns")
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):

@@ -19,7 +19,7 @@ from src.que_agents.core.database import (
     MarketingPost,
     SmartDevice,
     SupportTicket,
-    UserPreference,
+    UserPreferences,
     get_session,
 )
 
@@ -284,16 +284,16 @@ def populate_sample_data():
 
         # Sample User Preferences
         user_preferences = [
-            UserPreference(
-                user_id=1,
+            UserPreferences(
+                user_id="1",
                 preferences={
                     "music_genre": "classical",
                     "news_topics": ["tech", "AI"],
                     "preferred_language": "en",
                 },
             ),
-            UserPreference(
-                user_id=2,
+            UserPreferences(
+                user_id="2",
                 preferences={
                     "music_genre": "jazz",
                     "news_topics": ["finance", "politics"],
@@ -307,24 +307,24 @@ def populate_sample_data():
         # Sample Smart Devices
         smart_devices = [
             SmartDevice(
-                user_id=1,
-                name="living room light",
-                type="light",
-                status={"power": "off", "brightness": 0},
+                user_id="1",
+                device_name="living room light",
+                device_type="light",
+                current_state={"power": "off", "brightness": 0},
                 location="Living Room",
             ),
             SmartDevice(
-                user_id=1,
-                name="bedroom thermostat",
-                type="thermostat",
-                status={"power": "on", "temperature": 22.5, "unit": "celsius"},
+                user_id="1",
+                device_name="bedroom thermostat",
+                device_type="thermostat",
+                current_state={"power": "on", "temperature": 22.5, "unit": "celsius"},
                 location="Bedroom",
             ),
             SmartDevice(
-                user_id=2,
-                name="kitchen speaker",
-                type="speaker",
-                status={"power": "on", "volume": 50, "playing": "none"},
+                user_id="2",
+                device_name="kitchen speaker",
+                device_type="speaker",
+                current_state={"power": "on", "volume": 50, "playing": "none"},
                 location="Kitchen",
             ),
         ]

@@ -382,7 +382,7 @@ class FinancialTradingBotService:
                 return self._market_obj_to_dict(market_data)
         except Exception as e:
             system_logger.warning(f"Agent market data retrieval failed: {e}")
-            return self._generate_fallback_market_data(symbol)
+            return self._generate_fallback_market_data(symbol, error=str(e))
 
     def _generate_fallback_market_data(
         self, symbol: str, error: Optional[str] = None
@@ -466,7 +466,7 @@ class FinancialTradingBotService:
                     return self._enhance_performance_report(report)
                 except Exception as e:
                     system_logger.warning(f"Agent performance report failed: {e}")
-                    return self._generate_fallback_performance_report()
+                    return self._generate_fallback_performance_report(error=str(e))
             else:
                 return self._generate_fallback_performance_report()
 
